@@ -17,13 +17,13 @@ const Gallery = () => {
 }
 
 const ItemThumbnail = ({ item }) => {
-    const primaryFile = item.files.find(_ => _.contentType.startsWith('image/')) ?? item.files[0];
+    const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
 
     return (
         <div
-            onClick={() => open(primaryFile.fullQualityUrl)}
+            onClick={() => open(primaryFile.previewUrl)}
             style={{
-                background: `url(${item.files[0].previewImageSmallUrl}) no-repeat`,
+                background: `url(${item.files[0].tileImageUrl}) no-repeat`,
                 backgroundSize: 'cover',
                 minHeight: '100px',
                 minWidth: '100px',

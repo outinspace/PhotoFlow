@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 const properties = {
-    apiUrl: 'http://192.168.1.44:5023'
+    apiUrl: 'http://192.168.1.70:5023'
 };
 
 const authHeaders = {};
