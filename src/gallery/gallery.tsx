@@ -6,24 +6,27 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 const Gallery = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const { data: gallery } = useGallery();
-    const [containerWidth, setContainerWidth] = useState(0);
+    const containerWidth = containerRef.current?.clientWidth ?? 0;
 
-    const columns = 5;
+    const minTileSize = 200;
+    let columns = Math.floor(containerWidth / minTileSize);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
     const rowVirtualizer = useVirtualizer({
-        enabled: tileSize > 0,
+        enabled: tileSize > 0 && gallery?.items,
         count: gallery?.items.length ?? 0,
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
-        lanes: columns
+        lanes: columns,
+        overscan: columns * 3
     });
 
-    console.log('rerender', {containerWidth});
+    console.log('rerender', { containerWidth });
 
     useLayoutEffect(() => {
         const updateWidth = () => {
-            setContainerWidth(containerRef.current?.clientWidth ?? 0);
+            console.log('update width');
+            rowVirtualizer.measure();
         };
 
         window.addEventListener('resize', updateWidth);
@@ -31,7 +34,7 @@ const Gallery = () => {
         updateWidth();
 
         return () => window.removeEventListener('resize', updateWidth);
-    })
+    }, []);
 
     if (!gallery) {
         return;
@@ -53,12 +56,12 @@ const Gallery = () => {
                             position: 'absolute',
                             top: 0,
                             left: virtualItem.lane * tileSize,
-                            width: tileSize,
+                            width: `${virtualItem.size}px`,
                             height: `${virtualItem.size}px`,
                             transform: `translateY(${virtualItem.start}px)`
                         }}
                     >
-                        <ItemThumbnail size={tileSize} item={gallery.items[virtualItem.index]} />
+                        <ItemThumbnail item={gallery.items[virtualItem.index]} />
                     </div>
                 ))}
             </div>
@@ -66,36 +69,25 @@ const Gallery = () => {
     );
 }
 
-const ItemThumbnail = ({ item, size }) => {
+const ItemThumbnail = ({ item }) => {
     const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
 
     return (
         <div
             onClick={() => open(primaryFile.previewUrl)}
             style={{
-                background: `url(${item.files[0].tileImageUrl}) no-repeat`,
+                background: `url(${primaryFile.tileImageUrl}) no-repeat`,
                 backgroundSize: 'cover',
-                height: size,
-                width: size
-                // minHeight: '100px',
-                // minWidth: '100px',
-                // height: '100%',
-                // width: '100%'
+                height: '100%',
+                width: '100%',
+                outline: 'solid white 1px'
             }}>
         </div>
     );
 }
 
-// const GalleryContainer = styled.div`
-//     display: grid;
-//     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-//     grid-gap: 2px;
-//     height: 100%;
-//     width: 100%;
-// `;
-
 const GalleryContainer = styled.div`
-    height: 100%;
+    flex: 1 1 auto;
     width: 100%;
     overflow: auto;
 `;
