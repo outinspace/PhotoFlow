@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import { useGallery } from './queries';
 import styled from '@emotion/styled';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -21,17 +21,20 @@ const Gallery = () => {
         overscan: columns * 3
     });
 
-    console.log('rerender', { containerWidth });
+    console.debug('rerender', { containerWidth });
 
     useLayoutEffect(() => {
         const updateWidth = () => {
-            console.log('update width');
+            console.debug('update width', containerWidth);
             rowVirtualizer.measure();
         };
 
         window.addEventListener('resize', updateWidth);
 
-        updateWidth();
+        // HACK:
+        setTimeout(() => {
+            updateWidth();
+        }, 500);
 
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
@@ -70,18 +73,36 @@ const Gallery = () => {
 }
 
 const ItemThumbnail = ({ item }) => {
+    const [isHovering, setIsHovering] = useState(false);
     const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
+    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+
+    const showLivePhoto = isHovering && videoFile;
 
     return (
         <div
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
             onClick={() => open(primaryFile.previewUrl)}
             style={{
-                background: `url(${primaryFile.tileImageUrl}) no-repeat`,
-                backgroundSize: 'cover',
                 height: '100%',
                 width: '100%',
-                outline: 'solid white 1px'
+                outline: 'solid white 1px',
+                display: 'flex'
             }}>
+            {showLivePhoto && (
+                <video autoPlay controls={false} loop muted
+                    poster={primaryFile.tileImageUrl}
+                    style={{
+                        objectFit: 'cover',
+                        flex: '1 1 auto'
+                    }}>
+                    <source src={videoFile.previewUrl} type="video/mp4" />
+                </video>
+            )}
+            {!showLivePhoto && (
+                <img src={primaryFile.tileImageUrl} />
+            )}
         </div>
     );
 }
