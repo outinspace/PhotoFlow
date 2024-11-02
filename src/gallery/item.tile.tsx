@@ -1,0 +1,58 @@
+import React, { useState } from 'react';
+import { Item } from './types';
+
+interface Props {
+    item: Item;
+    onClick: Function;
+}
+
+export const ItemTile = ({ item, onClick }: Props) => {
+    const [isHovering, setIsHovering] = useState(false);
+    const [videoIsLoaded, setVideoIsLoaded] = useState(false);
+    const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
+    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+
+    // const showLivePhoto = isHovering && videoFile;
+    const showLivePhoto = false; // TODO:
+
+    return (
+        <div
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+            onClick={() => onClick()}
+            style={{
+                height: '100%',
+                width: '100%',
+                outline: 'solid white 1px'
+            }}>
+            {!!showLivePhoto && (
+                // TODO: Fix white flicker
+                <video
+                    onCanPlay={() => setVideoIsLoaded(true)}
+                    autoPlay
+                    controls={false}
+                    loop
+                    muted
+                    poster={primaryFile.tileImageUrl ?? undefined}
+                    playsInline
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        visibility: videoIsLoaded ? 'visible' : 'hidden'
+                    }}>
+                    <source src={videoFile?.previewUrl ?? undefined} type="video/mp4" />
+                </video>
+            )}
+            <img
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                }}
+                src={primaryFile.tileImageUrl ?? undefined} />
+        </div>
+    );
+};
+

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { GetGalleryResponse } from "./types";
 
 const properties = {
     apiUrl: 'http://192.168.1.70:5023'
@@ -36,6 +37,6 @@ export const useGallery = () => useQuery({
         });
 
         const body = await res.json();
-        return body.result;
+        return body.result as GetGalleryResponse;
     }
 });
