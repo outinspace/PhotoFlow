@@ -74,35 +74,51 @@ const Gallery = () => {
 
 const ItemThumbnail = ({ item }) => {
     const [isHovering, setIsHovering] = useState(false);
+    const [videoIsLoaded, setVideoIsLoaded] = useState(false);
     const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
 
-    const showLivePhoto = isHovering && videoFile;
+    // const showLivePhoto = isHovering && videoFile;
+    const showLivePhoto = false; // TODO:
 
     return (
         <div
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
-            onClick={() => open(primaryFile.previewUrl)}
+            onClick={() => open(primaryFile.previewUrl, '_self')}
             style={{
                 height: '100%',
                 width: '100%',
-                outline: 'solid white 1px',
-                display: 'flex'
+                outline: 'solid white 1px'
             }}>
-            {showLivePhoto && (
-                <video autoPlay controls={false} loop muted
+            {!!showLivePhoto && (
+                // TODO: Fix white flicker
+                <video
+                    onCanPlay={() => setVideoIsLoaded(true)}
+                    autoPlay
+                    controls={false}
+                    loop
+                    muted
                     poster={primaryFile.tileImageUrl}
+                    playsInline
                     style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
                         objectFit: 'cover',
-                        flex: '1 1 auto'
+                        visibility: videoIsLoaded ? 'visible' : 'hidden'
                     }}>
                     <source src={videoFile.previewUrl} type="video/mp4" />
                 </video>
             )}
-            {!showLivePhoto && (
-                <img src={primaryFile.tileImageUrl} />
-            )}
+            <img
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                }}
+                src={primaryFile.tileImageUrl}
+            />
         </div>
     );
 }
