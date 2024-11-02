@@ -77,6 +77,7 @@ const ItemGrid = ({ items }: Props) => {
                     item={selectedItem}
                     onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? 0 : selectedItemIndex! - 1)}
                     onMoveNext={() => setSelectedItemIndex(selectedItemIndex === items.length - 1 ? items.length - 1 : selectedItemIndex! + 1)}
+                    onClose={() => setSelectedItemIndex(null)}
                 />
             )}
         </GridContainer>
