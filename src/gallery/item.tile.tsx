@@ -22,7 +22,7 @@ export const ItemTile = ({ item, onClick }: Props) => {
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             setShowImage(true);
-        }, 250);
+        }, 50);
 
         return () => clearTimeout(timeoutId);
     })

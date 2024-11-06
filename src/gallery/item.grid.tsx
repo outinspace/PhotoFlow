@@ -16,7 +16,9 @@ const ItemGrid = ({ items }: Props) => {
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
     const selectedItem = selectedItemIndex == null ? null : items[selectedItemIndex];
 
-    const minTileSize = 200;
+    // TODO: Increase grid size on pinch or zoom?
+
+    const minTileSize = 150;
     let columns = Math.floor(containerWidth / minTileSize);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -26,7 +28,7 @@ const ItemGrid = ({ items }: Props) => {
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
         lanes: columns,
-        overscan: columns * 3,
+        overscan: columns, // BUG: This doesn't work with lanes set.
         getItemKey: index => `${index}-${items[index].itemId}`
     });
 
