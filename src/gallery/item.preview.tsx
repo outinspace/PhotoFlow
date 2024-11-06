@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from './types';
 import styled from '@emotion/styled';
-import { Download, NavArrowLeft, NavArrowRight, Xmark } from 'iconoir-react';
+import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { useLongPress } from '../hooks/use.long.press';
@@ -29,7 +29,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
         { cmd: ['Escape'], callback: () => onClose() }
     ], [onMovePrevious, onMoveNext, onClose]);
 
-    const livePhotoLongPressHandlers = useLongPress(() => setShowLivePhoto(true), 250);
+    // const livePhotoLongPressHandlers = useLongPress(() => setShowLivePhoto(true), 250);
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
@@ -40,6 +40,8 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
         open(primaryFile.originalUrl);
     };
+
+    // TODO: https://use-gesture.netlify.app/
 
     return (
         <Container>
@@ -56,7 +58,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     src={imageFile?.tileImageUrl ?? undefined}
                 />
                 <img
-                    {...livePhotoLongPressHandlers}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
@@ -68,7 +69,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     src={imageFile.previewUrl ?? undefined}
                 />
             </>}
-            {videoFile && isLivePhoto && showLivePhoto && (
+            {isLivePhoto && showLivePhoto && (
                 <video
                     autoPlay
                     controls={false}
@@ -86,30 +87,61 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>
             )}
+            {videoFile && !isLivePhoto && (
+                <video
+                    autoPlay
+                    muted
+                    controls
+                    playsInline
+                    style={{
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        userSelect: 'none',
+                        zIndex: zIndex.previewVideo
+                    }}
+                    onEnded={() => setShowLivePhoto(false)}
+                >
+                    <source src={videoFile.previewUrl ?? undefined} />
+                </video>
+            )}
             {renderPreviousButton(onMovePrevious)}
             {renderNextButton(onMoveNext)}
             {renderCloseButton(onClose)}
-            {renderDownloadButton(downloadPrimaryFile)}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    zIndex: zIndex.controls
+                }}>
+                {isLivePhoto && (
+                    <Play
+                        onClick={() => setShowLivePhoto(true)}
+                        color='white'
+                        height={36}
+                        width={36}
+                        style={{
+                            paddingTop: constants.space.S,
+                            paddingRight: constants.space.S
+                        }}
+                    />
+                )}
+                <Download
+                    onClick={() => downloadPrimaryFile()}
+                    color='white'
+                    height={36}
+                    width={36}
+                    style={{
+                        paddingTop: constants.space.S,
+                        paddingRight: constants.space.S
+                    }}
+                />
+            </div>
         </Container>
     );
 };
-
-function renderDownloadButton(downloadPrimaryFile: () => void) {
-    return <div
-        onClick={() => downloadPrimaryFile()}
-        style={{
-            position: 'absolute',
-            padding: constants.space.S,
-            top: 0,
-            right: 0,
-            zIndex: zIndex.controls
-        }}>
-        <Download
-            color='white'
-            height={36}
-            width={36} />
-    </div>;
-}
 
 function renderCloseButton(onClose: Function) {
     return <div
