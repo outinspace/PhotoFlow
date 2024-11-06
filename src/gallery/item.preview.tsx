@@ -20,6 +20,8 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     ], [onMovePrevious, onMoveNext, onClose]);
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
+    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+    const isLivePhoto = !!imageFile && !!videoFile;
 
     const downloadPrimaryFile = () => {
         const primaryFile = imageFile ?? item.files[0];
@@ -29,10 +31,22 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     return (
         <Container>
-            {imageFile && (
+            {imageFile && <>
                 <img
                     style={{
                         flex: '1 1 auto',
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        userSelect: 'none'
+                    }}
+                    src={imageFile?.tileImageUrl ?? undefined}
+                />
+                <img
+                    style={{
+                        flex: '1 1 auto',
+                        position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
@@ -40,7 +54,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     }}
                     src={imageFile.previewUrl ?? undefined}
                 />
-            )}
+            </>}
             <div
                 onClick={() => onMovePrevious()}
                 style={{

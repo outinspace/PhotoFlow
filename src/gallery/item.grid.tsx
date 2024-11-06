@@ -10,7 +10,7 @@ interface Props {
 }
 
 const ItemGrid = ({ items }: Props) => {
-    const containerRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const containerWidth = containerRef.current?.clientWidth ?? 0;
 
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
@@ -26,14 +26,12 @@ const ItemGrid = ({ items }: Props) => {
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
         lanes: columns,
-        overscan: columns * 3
+        overscan: columns * 3,
+        getItemKey: index => `${index}-${items[index].itemId}`
     });
-
-    // console.debug('rerender', { containerWidth });
 
     useLayoutEffect(() => {
         const updateWidth = () => {
-            // console.debug('update width', containerWidth);
             rowVirtualizer.measure();
         };
 
@@ -74,6 +72,7 @@ const ItemGrid = ({ items }: Props) => {
             </div>
             {selectedItem && (
                 <ItemPreview
+                    key={selectedItem.itemId}
                     item={selectedItem}
                     onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? 0 : selectedItemIndex! - 1)}
                     onMoveNext={() => setSelectedItemIndex(selectedItemIndex === items.length - 1 ? items.length - 1 : selectedItemIndex! + 1)}

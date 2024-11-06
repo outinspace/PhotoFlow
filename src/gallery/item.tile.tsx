@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Item } from './types';
 
 interface Props {
@@ -9,11 +9,23 @@ interface Props {
 export const ItemTile = ({ item, onClick }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
     const [videoIsLoaded, setVideoIsLoaded] = useState(false);
+    const [showImage, setShowImage] = useState(false);
+
+
     const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
 
     // const showLivePhoto = isHovering && videoFile;
     const showLivePhoto = false; // TODO:
+
+    // HACK: Prevent mass loading of tile images when scrolling
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setShowImage(true);
+        }, 250);
+
+        return () => clearTimeout(timeoutId);
+    })
 
     return (
         <div
@@ -50,8 +62,9 @@ export const ItemTile = ({ item, onClick }: Props) => {
                     position: 'relative',
                     width: '100%',
                     height: '100%',
+                    objectFit: 'cover'
                 }}
-                src={primaryFile.tileImageUrl ?? undefined} />
+                src={showImage ? primaryFile.tileImageUrl ?? undefined : undefined} />
         </div>
     );
 };
