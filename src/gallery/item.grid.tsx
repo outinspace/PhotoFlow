@@ -17,17 +17,16 @@ const ItemGrid = ({ items }: Props) => {
     const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
 
     const minTileSize = 150;
-    let columns = Math.floor(containerWidth / minTileSize);
+    const columns = Math.floor(containerWidth / minTileSize);
+    const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
     const rowVirtualizer = useVirtualizer({
         enabled: tileSize > 0,
-        count: items.length ?? 0,
+        count: rows ?? 0,
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
-        lanes: columns,
-        overscan: columns, // BUG: This doesn't work with lanes set.
-        getItemKey: index => `${index}-${items[index].itemId}`
+        overscan: 5
     });
 
     useLayoutEffect(() => {
@@ -54,21 +53,40 @@ const ItemGrid = ({ items }: Props) => {
                     position: 'relative'
                 }}
             >
-                {rowVirtualizer.getVirtualItems().map((virtualItem) => (
-                    <div
-                        key={virtualItem.key}
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: virtualItem.lane * tileSize,
-                            width: `${virtualItem.size}px`,
-                            height: `${virtualItem.size}px`,
-                            transform: `translateY(${virtualItem.start}px)`
-                        }}
-                    >
-                        <ItemTile item={items[virtualItem.index]} onClick={() => setSelectedItemIndex(virtualItem.index)} />
-                    </div>
-                ))}
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const rowIndex = virtualRow.index;
+
+                    const rowItems: Item[] = [];
+                    for (let i = 0; i < columns; i++) {
+                        rowItems.push(items[rowIndex * columns + i])
+                    }
+
+                    return (
+                        <div
+                            key={virtualRow.key}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: `${virtualRow.size}px`,
+                                transform: `translateY(${virtualRow.start}px)`
+                            }}
+                        >
+                            {rowItems.map((item, i) => (
+                                <div style={{
+                                    position: 'absolute',
+                                    left: tileSize * i,
+                                    width: tileSize,
+                                    height: tileSize
+                                }}>
+                                    <ItemTile item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                </div>
+                            ))}
+                        </div>
+
+                    );
+                })}
             </div>
             {selectedItem && (
                 <ItemPreview
