@@ -6,6 +6,12 @@ interface Props {
     onClick: Function;
 }
 
+const placeholderColors: string[] = [];
+for (let i = 0; i < 20; i++) {
+    const alpha = Math.random() * 0.1;
+    placeholderColors.push(`rgba(0,0,0,${alpha})`);
+}
+
 export const ItemTile = ({ item, onClick }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
     const [videoIsLoaded, setVideoIsLoaded] = useState(false);
@@ -35,7 +41,8 @@ export const ItemTile = ({ item, onClick }: Props) => {
             style={{
                 height: '100%',
                 width: '100%',
-                outline: 'solid white 1px'
+                outline: 'solid white 1px',
+                backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}>
             {!!showLivePhoto && (
                 // TODO: Fix white flicker
