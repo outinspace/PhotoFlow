@@ -5,6 +5,9 @@ import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-reac
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { format, formatRelative, parseISO } from 'date-fns';
+import { animated, useSpring } from 'react-spring';
+import { useDrag } from '@use-gesture/react';
+import { css } from '@emotion/react';
 
 interface Props {
     item: Item;
@@ -15,6 +18,7 @@ interface Props {
 
 const zIndex = {
     controls: 10,
+    gestureCapture: 9,
     previewVideo: 3,
     previewImage: 2,
     tileImage: 1
@@ -22,6 +26,12 @@ const zIndex = {
 
 const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+
+    const [{ x, y }, api] = useSpring(() => ({ x: 0, y: 0 }))
+
+    const bind = useDrag(({ pressed, movement: [mx, my] }) => {
+        api.start({ x: pressed ? mx : 0, y: pressed ? my : 0, immediate: pressed })
+    })
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious() },
@@ -41,71 +51,71 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
         open(primaryFile.originalUrl);
     };
 
-    // TODO: https://use-gesture.netlify.app/
-
     return (
-        <Container>
-            {imageFile && <>
-                <img
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        userSelect: 'none',
-                        zIndex: zIndex.tileImage
-                    }}
-                    src={imageFile?.tileImageUrl ?? undefined}
-                />
-                <img
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        userSelect: 'none',
-                        zIndex: zIndex.previewImage
-                    }}
-                    src={imageFile.previewUrl ?? undefined}
-                />
-            </>}
-            {isLivePhoto && showLivePhoto && (
-                <video
-                    autoPlay
-                    controls={false}
-                    playsInline
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        userSelect: 'none',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-            {videoFile && !isLivePhoto && (
-                <video
-                    autoPlay
-                    muted
-                    controls
-                    playsInline
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        userSelect: 'none',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
+        <Container style={{ x, y }}>
+            <animated.div>
+                {imageFile && <>
+                    <img
+                        style={{
+                            position: 'absolute',
+                            objectFit: 'contain',
+                            height: '100%',
+                            width: '100%',
+                            userSelect: 'none',
+                            zIndex: zIndex.tileImage
+                        }}
+                        src={imageFile?.tileImageUrl ?? undefined}
+                    />
+                    <img
+                        style={{
+                            position: 'absolute',
+                            objectFit: 'contain',
+                            height: '100%',
+                            width: '100%',
+                            userSelect: 'none',
+                            zIndex: zIndex.previewImage
+                        }}
+                        src={imageFile.previewUrl ?? undefined}
+                    />
+                </>}
+                {isLivePhoto && showLivePhoto && (
+                    <video
+                        autoPlay
+                        controls={false}
+                        playsInline
+                        style={{
+                            position: 'absolute',
+                            objectFit: 'contain',
+                            height: '100%',
+                            width: '100%',
+                            userSelect: 'none',
+                            zIndex: zIndex.previewVideo
+                        }}
+                        onEnded={() => setShowLivePhoto(false)}
+                    >
+                        <source src={videoFile.previewUrl ?? undefined} />
+                    </video>
+                )}
+                {videoFile && !isLivePhoto && (
+                    <video
+                        autoPlay
+                        muted
+                        controls
+                        playsInline
+                        style={{
+                            position: 'absolute',
+                            objectFit: 'contain',
+                            height: '100%',
+                            width: '100%',
+                            userSelect: 'none',
+                            zIndex: zIndex.previewVideo
+                        }}
+                        onEnded={() => setShowLivePhoto(false)}
+                    >
+                        <source src={videoFile.previewUrl ?? undefined} />
+                    </video>
+                )}
+            </animated.div>
             {renderPreviousButton(onMovePrevious)}
             {renderNextButton(onMoveNext)}
             <div
@@ -167,6 +177,16 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     }}
                 />
             </div>
+            <div {...bind()}
+                style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    zIndex: zIndex.gestureCapture
+                }}
+            />
         </Container>
     );
 };
@@ -222,7 +242,7 @@ function renderPreviousButton(onMovePrevious: Function) {
     </div>;
 }
 
-const Container = styled.div`
+const Container = styled(animated.div)`
     background-color: black;
     position: absolute;
     top: 0;
