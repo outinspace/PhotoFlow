@@ -14,9 +14,7 @@ const ItemGrid = ({ items }: Props) => {
     const containerWidth = containerRef.current?.clientWidth ?? 0;
 
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
-    const selectedItem = selectedItemIndex == null ? null : items[selectedItemIndex];
-
-    // TODO: Increase grid size on pinch or zoom?
+    const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
 
     const minTileSize = 150;
     let columns = Math.floor(containerWidth / minTileSize);
@@ -42,7 +40,7 @@ const ItemGrid = ({ items }: Props) => {
         // HACK:
         setTimeout(() => {
             updateWidth();
-        }, 500);
+        }, 100);
 
         return () => window.removeEventListener('resize', updateWidth);
     }, []);

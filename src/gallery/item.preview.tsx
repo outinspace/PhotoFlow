@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { useLongPress } from '../hooks/use.long.press';
+import { format, formatRelative, parseISO } from 'date-fns';
 
 interface Props {
     item: Item;
@@ -108,7 +108,35 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
             )}
             {renderPreviousButton(onMovePrevious)}
             {renderNextButton(onMoveNext)}
-            {renderCloseButton(onClose)}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    zIndex: zIndex.controls,
+                    alignItems: 'center',
+                    display: 'flex'
+                }}>
+                <Xmark
+                    onClick={() => onClose()}
+                    color='white'
+                    height={36}
+                    width={36}
+                    style={{
+                        padding: constants.space.S,
+                    }}
+                />
+                <span
+                    style={{
+                        color: 'white',
+                        fontFamily: 'Roboto, sans-serif',
+                        fontWeight: 300,
+                        fontSize: 20
+                    }}
+                >
+                    {getRelativeDate(item.captureTime)}
+                </span>
+            </div>
             <div
                 style={{
                     position: 'absolute',
@@ -143,21 +171,12 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     );
 };
 
-function renderCloseButton(onClose: Function) {
-    return <div
-        onClick={() => onClose()}
-        style={{
-            position: 'absolute',
-            padding: constants.space.S,
-            top: 0,
-            left: 0,
-            zIndex: zIndex.controls
-        }}>
-        <Xmark
-            color='white'
-            height={36}
-            width={36} />
-    </div>;
+function getRelativeDate(dateString: string) {
+    let formatString = formatRelative(parseISO(dateString), new Date());
+
+    formatString = formatString[0].toUpperCase() + formatString.slice(1);
+
+    return formatString;
 }
 
 function renderNextButton(onMoveNext: Function) {

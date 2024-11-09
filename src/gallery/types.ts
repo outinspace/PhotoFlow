@@ -1,7 +1,7 @@
 export interface Item {
     itemId: number;
     isFavorite: boolean;
-    captureTimeUtc: string;
+    captureTime: string;
     files: File[];
 }
 
