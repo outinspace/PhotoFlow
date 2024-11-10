@@ -5,6 +5,7 @@ import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-reac
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { format, formatRelative, parseISO } from 'date-fns';
+import { formatAsLongRelativeDateTime } from '../date.utils';
 
 interface Props {
     item: Item;
@@ -134,7 +135,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                         fontSize: 20
                     }}
                 >
-                    {getRelativeDate(item.captureTime)}
+                    {formatAsLongRelativeDateTime(item.captureTime)}
                 </span>
             </div>
             <div
@@ -170,14 +171,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
         </Container>
     );
 };
-
-function getRelativeDate(dateString: string) {
-    let formatString = formatRelative(parseISO(dateString), new Date());
-
-    formatString = formatString[0].toUpperCase() + formatString.slice(1);
-
-    return formatString;
-}
 
 function renderNextButton(onMoveNext: Function) {
     return <div
