@@ -13,7 +13,7 @@ interface Props {
 const zoomControlOptions = [
     {
         name: 'Year',
-        minTileSize: 20,
+        minTileSize: 50,
         showTileBorder: false
     },
     {
