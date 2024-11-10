@@ -29,6 +29,7 @@ const ItemGrid = ({ items }: Props) => {
         overscan: 5
     });
 
+    // HACK:
     useLayoutEffect(() => {
         const updateWidth = () => {
             rowVirtualizer.measure();
@@ -36,7 +37,6 @@ const ItemGrid = ({ items }: Props) => {
 
         window.addEventListener('resize', updateWidth);
 
-        // HACK:
         setTimeout(() => {
             updateWidth();
         }, 100);
@@ -58,7 +58,10 @@ const ItemGrid = ({ items }: Props) => {
 
                     const rowItems: Item[] = [];
                     for (let i = 0; i < columns; i++) {
-                        rowItems.push(items[rowIndex * columns + i])
+                        const itemIndex = rowIndex * columns + i;
+                        if (items[itemIndex]) {
+                            rowItems.push(items[itemIndex]);
+                        }
                     }
 
                     return (
@@ -74,12 +77,15 @@ const ItemGrid = ({ items }: Props) => {
                             }}
                         >
                             {rowItems.map((item, i) => (
-                                <div style={{
-                                    position: 'absolute',
-                                    left: tileSize * i,
-                                    width: tileSize,
-                                    height: tileSize
-                                }}>
+                                <div
+                                    key={item.itemId}
+                                    style={{
+                                        position: 'absolute',
+                                        left: tileSize * i,
+                                        width: tileSize,
+                                        height: tileSize
+                                    }}
+                                >
                                     <ItemTile item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
                                 </div>
                             ))}
