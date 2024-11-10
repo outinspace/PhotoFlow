@@ -7,7 +7,7 @@ const Gallery = () => {
 
     const sortedItems = useMemo(() => {
         const items = gallery?.items ?? [];
-        return items.sort((a, b) => a.captureTime < b.captureTime ? -1 : 1);
+        return items.sort((a, b) => a.captureTime < b.captureTime ? 1 : -1); // Date descending
     }, [gallery?.items]);
 
     return (
