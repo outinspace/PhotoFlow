@@ -26,7 +26,7 @@ const ItemGrid = ({ items }: Props) => {
         count: rows ?? 0,
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
-        overscan: 5
+        overscan: 10
     });
 
     // HACK:
