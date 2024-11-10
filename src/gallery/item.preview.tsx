@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { format, formatRelative, parseISO } from 'date-fns';
 import { formatAsLongRelativeDateTime } from '../date.utils';
+import { nonSelectable } from '../styles';
 
 interface Props {
     item: Item;
@@ -48,23 +48,23 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
         <Container>
             {imageFile && <>
                 <img
+                    className={nonSelectable}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        userSelect: 'none',
                         zIndex: zIndex.tileImage
                     }}
                     src={imageFile?.tileImageUrl ?? undefined}
                 />
                 <img
+                    className={nonSelectable}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        userSelect: 'none',
                         zIndex: zIndex.previewImage
                     }}
                     src={imageFile.previewUrl ?? undefined}
@@ -75,12 +75,12 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     autoPlay
                     controls={false}
                     playsInline
+                    className={nonSelectable}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        userSelect: 'none',
                         zIndex: zIndex.previewVideo
                     }}
                     onEnded={() => setShowLivePhoto(false)}
@@ -94,12 +94,12 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     muted
                     controls
                     playsInline
+                    className={nonSelectable}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        userSelect: 'none',
                         zIndex: zIndex.previewVideo
                     }}
                     onEnded={() => setShowLivePhoto(false)}

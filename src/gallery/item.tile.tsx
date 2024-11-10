@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Item } from './types';
+import { nonSelectable } from '../styles';
 
 interface Props {
     item: Item;
@@ -65,6 +66,7 @@ export const ItemTile = ({ item, onClick }: Props) => {
                 </video>
             )}
             <img
+                className={nonSelectable}
                 style={{
                     position: 'relative',
                     width: '100%',
