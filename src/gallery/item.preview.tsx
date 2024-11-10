@@ -128,6 +128,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     }}
                 />
                 <span
+                    className={nonSelectable}
                     style={{
                         color: constants.colors.text.level0,
                         fontFamily: 'Roboto, sans-serif',
