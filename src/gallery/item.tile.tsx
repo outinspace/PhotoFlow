@@ -6,6 +6,7 @@ import constants from '../design.constants';
 interface Props {
     item: Item;
     onClick: Function;
+    showBorder: boolean;
 }
 
 const placeholderColors: string[] = [];
@@ -14,7 +15,7 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-export const ItemTile = ({ item, onClick }: Props) => {
+export const ItemTile = ({ item, onClick, showBorder }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
     const [videoIsLoaded, setVideoIsLoaded] = useState(false);
     const [showImage, setShowImage] = useState(false);
@@ -43,7 +44,7 @@ export const ItemTile = ({ item, onClick }: Props) => {
             style={{
                 height: '100%',
                 width: '100%',
-                outline: `solid ${constants.colors.surface.level0} 1px`,
+                outline: showBorder ? `solid ${constants.colors.surface.level0} 1px` : undefined,
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}>
             {!!showLivePhoto && (

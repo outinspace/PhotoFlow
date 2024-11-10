@@ -4,10 +4,29 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
 import { Item } from './types';
 import ItemPreview from './item.preview';
+import GridZoomControl from './grid.zoom.control';
 
 interface Props {
     items: Item[];
 }
+
+const zoomControlOptions = [
+    {
+        name: 'Year',
+        minTileSize: 20,
+        showTileBorder: false
+    },
+    {
+        name: 'Month',
+        minTileSize: 100,
+        showTileBorder: true
+    },
+    {
+        name: 'Day',
+        minTileSize: 150,
+        showTileBorder: true
+    }
+];
 
 const ItemGrid = ({ items }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -16,8 +35,9 @@ const ItemGrid = ({ items }: Props) => {
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
     const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
 
-    const minTileSize = 150;
-    const columns = Math.floor(containerWidth / minTileSize);
+    const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
+
+    const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -86,7 +106,7 @@ const ItemGrid = ({ items }: Props) => {
                                         height: tileSize
                                     }}
                                 >
-                                    <ItemTile item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                    <ItemTile showBorder={zoomLevel.showTileBorder} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
                                 </div>
                             ))}
                         </div>
@@ -103,6 +123,7 @@ const ItemGrid = ({ items }: Props) => {
                     onClose={() => setSelectedItemIndex(null)}
                 />
             )}
+            <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
         </GridContainer>
     );
 }
@@ -110,7 +131,8 @@ const ItemGrid = ({ items }: Props) => {
 const GridContainer = styled.div`
     flex: 1 1 auto;
     width: 100%;
-    overflow: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
 `;
 
 export default ItemGrid;
