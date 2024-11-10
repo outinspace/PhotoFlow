@@ -178,7 +178,7 @@ function renderNextButton(onMoveNext: Function) {
         style={{
             position: 'absolute',
             height: '50%',
-            width: '25%',
+            width: '40%',
             top: '25%',
             right: 0,
             padding: constants.space.S,
@@ -200,7 +200,7 @@ function renderPreviousButton(onMovePrevious: Function) {
         style={{
             position: 'absolute',
             height: '50%',
-            width: '25%',
+            width: '40%',
             top: '25%',
             padding: constants.space.S,
             alignItems: 'center',
