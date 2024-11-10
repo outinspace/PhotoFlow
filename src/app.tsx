@@ -23,7 +23,7 @@ const App = () => {
 
 const FlexContainer = styled.div`
     display: flex;
-    height: 100vh;
+    height: 100dvh;
     width: 100vw;
     overflow: auto;
     position: absolute;
