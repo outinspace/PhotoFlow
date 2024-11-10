@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Item } from './types';
 import { nonSelectable } from '../styles';
+import constants from '../design.constants';
 
 interface Props {
     item: Item;
@@ -9,7 +10,7 @@ interface Props {
 
 const placeholderColors: string[] = [];
 for (let i = 0; i < 20; i++) {
-    const alpha = Math.random() * 0.1;
+    const alpha = Math.random() * 0.1 + 0.9;
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
@@ -42,7 +43,7 @@ export const ItemTile = ({ item, onClick }: Props) => {
             style={{
                 height: '100%',
                 width: '100%',
-                outline: 'solid white 1px',
+                outline: `solid ${constants.colors.surface.level0} 1px`,
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}>
             {!!showLivePhoto && (

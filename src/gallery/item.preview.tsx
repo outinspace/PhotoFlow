@@ -120,7 +120,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 }}>
                 <Xmark
                     onClick={() => onClose()}
-                    color='white'
+                    color={constants.colors.text.level0}
                     height={36}
                     width={36}
                     style={{
@@ -129,7 +129,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 />
                 <span
                     style={{
-                        color: 'white',
+                        color: constants.colors.text.level0,
                         fontFamily: 'Roboto, sans-serif',
                         fontWeight: 300,
                         fontSize: 20
@@ -148,7 +148,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}
-                        color='white'
+                        color={constants.colors.text.level0}
                         height={36}
                         width={36}
                         style={{
@@ -159,7 +159,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 )}
                 <Download
                     onClick={() => downloadPrimaryFile()}
-                    color='white'
+                    color={constants.colors.text.level0}
                     height={36}
                     width={36}
                     style={{
@@ -188,7 +188,7 @@ function renderNextButton(onMoveNext: Function) {
             zIndex: zIndex.controls
         }}>
         <NavArrowRight
-            color='white'
+            color={constants.colors.text.level0}
             height={36}
             width={36} />
     </div>;
@@ -209,14 +209,14 @@ function renderPreviousButton(onMovePrevious: Function) {
             zIndex: zIndex.controls
         }}>
         <NavArrowLeft
-            color='white'
+            color={constants.colors.text.level0}
             height={36}
             width={36} />
     </div>;
 }
 
 const Container = styled.div`
-    background-color: black;
+    background-color: ${constants.colors.surface.level0};
     position: absolute;
     top: 0;
     bottom: 0;
