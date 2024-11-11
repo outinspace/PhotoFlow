@@ -133,7 +133,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                         color: constants.colors.text.level0,
                         fontFamily: 'Roboto, sans-serif',
                         fontWeight: 300,
-                        fontSize: 20
+                        fontSize: 24
                     }}
                 >
                     {formatAsLongRelativeDateTime(item.captureTime)}
