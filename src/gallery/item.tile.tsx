@@ -18,7 +18,6 @@ for (let i = 0; i < 20; i++) {
 export const ItemTile = ({ item, onClick, showBorder }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
     const [videoIsLoaded, setVideoIsLoaded] = useState(false);
-    const [showImage, setShowImage] = useState(false);
 
 
     const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
@@ -26,15 +25,6 @@ export const ItemTile = ({ item, onClick, showBorder }: Props) => {
 
     // const showLivePhoto = isHovering && videoFile;
     const showLivePhoto = false; // TODO:
-
-    // HACK: Prevent mass loading of tile images when scrolling
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setShowImage(true);
-        }, 50);
-
-        return () => clearTimeout(timeoutId);
-    })
 
     return (
         <div
@@ -75,7 +65,7 @@ export const ItemTile = ({ item, onClick, showBorder }: Props) => {
                     height: '100%',
                     objectFit: 'cover'
                 }}
-                src={showImage ? primaryFile.tileImageUrl ?? undefined : undefined} />
+                src={primaryFile.tileImageUrl ?? undefined} />
         </div>
     );
 };
