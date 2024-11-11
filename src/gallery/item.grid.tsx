@@ -1,10 +1,12 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
 import { Item } from './types';
 import ItemPreview from './item.preview';
 import GridZoomControl from './grid.zoom.control';
+import constants from '../design.constants';
+import { format } from 'date-fns';
 
 interface Props {
     items: Item[];
@@ -14,29 +16,34 @@ const zoomControlOptions = [
     {
         name: 'Year',
         minTileSize: 50,
-        showTileBorder: false
+        showTileBorder: false,
+        rangeDateFormat: 'MMMM yyyy'
     },
     {
         name: 'Month',
         minTileSize: 100,
-        showTileBorder: true
+        showTileBorder: true,
+        rangeDateFormat: 'MMM do yyyy'
     },
     {
         name: 'Day',
         minTileSize: 150,
-        showTileBorder: true
+        showTileBorder: true,
+        rangeDateFormat: 'MMM do yyyy'
     }
 ];
 
 const ItemGrid = ({ items }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const containerWidth = containerRef.current?.clientWidth ?? 0;
 
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
     const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
 
     const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
+    const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
+
+    const containerWidth = containerRef.current?.clientWidth ?? 0;
     const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
@@ -46,7 +53,15 @@ const ItemGrid = ({ items }: Props) => {
         count: rows ?? 0,
         getScrollElement: () => containerRef.current,
         estimateSize: () => tileSize,
-        overscan: 10
+        overscan: 5,
+        rangeExtractor: useCallback((range: Range) => {
+            visibleRangeRef.current = {
+                startIndex: range.startIndex,
+                endIndex: range.endIndex
+            };
+
+            return defaultRangeExtractor(range);
+        }, [])
     });
 
     // HACK:
@@ -63,6 +78,17 @@ const ItemGrid = ({ items }: Props) => {
 
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
+
+    const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
+    const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
+
+    // TODO: Use enum
+    let formattedRange = '';
+    if (rangeStartItem && rangeEndItem) {
+        const start = format(rangeStartItem.captureTime, zoomLevel.rangeDateFormat);
+        const end = format(rangeEndItem.captureTime, zoomLevel.rangeDateFormat);
+        formattedRange = `${start} - ${end}`;
+    }
 
     return (
         <GridContainer ref={containerRef}>
@@ -114,6 +140,10 @@ const ItemGrid = ({ items }: Props) => {
                     );
                 })}
             </div>
+            <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
+            <RangeLabel>
+                {formattedRange}
+            </RangeLabel>
             {selectedItem && (
                 <ItemPreview
                     key={selectedItem.itemId}
@@ -123,7 +153,6 @@ const ItemGrid = ({ items }: Props) => {
                     onClose={() => setSelectedItemIndex(null)}
                 />
             )}
-            <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
         </GridContainer>
     );
 }
@@ -133,6 +162,19 @@ const GridContainer = styled.div`
     width: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
+`;
+
+const RangeLabel = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.7) 100%);
+    color: ${constants.colors.text.level0};
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 24px;
+    padding: ${constants.space.M};
 `;
 
 export default ItemGrid;
