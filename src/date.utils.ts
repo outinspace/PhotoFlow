@@ -4,7 +4,7 @@ export function formatAsLongRelativeDateTime(date: Date | string) {
     const daysDifference = differenceInDays(date, new Date());
 
     if (Math.abs(daysDifference) > 6) {
-        return format(date, 'EEEE, LLLL do, yyyy');
+        return format(date, 'EEE, LLLL do, yyyy');
     }
 
     let formatString = formatRelative(date, new Date());
