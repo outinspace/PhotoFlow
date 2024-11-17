@@ -1,0 +1,49 @@
+import { Link, useNavigate, useRouter, useRouterState } from '@tanstack/react-router';
+import React from 'react';
+import { galleryRoute } from './routes';
+import { Album, Book, Menu, Search, Table } from 'iconoir-react';
+
+const options = [
+    {
+        name: 'Gallery',
+        route: '/gallery',
+        icon: Table
+    },
+    {
+        name: 'Albums',
+        route: '/albums',
+        icon: Book
+    },
+    {
+        name: 'Search',
+        route: '/search',
+        icon: Search
+    },
+    {
+        name: 'Menu',
+        route: '/menu',
+        icon: Menu
+    }
+];
+
+const BottomBar = () => {
+    const routerState = useRouterState();
+
+    return (
+        <div className='flex-none flex bg-slate-50 border-t p-2'>
+            {options.map(option => (
+                <Link
+                    to={option.route}
+                    className={`flex-auto flex hover:bg-slate-100 active:bg-slate-300 rounded-md mr-2 last:mr-0 justify-center ${routerState.location.pathname === option.route && 'bg-slate-200 font-bold text-sky-500'}`}
+                >
+                    <div className='p-3 flex flex-col items-center text-xs'>
+                        <option.icon className='mb-1 h-5' />
+                        {option.name}
+                    </div>
+                </Link>
+            ))}
+        </div>
+    );
+};
+
+export default BottomBar;
