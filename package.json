@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "rm -rf .parcel-cache && parcel --no-cache src/index.html",
+    "start": "parcel src/index.html",
     "build": "parcel build"
   },
   "author": "",
