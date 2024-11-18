@@ -166,7 +166,7 @@ function renderNextButton(onMoveNext: Function) {
 function renderPreviousButton(onMovePrevious: Function) {
     return <div
         onClick={() => onMovePrevious()}
-        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-2/5'
+        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-start w-2/5'
         >
         <NavArrowLeft
             color={constants.colors.text.level0}
