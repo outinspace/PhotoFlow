@@ -11,7 +11,9 @@ const Gallery = () => {
     }, [gallery?.items]);
 
     return (
-        <ItemGrid items={sortedItems} />
+        <div className='flex flex-auto overflow-scroll relative'>
+            <ItemGrid items={sortedItems} />
+        </div>
     )
 };
 

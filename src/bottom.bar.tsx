@@ -1,13 +1,12 @@
-import { Link, useNavigate, useRouter, useRouterState } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import React from 'react';
-import { galleryRoute } from './routes';
-import { Album, Book, Menu, Search, Table } from 'iconoir-react';
+import { Book, Menu, Search, ViewGrid } from 'iconoir-react';
 
 const options = [
     {
         name: 'Gallery',
         route: '/gallery',
-        icon: Table
+        icon: ViewGrid
     },
     {
         name: 'Albums',
