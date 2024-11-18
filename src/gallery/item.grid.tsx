@@ -158,6 +158,7 @@ const ItemGrid = ({ items }: Props) => {
 }
 
 const GridContainer = styled.div`
+    position: relative;
     flex: 1 1 auto;
     width: 100%;
     overflow-y: scroll;

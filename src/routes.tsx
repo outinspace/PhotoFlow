@@ -1,8 +1,20 @@
 import React from 'react';
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { ReactNode, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import Gallery from "./gallery/gallery";
 import Login from "./login/login";
 import BottomBar from './bottom.bar';
+import Albums from './albums/albums';
+import Search from './search/search';
+import Menu from './menu/menu';
+
+const BottomBarLayout = ({ children }: { children: ReactNode }) => (
+    <div className="flex flex-auto flex-col">
+        <div className='flex flex-auto flex-col' style={{ overflow: 'auto' }}>
+            {children}
+        </div>
+        <BottomBar />
+    </div>
+);
 
 export const rootRoute = createRootRoute();
 
@@ -10,10 +22,9 @@ export const galleryRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/gallery',
     component: () => (
-        <div className="flex flex-auto flex-col">
+        <BottomBarLayout>
             <Gallery />
-            <BottomBar />
-        </div>
+        </BottomBarLayout>
     )
 });
 
@@ -23,7 +34,43 @@ export const loginRoute = createRoute({
     component: Login
 });
 
-const routeTree = rootRoute.addChildren([galleryRoute, loginRoute]);
+export const albumsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/albums',
+    component: () => (
+        <BottomBarLayout>
+            <Albums />
+        </BottomBarLayout>
+    )
+});
+
+export const searchRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/search',
+    component: () => (
+        <BottomBarLayout>
+            <Search />
+        </BottomBarLayout>
+    )
+});
+
+export const menuRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/menu',
+    component: () => (
+        <BottomBarLayout>
+            <Menu />
+        </BottomBarLayout>
+    )
+});
+
+const routeTree = rootRoute.addChildren([
+    galleryRoute,
+    loginRoute,
+    albumsRoute,
+    searchRoute,
+    menuRoute
+]);
 
 export const router = createRouter({ routeTree });
 
