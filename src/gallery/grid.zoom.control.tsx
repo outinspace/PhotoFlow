@@ -14,10 +14,12 @@ interface Props<T extends Option> {
 
 function GridZoomControl<T extends Option>({ options, onSelect, value }: Props<T>) {
     return (
-        <Container>
-            <div className='w-1/2 p-1 rounded-lg flex backdrop-blur bg-slate-900/10'>
+        <div className='flex absolute left-0 right-0 bottom-5 justify-center pointer-events-none'>
+            <div
+                className='w-1/2 p-1 rounded-lg flex bg-slate-100 pointer-events-auto'
+            >
                 {options.map((option, i) => (
-                    <div className={`flex-auto flex p-3 rounded-lg items-center justify-center hover:bg-slate-900/25 mr-1 last:mr-0 text-slate-200 ${value === option && 'text-slate-100 font-bold bg-slate-900/25'}`}
+                    <div className={`flex-auto flex p-2 rounded-lg items-center justify-center hover:bg-slate-200 mr-1 last:mr-0 ${value === option && 'text-sky-500 font-bold bg-slate-200'}`}
                         key={option.name + i}
                         onClick={() => onSelect(option)}
                     >
@@ -25,26 +27,9 @@ function GridZoomControl<T extends Option>({ options, onSelect, value }: Props<T
                     </div>
                 ))}
             </div>
-        </Container>
+        </div>
     );
 };
-
-const Container = styled.div`
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: ${constants.space.XL};
-    display: flex;
-    justify-content: center;
-`;
-
-const Track = styled.div`
-    width: 300px;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 100px;
-    backdrop-filter: blur(8px);
-    display: flex;
-`;
 
 const Option = styled.div`
     flex: 1 1 auto;

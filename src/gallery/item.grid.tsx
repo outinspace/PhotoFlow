@@ -86,8 +86,7 @@ const ItemGrid = ({ items }: Props) => {
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
         const start = format(rangeStartItem.captureTime, zoomLevel.rangeDateFormat);
-        const end = format(rangeEndItem.captureTime, zoomLevel.rangeDateFormat);
-        formattedRange = `${start} - ${end}`;
+        formattedRange = start; // TODO: Revisit
     }
 
     return (
@@ -141,7 +140,7 @@ const ItemGrid = ({ items }: Props) => {
                 })}
             </div>
             <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-            <RangeLabel>
+            <RangeLabel className='drop-shadow'>
                 {formattedRange}
             </RangeLabel>
             {selectedItem && (
