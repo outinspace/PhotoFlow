@@ -15,20 +15,16 @@ interface Props<T extends Option> {
 function GridZoomControl<T extends Option>({ options, onSelect, value }: Props<T>) {
     return (
         <Container>
-            <Track>
+            <div className='w-1/2 p-1 rounded-lg flex backdrop-blur bg-slate-900/10'>
                 {options.map((option, i) => (
-                    <Option
+                    <div className={`flex-auto flex p-3 rounded-lg items-center justify-center hover:bg-slate-900/25 mr-1 last:mr-0 text-slate-200 ${value === option && 'text-slate-100 font-bold bg-slate-900/25'}`}
                         key={option.name + i}
                         onClick={() => onSelect(option)}
-                        style={{
-                            color: value === option ? constants.colors.text.level0 : constants.colors.text.level1,
-                            backgroundColor: value === option ? constants.colors.surface.level2 : undefined
-                        }}
                     >
                         {option.name}
-                    </Option>
+                    </div>
                 ))}
-            </Track>
+            </div>
         </Container>
     );
 };
