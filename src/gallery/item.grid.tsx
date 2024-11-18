@@ -140,7 +140,7 @@ const ItemGrid = ({ items }: Props) => {
                 })}
             </div>
             <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-            <RangeLabel className='drop-shadow'>
+            <RangeLabel className='drop-shadow select-none pointer-events-none'>
                 {formattedRange}
             </RangeLabel>
             {selectedItem && (
