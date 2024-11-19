@@ -2,10 +2,9 @@
   "name": "photobox",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "start": "parcel src/index.html",
-    "build": "parcel build"
+    "build": "parcel build src/index.html"
   },
   "author": "",
   "license": "ISC",
