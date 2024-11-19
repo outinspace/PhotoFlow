@@ -1,3 +1,3 @@
 export default {
-    apiUrl: 'http://localhost.outin.space:5023'
+    apiUrl: 'https://photoflow-api.outin.space'
 };
