@@ -29,7 +29,7 @@ const Login = () => {
 
             navigate({ to: '/gallery' });
         } else {
-            // TODO:
+            alert('Login failed');
         }
     };
 
