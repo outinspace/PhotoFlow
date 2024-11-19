@@ -42,7 +42,7 @@ const Login = () => {
             </div>
 
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                <form className="space-y-6">
+                <div className="space-y-6">
                     <div>
                         <label htmlFor="email" className="block text-sm/6 font-medium text-gray-900">
                             Family / Organization Name
@@ -96,7 +96,7 @@ const Login = () => {
                             Login
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );
