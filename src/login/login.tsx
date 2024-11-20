@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import constants from '../constants';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -9,6 +9,15 @@ const Login = () => {
 
     const navigate = useNavigate({ from: '/login' });
 
+    // Check session
+    useEffect(() => {
+        const tenantId = localStorage.getItem('tenantId');
+        const sessionId = localStorage.getItem('sessionId');
+
+        if (tenantId && sessionId) {
+            navigate({ to: '/gallery' });
+        }
+    }, []);
 
     const authenticateSession = async (tenantName: string, email: string, password: string) => {
         const params = new URLSearchParams({
@@ -29,6 +38,7 @@ const Login = () => {
 
             navigate({ to: '/gallery' });
         } else {
+            // TODO: Fancy toast
             alert('Login failed');
         }
     };
