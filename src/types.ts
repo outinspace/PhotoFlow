@@ -14,6 +14,7 @@ export interface File {
     tileImageUrl: string | null;
     previewUrl: string | null;
     uploadTimeUtc: string;
+    processedVersion: number | null;
 }
 
 export interface GetGalleryResponse {

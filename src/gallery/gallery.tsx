@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import ItemGrid from "./item.grid";
-import { useGallery } from "./queries";
+import { useGallery } from '../queries';
 
 const Gallery = () => {
     const { data: gallery } = useGallery();
