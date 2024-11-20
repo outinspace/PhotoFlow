@@ -16,7 +16,7 @@ function GridZoomControl<T extends Option>({ options, onSelect, value }: Props<T
     return (
         <div className='flex absolute left-0 right-0 bottom-5 justify-center pointer-events-none'>
             <div
-                className='w-1/2 max-w-xs p-1 rounded-lg flex bg-slate-100 pointer-events-auto'
+                className='w-1/2 max-w-xs p-1 rounded-lg drop-shadow flex bg-slate-100 pointer-events-auto'
             >
                 {options.map((option, i) => (
                     <div className={`flex-auto flex p-2 rounded-lg items-center justify-center hover:bg-slate-200 mr-1 last:mr-0 ${value === option && 'text-sky-500 font-bold bg-slate-200'}`}

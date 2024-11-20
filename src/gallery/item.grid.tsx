@@ -168,7 +168,7 @@ const RangeLabel = styled.div`
     top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.7) 100%);
+    background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.4) 100%);
     color: ${constants.colors.text.level0};
     font-family: Roboto, sans-serif;
     font-weight: 400;
