@@ -124,22 +124,19 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     {formatAsLongRelativeDateTime(item.captureTime)}
                 </span>
             </div>
-            <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow'>
+            <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow text-white'>
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}
-                        color={constants.colors.text.level0}
                         height={36}
                         width={36}
-                        className='mr-3 drop-shadow'
+                        className='mr-3'
                     />
                 )}
                 <Download
                     onClick={() => downloadPrimaryFile()}
-                    color={constants.colors.text.level0}
                     height={36}
                     width={36}
-                    className='drop-shadow-xl'
                 />
             </div>
         </Container>

@@ -2,7 +2,7 @@ import React, { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
 import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
-import { Item } from './types';
+import { Item } from '../types';
 import ItemPreview from './item.preview';
 import GridZoomControl from './grid.zoom.control';
 import constants from '../design.constants';

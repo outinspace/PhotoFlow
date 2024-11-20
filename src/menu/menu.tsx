@@ -1,4 +1,4 @@
-import { CreditCard, LogOut, ProfileCircle, User } from 'iconoir-react';
+import { CreditCard, LogOut, ProfileCircle } from 'iconoir-react';
 import React from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
