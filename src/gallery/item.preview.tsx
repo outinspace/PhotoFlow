@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Item } from './types';
+import { Item } from '../types';
 import styled from '@emotion/styled';
-import { Download, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
+import { Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { formatAsLongRelativeDateTime } from '../date.utils';
 import { nonSelectable } from '../styles';
+import ItemActionMenu from '../common/item.action.menu';
 
 interface Props {
     item: Item;
@@ -23,6 +24,7 @@ const zIndex = {
 
 const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+    const [showActionMenu, setShowActionMenu] = useState(false);
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious() },
@@ -35,12 +37,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
-
-    const downloadPrimaryFile = () => {
-        const primaryFile = imageFile ?? item.files[0];
-
-        open(primaryFile.originalUrl);
-    };
 
     // TODO: https://use-gesture.netlify.app/
 
@@ -133,12 +129,17 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                         className='mr-3'
                     />
                 )}
-                <Download
-                    onClick={() => downloadPrimaryFile()}
+                <Menu
                     height={36}
                     width={36}
+                    onClick={() => setShowActionMenu(true)}
                 />
             </div>
+            <ItemActionMenu
+                item={item}
+                isOpen={showActionMenu}
+                onDismiss={() => setShowActionMenu(false)}
+            />
         </Container>
     );
 };
