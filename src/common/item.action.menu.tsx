@@ -68,7 +68,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
             </div>
             <div>
                 {item.files.map(file => (
-                    <div key={file.fileId} className='flex items-center border-b mb-1 bg-slate-200 rounded'>
+                    <div key={file.fileId} className='flex items-center mb-1 bg-slate-100 rounded'>
                         <div className='flex-auto p-2 truncate text-ellipsis'>
                             {file.originalFileName}
                         </div>
@@ -78,7 +78,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
                         <div className='border-l border-slate-50 p-2 flex-none'>
                             {formatBytes(file.sizeBytes)}
                         </div>
-                        <div className='border-l border-slate-50 p-2 flex-none hover:bg-slate-300 rounded-r'>
+                        <div className='border-l border-slate-50 p-2 flex-none hover:bg-slate-200 rounded-r'>
                             <Download onClick={() => open(file.originalUrl)} />
                         </div>
                     </div>
