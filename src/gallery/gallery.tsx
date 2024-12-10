@@ -18,13 +18,13 @@ const Gallery = () => {
     const processingItemsCount = items.filter(i => i.files.some(f => f.processedVersion === null)).length;
 
     return (
-        <div className='flex flex-auto flex-col overflow-scroll'>
+        <div className='flex flex-auto flex-col overflow-hidden'>
             {processingItemsCount > 0 && (
                 <div className='p-1 bg-sky-100 text-sky-700 flex justify-center'>
                     {`${processingItemsCount} photos/videos are being processed.`}
                 </div>
             )}
-            <div className='flex flex-auto overflow-scroll relative'>
+            <div className='flex flex-auto overflow-hidden relative'>
                 <ItemGrid items={gridItems} />
             </div>
         </div>
