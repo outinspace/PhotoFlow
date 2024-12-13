@@ -8,11 +8,7 @@ const Gallery = () => {
     const items = gallery?.items ?? [];
 
     const gridItems = useMemo(() => {
-
-        // Only display items with thumbnails
-        const filteredItems = items.filter(i => i.files.every(f => f.processedVersion !== null));
-
-        return filteredItems.sort((a, b) => a.captureTime < b.captureTime ? 1 : -1); // Date descending
+        return items.sort((a, b) => a.captureTime < b.captureTime ? 1 : -1); // Date descending
     }, [gallery?.items]);
 
     const processingItemsCount = items.filter(i => i.files.some(f => f.processedVersion === null)).length;
