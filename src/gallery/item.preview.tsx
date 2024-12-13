@@ -90,7 +90,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     muted
                     controls
                     playsInline
-                    className={nonSelectable}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
@@ -147,7 +146,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 function renderNextButton(onMoveNext: Function) {
     return <div
         onClick={() => onMoveNext()}
-        className='flex absolute right-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-2/5 drop-shadow'
+        className='flex absolute right-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-1/5 drop-shadow'
     >
         <NavArrowRight
             color={constants.colors.text.level0}
@@ -159,7 +158,7 @@ function renderNextButton(onMoveNext: Function) {
 function renderPreviousButton(onMovePrevious: Function) {
     return <div
         onClick={() => onMovePrevious()}
-        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-2/5 drop-shadow'
+        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-1/5 drop-shadow'
         >
         <NavArrowLeft
             color={constants.colors.text.level0}
