@@ -87,7 +87,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
             {videoFile && !isLivePhoto && (
                 <video
                     autoPlay
-                    muted
                     controls
                     playsInline
                     style={{
