@@ -9,6 +9,8 @@ export interface Item {
     longitude: number | null;
     latitude: number | null;
     altitude: number | null;
+    city: string | null;
+    region: string | null;
     megapixels: number | null;
     exposureTime: string | null;
     aperature: number | null;
@@ -16,8 +18,6 @@ export interface Item {
     iso: number | null;
     cameraMake: string | null;
     cameraModel: string | null;
-    lensMake: string | null;
-    lensModel: string | null;
 
     files: File[];
 }
@@ -31,7 +31,7 @@ export interface File {
     tileImageUrl: string | null;
     previewUrl: string | null;
     uploadTimeUtc: string;
-    processedVersion: number | null;
+    lastProcessedTimeUtc: string | null;
 }
 
 export interface GetGalleryResponse {

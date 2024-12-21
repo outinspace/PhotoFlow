@@ -40,6 +40,14 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     // TODO: https://use-gesture.netlify.app/
 
+    const header = [
+        formatAsLongRelativeDateTime(item.captureTime),
+        item.city,
+        item.region
+    ]
+    .filter(_ => !!_)
+    .join(' · ');
+
     return (
         <Container>
             {imageFile && <>
@@ -115,7 +123,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 <span
                     className='select-none text-white text-xl content-center font-normal'
                 >
-                    {formatAsLongRelativeDateTime(item.captureTime)}
+                    {header}
                 </span>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow text-white'>
@@ -158,7 +166,7 @@ function renderPreviousButton(onMovePrevious: Function) {
     return <div
         onClick={() => onMovePrevious()}
         className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-1/5 drop-shadow'
-        >
+    >
         <NavArrowLeft
             color={constants.colors.text.level0}
             height={36}

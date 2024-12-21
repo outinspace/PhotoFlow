@@ -11,7 +11,7 @@ const Gallery = () => {
         return items.sort((a, b) => a.captureTime < b.captureTime ? 1 : -1); // Date descending
     }, [gallery?.items]);
 
-    const processingItemsCount = items.filter(i => i.files.some(f => f.processedVersion === null)).length;
+    const processingItemsCount = items.filter(i => i.files.some(f => f.lastProcessedTimeUtc === null)).length;
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
