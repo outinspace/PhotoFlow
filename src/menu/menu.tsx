@@ -1,7 +1,9 @@
 import { CreditCard, LogOut, ProfileCircle } from 'iconoir-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
+import { useGallery } from '../queries';
+import { formatBytes } from '../common/format.helpers';
 
 const options = [
     {
@@ -39,6 +41,40 @@ const Menu = () => {
                     </div>
                 ))}
             </div>
+            <GalleryStats />
+        </div>
+    );
+};
+
+const GalleryStats = () => {
+    const { data: gallery } = useGallery();
+    const items = gallery?.items ?? [];
+
+    const photosCount = useMemo(() => {
+        return items
+            .filter(item =>
+                item.files.some(file => file.contentType.startsWith('image')))
+            .length
+    }, [items]);
+
+    const videosCount = useMemo(() => {
+        return items
+            .filter(item =>
+                item.files.length === 1 && item.files[0].contentType.startsWith('video'))
+            .length
+    }, [items]);
+
+    const formattedBytes = useMemo(() => {
+        const bytes = items
+            .flatMap(item => item.files)
+            .reduce((bytes, file) => bytes + file.sizeBytes, 0);
+
+        return formatBytes(bytes);
+    }, [items]);
+
+    return (
+        <div className='mt-5 justify-center flex'>
+            {`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}
         </div>
     );
 };

@@ -3,6 +3,7 @@ import { Item } from '../types';
 import { Download } from 'iconoir-react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
+import { formatBytes } from './format.helpers';
 
 interface Props {
     item: Item;
@@ -86,18 +87,6 @@ const FileMetadata = ({ item }: { item: Item }) => {
             </div>
         </div>
     );
-};
-
-function formatBytes(bytes: number, decimals = 2) {
-    if (!+bytes) return '0 Bytes'
-
-    const k = 1000
-    const dm = decimals < 0 ? 0 : decimals
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 };
 
 function getFileExtension(fileName: string) {
