@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { Item } from '../types';
 import { Download } from 'iconoir-react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
-import { LatLngExpression } from 'leaflet';
+import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from './format.helpers';
+import 'leaflet/dist/leaflet.css';
+import { css } from '@emotion/css';
 
 interface Props {
     item: Item;
@@ -96,27 +98,36 @@ function getFileExtension(fileName: string) {
 }
 
 const LocationMetadata = ({ item }: { item: Item }) => {
-    const positionAvailable = false && item.latitude && item.longitude;
+    const positionAvailable = item.latitude && item.longitude;
+
+    if (!positionAvailable) {
+        return;
+    }
 
     const position: LatLngExpression = [item.latitude ?? 0, item.longitude ?? 0];
+
+    const primaryFile = item.files.find(f => f.contentType.startsWith('image')) ?? item.files[0];
+    const tileUrl = primaryFile.tileImageUrl;
+
+    const markerIcon = new Icon({
+        iconUrl: tileUrl ?? '',
+        iconSize: [40, 40],
+        className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
+    });
 
     return (
         <div className='flex-auto mt-5'>
             <div className=''>
                 Location
             </div>
-            <div className='border h-24'>
+            <div className='border h-64 overflow-hidden'>
                 {positionAvailable && (
-                    <MapContainer center={position} zoom={13} scrollWheelZoom={false}>
+                    <MapContainer center={position} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
-                    // <Marker position={position}>
-                    //     <Popup>
-                    //         A pretty CSS3 popup. <br /> Easily customizable.
-                    //     </Popup>
-                    // </Marker>
+                        <Marker position={position} icon={markerIcon} />
                     </MapContainer>
                 )}
             </div>
