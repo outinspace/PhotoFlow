@@ -40,13 +40,13 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     // TODO: https://use-gesture.netlify.app/
 
-    const header = [
-        formatAsLongRelativeDateTime(item.captureTime),
+    const heading = formatAsLongRelativeDateTime(item.captureTime);
+    const subheading = [
         item.city,
         item.region
     ]
-    .filter(_ => !!_)
-    .join(' · ');
+        .filter(_ => !!_)
+        .join(', ');
 
     return (
         <Container>
@@ -120,11 +120,16 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     width={36}
                     className="mr-3"
                 />
-                <span
-                    className='select-none text-white text-xl content-center font-normal'
+                <div
+                    className='select-none text-white content-center font-normal'
                 >
-                    {header}
-                </span>
+                    <div className='text-base pt-0.5'>
+                        {heading}
+                    </div>
+                    <div className='text-sm'>
+                        {subheading}
+                    </div>
+                </div>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow text-white'>
                 {isLivePhoto && (
