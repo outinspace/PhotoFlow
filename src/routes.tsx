@@ -6,6 +6,7 @@ import BottomBar from './bottom.bar';
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
+import Map from './map/map';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -32,6 +33,16 @@ export const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/login',
     component: Login
+});
+
+export const mapRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/map',
+    component: () => (
+        <BottomBarLayout>
+            <Map />
+        </BottomBarLayout>
+    )
 });
 
 export const albumsRoute = createRoute({
@@ -67,6 +78,7 @@ export const menuRoute = createRoute({
 const routeTree = rootRoute.addChildren([
     galleryRoute,
     loginRoute,
+    mapRoute,
     albumsRoute,
     searchRoute,
     menuRoute

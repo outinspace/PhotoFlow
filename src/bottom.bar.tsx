@@ -1,12 +1,17 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import React from 'react';
-import { Book, Menu, Search, ViewGrid } from 'iconoir-react';
+import { Book, Map, Menu, Search, ViewGrid } from 'iconoir-react';
 
 const options = [
     {
         name: 'Gallery',
         route: '/gallery',
         icon: ViewGrid
+    },
+    {
+        name: 'Map',
+        route: '/map',
+        icon: Map
     },
     {
         name: 'Albums',
