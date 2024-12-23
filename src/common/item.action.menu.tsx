@@ -1,11 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Item } from '../types';
 import { Download } from 'iconoir-react';
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from './format.helpers';
 import 'leaflet/dist/leaflet.css';
-import { css } from '@emotion/css';
 
 interface Props {
     item: Item;
@@ -16,25 +14,25 @@ interface Props {
 const ItemActionMenu = ({ item, isOpen, onDismiss }: Props) => {
     console.log(item);
 
+
+    // TODO: Escape keybinding
+
     if (!isOpen) {
         return;
     }
 
     return (
         <div
-            className='left-0 right-0 top-0 bottom-0 fixed bg-slate-900/50 z-10 max-height-dvh bordered flex flex-col justify-end'
+            className='left-0 right-0 top-0 bottom-0 fixed bg-slate-900/60 z-10 max-height-dvh bordered flex flex-col md:flex-row justify-end'
         >
             <div
                 className='flex-auto min-h-20'
                 onClick={() => onDismiss()}
-            />
-            <div
-                className='bg-slate-50 rounded-t-lg overflow-y-auto z-10 p-3 flex-initial pb-9'
             >
-                <div className='absolute left-0 right-0 -m-7 absolute flex flex-col items-center pointer-events-none'>
-                    <div className='w-10 h-2 bg-slate-50 rounded-full'></div>
-                </div>
-
+            </div>
+            <div
+                className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:max-w-96 overflow-y-auto z-10 p-3 flex-initial pb-9'
+            >
                 <CameraMetadata item={item} />
                 <FileMetadata item={item} />
                 <LocationMetadata item={item} />
@@ -114,6 +112,8 @@ const LocationMetadata = ({ item }: { item: Item }) => {
         iconSize: [40, 40],
         className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
     });
+
+    // TODO: Click on map to go to map page
 
     return (
         <div className='flex-auto mt-5'>
