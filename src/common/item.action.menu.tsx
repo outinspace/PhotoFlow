@@ -4,6 +4,7 @@ import { Download } from 'iconoir-react';
 import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from './format.helpers';
 import 'leaflet/dist/leaflet.css';
+import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 
 interface Props {
     item: Item;
