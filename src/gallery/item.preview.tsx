@@ -187,6 +187,7 @@ const Container = styled.div`
     left: 0;
     right: 0;
     display: flex;
+    z-index: 10;
 `;
 
 export default ItemPreview;

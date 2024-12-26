@@ -5,6 +5,7 @@ import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from './format.helpers';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { useNavigate } from '@tanstack/react-router';
 
 interface Props {
     item: Item;
@@ -97,6 +98,7 @@ function getFileExtension(fileName: string) {
 }
 
 const LocationMetadata = ({ item }: { item: Item }) => {
+    const navigate = useNavigate();
     const positionAvailable = item.latitude && item.longitude;
 
     if (!positionAvailable) {
@@ -114,23 +116,27 @@ const LocationMetadata = ({ item }: { item: Item }) => {
         className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
     });
 
-    // TODO: Click on map to go to map page
+    const navigateToMap = () => navigate({
+        to: '/map',
+        search: {
+            latitude: item.latitude,
+            longitude: item.longitude
+        }
+    });
 
     return (
         <div className='flex-auto mt-5'>
             <div className=''>
                 Location
             </div>
-            <div className='border h-64 overflow-hidden'>
-                {positionAvailable && (
-                    <MapContainer center={position} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-                        <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
-                        <Marker position={position} icon={markerIcon} />
-                    </MapContainer>
-                )}
+            <div className='border h-64 overflow-hidden rounded' onClick={navigateToMap}>
+                <MapContainer center={position} zoom={13} scrollWheelZoom={false} zoomControl={false} className='select-none' dragging={false} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <Marker position={position} icon={markerIcon} />
+                </MapContainer>
             </div>
         </div>
     )

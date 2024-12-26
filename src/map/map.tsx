@@ -1,43 +1,61 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import React, { useEffect, useRef, useState } from 'react';
+import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import Leaflet, { Icon, Marker } from 'leaflet';
+import Leaflet, { Icon, LatLngExpression } from 'leaflet';
 import { useGallery } from '../queries';
 import 'leaflet.markercluster/dist/leaflet.markercluster.js';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { useSearch } from '@tanstack/react-router';
+import { Item } from '../types';
+import ItemPreview from '../gallery/item.preview';
+
+interface SearchParams {
+    latitude?: number;
+    longitude?: number;
+}
 
 const Map = () => {
     const mapRef = useRef<Leaflet.Map>();
+    const params: SearchParams = useSearch({ strict: false });
+
+    const [previewItems, setPreviewItems] = useState<Item[]>([]);
+    const [selectedItemIndex, setSelectedItemIndex] = useState(0);
+    const selectedItem: Item | undefined = previewItems[selectedItemIndex];
+
+    let center: LatLngExpression | undefined = undefined;
+    if (params.longitude && params.latitude) {
+        center = [params.latitude, params.longitude]
+    }
 
     const { data: gallery } = useGallery();
     const items = gallery?.items ?? [];
 
-    const itemsWithLocation = useMemo(() =>
-        items.filter(item => item.longitude && item.latitude),
-        [items]);
+    const resetPreview = () => {
+        setSelectedItemIndex(0);
+        setPreviewItems([]);
+    }
 
-    const markers = useMemo(() =>
-        itemsWithLocation.map(item => {
-            const primaryFile = item.files.find(f => f.contentType.startsWith('image')) ?? item.files[0];
-            const tileUrl = primaryFile.tileImageUrl;
-
-            return {
-                position: [item.latitude, item.longitude],
-                tileUrl: tileUrl
-            };
-        }),
-        [itemsWithLocation]);
+    console.log(selectedItemIndex, previewItems);
 
     return (
         <div className='flex-auto'>
-            <MapContainer ref={mapRef} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+            <MapContainer ref={mapRef} zoom={13} scrollWheelZoom={true} center={center} style={{ height: '100%', width: '100%', zIndex: 0 }}>
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <MyMarkerCluster markers={markers} map={mapRef.current} />
+                <ItemMarkerClusters items={items} map={mapRef.current} center={center} onSelectItems={setPreviewItems} />
             </MapContainer>
+            {selectedItem && (
+                <ItemPreview
+                    key={selectedItem.itemId}
+                    item={selectedItem}
+                    onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? selectedItemIndex : selectedItemIndex - 1)}
+                    onMoveNext={() => setSelectedItemIndex(selectedItemIndex === previewItems.length - 1 ? selectedItemIndex : selectedItemIndex + 1)}
+                    onClose={resetPreview}
+                />
+            )}
         </div>
     );
 };
@@ -45,10 +63,18 @@ const Map = () => {
 const markerClusterGroup = Leaflet.markerClusterGroup({
     showCoverageOnHover: false,
     removeOutsideVisibleBounds: true,
-    chunkedLoading: true
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: false
 });
 
-const MyMarkerCluster = ({ markers, map, onSelectItems }) => {
+interface MarkerClusterProps {
+    items: Item[];
+    map?: Leaflet.Map,
+    center?: LatLngExpression;
+    onSelectItems: (items: Item[]) => any;
+}
+
+const ItemMarkerClusters = ({ items, map, center, onSelectItems }: MarkerClusterProps) => {
     if (!map) {
         return;
     }
@@ -56,32 +82,44 @@ const MyMarkerCluster = ({ markers, map, onSelectItems }) => {
     useEffect(() => {
         markerClusterGroup.clearLayers();
 
-        markers.forEach(({ position, tileUrl, item }) =>
-            Leaflet.marker(position, {
-                icon: new Icon({
-                    iconUrl: tileUrl,
-                    iconSize: [40, 40],
-                    className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
-                }),
-                item
-            })
-                .addTo(markerClusterGroup)
-        );
+        items
+            .filter(item => item.latitude && item.longitude)
+            .forEach((item) =>
+                Leaflet
+                    .marker([item.latitude ?? 0, item.longitude ?? 0], {
+                        icon: new Icon({
+                            iconUrl: item.primaryFile.tileImageUrl ?? '',
+                            iconSize: [40, 40],
+                            className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
+                        }),
+                        // @ts-ignore
+                        item
+                    })
+                    .addTo(markerClusterGroup)
+            );
 
-        // optionally center the map around the markers
-        map.fitBounds(markerClusterGroup.getBounds());
+        if (!center) {
+            map.fitBounds(markerClusterGroup.getBounds());
+        }
 
         // add the marker cluster group to the map
         map.addLayer(markerClusterGroup);
 
         markerClusterGroup.on('click', e => {
             const marker = e.sourceTarget;
-            console.log({ marker });
-            marker.options;
 
-        })
-        markerClusterGroup.on('clusterclick', (a) => console.log('map cluster click', a.layer.getAllChildMarkers().length, a))
-    }, [markers, map]);
+            onSelectItems([marker.options.item]);
+        });
+
+        markerClusterGroup.on('clusterclick', e => {
+            const items = e.sourceTarget.getAllChildMarkers().map(marker => marker.options.item);
+            const zoomLevel = map.getZoom();
+
+            if (zoomLevel > 15) {
+                onSelectItems(items);
+            }
+        });
+    }, [items, center, map]);
 
     return null;
 };
