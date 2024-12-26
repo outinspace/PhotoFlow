@@ -42,9 +42,9 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     const heading = formatAsLongRelativeDateTime(item.captureTime);
     const subheading = [
-        item.city,
-        item.region
-    ]
+            item.city,
+            item.region
+        ]
         .filter(_ => !!_)
         .join(', ');
 
