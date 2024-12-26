@@ -32,6 +32,14 @@ export const useGallery = () => useQuery({
         const res = await fetchAuthenticatedRoute('/items/gallery');
 
         const body = await res.json();
-        return body.result as GetGalleryResponse;
+        const gallery = body.result as GetGalleryResponse;
+
+        gallery.items = gallery.items.map(item => ({
+            ...item,
+            // Select primary file for easy access later
+            primaryFile: item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0]
+        }));
+
+        return gallery;
     }
 });

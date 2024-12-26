@@ -131,7 +131,7 @@ const ItemGrid = ({ items }: Props) => {
                                         height: tileSize
                                     }}
                                 >
-                                    <ItemTile showBorder={zoomLevel.showTileBorder} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                    <ItemTile showBorder={zoomLevel.showTileBorder} minTileSize={zoomLevel.minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
                                 </div>
                             ))}
                         </div>

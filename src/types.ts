@@ -3,7 +3,7 @@ export interface Item {
     isFavorite: boolean;
     captureTime: string;
 
-    videoLength: string | null;
+    videoLength: number | null;
     widthPixels: number | null;
     heightPixels: number | null;
     longitude: number | null;
@@ -20,6 +20,7 @@ export interface Item {
     cameraModel: string | null;
 
     files: File[];
+    primaryFile: File;
 }
 
 export interface File {

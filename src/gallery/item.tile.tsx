@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Item } from './types';
+import { Item } from '../types';
 import { nonSelectable } from '../styles';
 import constants from '../design.constants';
 
@@ -7,6 +7,7 @@ interface Props {
     item: Item;
     onClick: Function;
     showBorder: boolean;
+    minTileSize: number;
 }
 
 const placeholderColors: string[] = [];
@@ -15,16 +16,17 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-export const ItemTile = ({ item, onClick, showBorder }: Props) => {
+export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
     const [videoIsLoaded, setVideoIsLoaded] = useState(false);
 
 
-    const primaryFile = item.files.find(_ => _.contentType.startsWith('image')) ?? item.files[0];
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
 
     // const showLivePhoto = isHovering && videoFile;
     const showLivePhoto = false; // TODO:
+
+    const isVideo = item.primaryFile.contentType.startsWith('video');
 
     return (
         <div
@@ -45,7 +47,7 @@ export const ItemTile = ({ item, onClick, showBorder }: Props) => {
                     controls={false}
                     loop
                     muted
-                    poster={primaryFile.tileImageUrl ?? undefined}
+                    poster={item.primaryFile.tileImageUrl ?? undefined}
                     playsInline
                     style={{
                         position: 'relative',
@@ -65,8 +67,31 @@ export const ItemTile = ({ item, onClick, showBorder }: Props) => {
                     height: '100%',
                     objectFit: 'cover'
                 }}
-                src={primaryFile.tileImageUrl ?? undefined} />
+                src={item.primaryFile.tileImageUrl ?? undefined} />
+            {isVideo && (
+                <div className='absolute bottom-1 right-1 text-white shadow leading-none' style={{ fontSize: minTileSize / 8 }}>
+                    {formatVideoSeconds(item.videoLength ?? 0)}
+                </div>
+            )}
         </div>
     );
 };
+
+function formatVideoSeconds(inputSeconds: number) {
+    const date = new Date(inputSeconds * 1000);
+    const fullTime = date.toISOString().slice(11, 19);
+
+    const hours = fullTime.slice(0, 3);
+    const minutesAndSeconds = fullTime.slice(3);
+
+    let outputString = '';
+
+    if (date.getUTCHours() > 0) {
+        outputString += hours;
+    }
+
+    outputString += minutesAndSeconds;
+
+    return outputString;
+}
 
