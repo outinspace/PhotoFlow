@@ -70,14 +70,18 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
                 src={item.primaryFile.tileImageUrl ?? undefined} />
             {isVideo && (
                 <div className='absolute bottom-1 right-1 text-white shadow leading-none' style={{ fontSize: minTileSize / 8 }}>
-                    {formatVideoSeconds(item.videoLength ?? 0)}
+                    {formatVideoSeconds(item.videoLength)}
                 </div>
             )}
         </div>
     );
 };
 
-function formatVideoSeconds(inputSeconds: number) {
+function formatVideoSeconds(inputSeconds: number | null) {
+    if (!inputSeconds) {
+        return '';
+    }
+
     const date = new Date(inputSeconds * 1000);
     const fullTime = date.toISOString().slice(11, 19);
 
