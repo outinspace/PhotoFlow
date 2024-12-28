@@ -69,7 +69,7 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
                 }}
                 src={item.primaryFile.tileImageUrl ?? undefined} />
             {isVideo && (
-                <div className='absolute bottom-1 right-1 text-white shadow leading-none' style={{ fontSize: minTileSize / 8 }}>
+                <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: minTileSize / 8 }}>
                     {formatVideoSeconds(item.videoLength)}
                 </div>
             )}
