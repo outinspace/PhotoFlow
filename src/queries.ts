@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { GetGalleryResponse } from "./types";
+import { GetGalleryResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 
@@ -36,10 +36,23 @@ export const useGallery = () => useQuery({
 
         gallery.items = gallery.items.map(item => ({
             ...item,
-            // Select primary file for easy access later
-            primaryFile: item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0]
+            // Computed properties
+            primaryFile: item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0],
+            totalBytes: item.files.reduce((sum, file) => sum + file.sizeBytes, 0),
+            device: item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null,
+            type: getType(item)
         }));
 
         return gallery;
     }
 });
+
+const getType = (item: Item) => {
+    if (item.files.length === 1 && item.files[0].contentType.startsWith('image')) {
+        return 'photo';
+    } else if (item.files.length === 1 && item.files[0].contentType.startsWith('video')) {
+        return 'video';
+    } else {
+        return 'live-photo';
+    }
+}

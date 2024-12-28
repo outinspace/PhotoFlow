@@ -18,9 +18,13 @@ export interface Item {
     iso: number | null;
     cameraMake: string | null;
     cameraModel: string | null;
-
     files: File[];
+
+    // Computed
     primaryFile: File;
+    totalBytes: number;
+    device: string | null;
+    type: 'photo' | 'video' | 'live-photo';
 }
 
 export interface File {
