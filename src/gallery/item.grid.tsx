@@ -5,7 +5,6 @@ import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
 import GridZoomControl from './grid.zoom.control';
-import constants from '../design.constants';
 import { format } from 'date-fns';
 
 interface Props {
@@ -140,7 +139,7 @@ const ItemGrid = ({ items }: Props) => {
                 })}
             </div>
             <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-            <RangeLabel className='drop-shadow select-none pointer-events-none'>
+            <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
                 {formattedRange}
             </RangeLabel>
             {selectedItem && (
@@ -164,16 +163,7 @@ const GridContainer = styled.div`
 `;
 
 const RangeLabel = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.4) 100%);
-    color: ${constants.colors.text.level0};
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: 24px;
-    padding: ${constants.space.M};
+    filter: drop-shadow(0px 0px 10px black);
 `;
 
 export default ItemGrid;

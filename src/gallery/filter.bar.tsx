@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
+import { Filter, FilterList, FilterListCircle, Xmark } from 'iconoir-react';
 
 interface FilterState {
     sort: string;
@@ -26,6 +27,7 @@ interface FilterBarProps {
     setFilters: (value: FilterState) => any;
 }
 export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const distinctValues = (selector: (i: Item) => string | number | null, isNumeric: boolean = false) => {
         const valueMap = items.reduce((distinctValues, item) => {
@@ -59,50 +61,70 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
         setFilters(newFilters);
     };
 
+    if (!isExpanded) {
+        return (
+            <div className='absolute top-2 right-2 z-10 bg-slate-100 text-slate-900 rounded-full p-2 drop-shadow'>
+                <Filter
+                    className='size-6'
+                    style={{ marginTop: 2, marginBottom: -2 }}
+                    onClick={() => setIsExpanded(true)}
+                />
+            </div>
+        );
+    }
+
+    const selectClasses = 'bg-slate-100 mr-2 p-1 rounded';
+
     return (
-        <div className='flex bg-white w-dvw'>
-            <div className='p-2 overflow-x-auto flex'>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ sort: e.target.value })}>
-                    <option value='capture-date'>Sort by Date</option>
-                    <option value='file-size'>Sort by Size</option>
-                </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ type: e.target.value })}>
+        <div className='flex w-dvw bg-white text-slate-900 items-center'>
+            <div className='pl-3 overflow-x-auto flex'>
+                <select className={selectClasses} onChange={e => handleSelect({ type: e.target.value })}>
                     <option value=''>All Items</option>
                     <option value='favorites'>Favorites</option>
                     <option value='photos'>Photos</option>
                     <option value='videos'>Videos</option>
                     <option value='live-photos'>Live Photos</option>
                 </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ city: e.target.value })}>
+                <select className={selectClasses} onChange={e => handleSelect({ sort: e.target.value })}>
+                    <option value='capture-date'>Sort by Date</option>
+                    <option value='file-size'>Sort by Size</option>
+                </select>
+                <select className={selectClasses} onChange={e => handleSelect({ city: e.target.value })}>
                     <option value=''>City</option>
                     {cities.map(city => (
                         <option key={city} value={city}>{city}</option>
                     ))}
                 </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ region: e.target.value })}>
+                <select className={selectClasses} onChange={e => handleSelect({ region: e.target.value })}>
                     <option value=''>Region</option>
                     {regions.map(region => (
                         <option key={region} value={region}>{region}</option>
                     ))}
                 </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ year: e.target.value })}>
+                <select className={selectClasses} onChange={e => handleSelect({ year: e.target.value })}>
                     <option value=''>Year</option>
                     {years.map(year => (
                         <option key={year} value={year}>{year ?? 'Unknown'}</option>
                     ))}
                 </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ month: e.target.value })}>
+                <select className={selectClasses} onChange={e => handleSelect({ month: e.target.value })}>
                     <option value=''>Month</option>
                     {months.map(month => (
                         <option key={month} value={month}>{monthNames[month] ?? 'Unknown'}</option>
                     ))}
                 </select>
-                <select className='bg-slate-100 mr-1 rounded' onChange={e => handleSelect({ device: e.target.value })}>
+                <select className={selectClasses} onChange={e => handleSelect({ device: e.target.value })}>
                     <option value=''>Device</option>
                     {devices.map(device => (
                         <option key={device} value={device}>{device}</option>
                     ))}
                 </select>
+            </div>
+            <div className='bg-slate-100 text-slate-900 rounded-full m-2 p-2'>
+                <Xmark
+                    className='size-6'
+                    onClick={() => setIsExpanded(false)}
+                />
             </div>
         </div>
     );
