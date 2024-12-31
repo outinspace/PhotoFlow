@@ -15,8 +15,6 @@
     "@tanstack/react-query": "^5.59.16",
     "@tanstack/react-router": "^1.78.2",
     "@tanstack/react-virtual": "^3.10.8",
-    "@types/leaflet.markercluster": "^1.5.5",
-    "@types/react": "^18.3.12",
     "date-fns": "3.1.0",
     "iconoir-react": "^7.9.0",
     "leaflet": "^1.9.4",
@@ -27,7 +25,9 @@
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.14",
-    "parcel": "^2.12.0",
+    "@types/leaflet.markercluster": "^1.5.5",
+    "@types/react": "^18.3.12",
+    "parcel": "^2.13.3",
     "postcss": "^8.4.49",
     "process": "^0.11.10",
     "tailwindcss": "^3.4.15"
