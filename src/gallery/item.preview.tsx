@@ -155,6 +155,8 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     width={36}
                     onClick={() => setShowActionMenu(true)}
                 />
+            </div>
+            <div className='absolute bottom-0 right-0 z-10 flex p-3 drop-shadow text-white'>
                 <Trash
                     height={36}
                     width={36}
