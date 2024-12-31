@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
+import { Menu, NavArrowLeft, NavArrowRight, Play, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { formatAsLongRelativeDateTime } from '../date.utils';
@@ -42,116 +42,101 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     const heading = formatAsLongRelativeDateTime(item.captureTime);
     const subheading = [
-            item.city,
-            item.region
-        ]
+        item.city,
+        item.region
+    ]
         .filter(_ => !!_)
         .join(', ');
 
     return (
-        <Container>
-            {imageFile && <>
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.tileImage
-                    }}
-                    src={imageFile?.tileImageUrl ?? undefined}
-                />
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewImage
-                    }}
-                    src={imageFile.previewUrl ?? undefined}
-                />
-            </>}
-            {isLivePhoto && showLivePhoto && (
-                <video
-                    autoPlay
-                    controls={false}
-                    playsInline
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-            {videoFile && !isLivePhoto && (
-                <video
-                    autoPlay
-                    controls
-                    playsInline
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-            {renderPreviousButton(onMovePrevious)}
-            {renderNextButton(onMoveNext)}
-            <div
-                className="absolute left-0 top-0 flex z-10 p-3 drop-shadow">
-                <Xmark
-                    onClick={() => onClose()}
-                    color={constants.colors.text.level0}
-                    height={36}
-                    width={36}
-                    className="mr-3"
-                />
+        <div className='bg-black fixed top-0 bottom-0 left-0 right-0 flex flex-col z-10'>
+            <div className='flex justify-between p-3'>
                 <div
-                    className='select-none text-white content-center font-normal'
-                >
-                    <div className='text-base pt-0.5'>
-                        {heading}
-                    </div>
-                    <div className='text-sm'>
-                        {subheading}
-                    </div>
-                </div>
-            </div>
-            <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow text-white'>
-                {isLivePhoto && (
-                    <Play
-                        onClick={() => setShowLivePhoto(true)}
+                    className='flex'>
+                    <Xmark
+                        onClick={() => onClose()}
+                        color={constants.colors.text.level0}
                         height={36}
                         width={36}
-                        className='mr-3'
+                        className="mr-3"
                     />
+                    <div
+                        className='select-none text-white content-center font-normal'
+                    >
+                        <div className='text-base pt-0.5'>
+                            {heading}
+                        </div>
+                        <div className='text-sm'>
+                            {subheading}
+                        </div>
+                    </div>
+                </div>
+                <div className='flex drop-shadow text-white'>
+                    {isLivePhoto && (
+                        <Play
+                            onClick={() => setShowLivePhoto(true)}
+                            height={36}
+                            width={36}
+                            className='mr-3'
+                        />
+                    )}
+                    <Menu
+                        height={36}
+                        width={36}
+                        onClick={() => setShowActionMenu(true)}
+                    />
+                </div>
+            </div>
+            <div className='w-full flex flex-auto justify-center static'>
+                {imageFile && <>
+                    <img
+                        className={'select-none absolute w-full h-full object-contain'}
+                        src={imageFile?.tileImageUrl ?? undefined}
+                    />
+                    <img
+                        className={'select-none absolute w-full h-full object-contain'}
+                        src={imageFile.previewUrl ?? undefined}
+                    />
+                </>}
+                {isLivePhoto && showLivePhoto && (
+                    <video
+                        autoPlay
+                        controls={false}
+                        playsInline
+                        className={'select-none absolute w-full h-full object-contain'}
+                        onEnded={() => setShowLivePhoto(false)}
+                    >
+                        <source src={videoFile.previewUrl ?? undefined} />
+                    </video>
                 )}
-                <Menu
-                    height={36}
-                    width={36}
-                    onClick={() => setShowActionMenu(true)}
+                {videoFile && !isLivePhoto && (
+                    <video
+                        autoPlay
+                        controls
+                        playsInline
+                        className={'select-none absolute w-full h-full object-contain'}
+                        onEnded={() => setShowLivePhoto(false)}
+                    >
+                        <source src={videoFile.previewUrl ?? undefined} />
+                    </video>
+                )}
+            </div>
+            <div className='flex justify-between p-3'>
+                <Trash
+                    className='h-10 w-10 text-white'
+                />
+                <Trash
+                    className='h-10 w-10 text-white'
                 />
             </div>
+            {renderPreviousButton(onMovePrevious)}
+            {renderNextButton(onMoveNext)}
             <ItemActionMenu
                 item={item}
                 isOpen={showActionMenu}
                 onDismiss={() => setShowActionMenu(false)}
             />
-        </Container>
+        </div>
     );
 };
 
@@ -178,17 +163,6 @@ function renderPreviousButton(onMovePrevious: Function) {
             width={36} />
     </div>;
 }
-
-const Container = styled.div`
-    background-color: ${constants.colors.surface.level0};
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    z-index: 10;
-`;
 
 export default ItemPreview;
 
