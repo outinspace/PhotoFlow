@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GetGalleryResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
+
 
 const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
     request = request ?? {};
@@ -43,6 +44,8 @@ export const useGallery = () => useQuery({
             type: getType(item)
         }));
 
+        gallery.items = gallery.items.filter(item => item.deletedTimeUtc === null);
+
         return gallery;
     }
 });
@@ -55,4 +58,19 @@ const getType = (item: Item) => {
     } else {
         return 'live-photo';
     }
+}
+
+export const useDeleteItem = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (itemId: number) => {
+            await fetchAuthenticatedRoute('/items/' + itemId, {
+                method: 'DELETE'
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
 }

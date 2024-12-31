@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
+import { Menu, NavArrowLeft, NavArrowRight, Play, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { formatAsLongRelativeDateTime } from '../date.utils';
 import { nonSelectable } from '../styles';
 import ItemActionMenu from '../common/item.action.menu';
+import { useDeleteItem } from '../queries';
 
 interface Props {
     item: Item;
@@ -25,6 +26,7 @@ const zIndex = {
 const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+    const deleteItem = useDeleteItem();
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious() },
@@ -37,6 +39,14 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
+
+    const handleDelete = async () => {
+        const confirmed = window.confirm('Mark this item as deleted?\n\nIt will be accessible in Recently Deleted Items for 30 days.');
+        if (confirmed) {
+            await deleteItem.mutateAsync(item.itemId);
+            onClose();
+        }
+    }
 
     // TODO: https://use-gesture.netlify.app/
 
@@ -144,6 +154,11 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     height={36}
                     width={36}
                     onClick={() => setShowActionMenu(true)}
+                />
+                <Trash
+                    height={36}
+                    width={36}
+                    onClick={() => handleDelete()}
                 />
             </div>
             <ItemActionMenu

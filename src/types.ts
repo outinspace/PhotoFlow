@@ -20,6 +20,8 @@ export interface Item {
     cameraModel: string | null;
     files: File[];
 
+    deletedTimeUtc: string | null;
+
     // Computed
     primaryFile: File;
     totalBytes: number;
