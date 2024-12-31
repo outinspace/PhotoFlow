@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { Menu, NavArrowLeft, NavArrowRight, Play, Trash, Xmark } from 'iconoir-react';
+import { CubeDots, Ellipse3d, Ellipse3dThreePoints, InfoCircle, Menu, NavArrowLeft, NavArrowRight, Play, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { formatAsLongRelativeDateTime } from '../date.utils';
@@ -150,13 +150,12 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                         className='mr-3'
                     />
                 )}
-                <Menu
+                <InfoCircle
                     height={36}
                     width={36}
                     onClick={() => setShowActionMenu(true)}
+                    className='mr-3'
                 />
-            </div>
-            <div className='absolute bottom-0 right-0 z-10 flex p-3 drop-shadow text-white'>
                 <Trash
                     height={36}
                     width={36}
