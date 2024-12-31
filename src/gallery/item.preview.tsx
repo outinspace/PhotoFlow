@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { CubeDots, Ellipse3d, Ellipse3dThreePoints, InfoCircle, Menu, NavArrowLeft, NavArrowRight, Play, Trash, Xmark } from 'iconoir-react';
+import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Reply, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { formatAsLongRelativeDateTime } from '../date.utils';
@@ -48,13 +48,17 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
         }
     }
 
+    const handleRestore = async () => {
+        alert('TODO Not implemented');
+    }
+
     // TODO: https://use-gesture.netlify.app/
 
     const heading = formatAsLongRelativeDateTime(item.captureTime);
     const subheading = [
-            item.city,
-            item.region
-        ]
+        item.city,
+        item.region
+    ]
         .filter(_ => !!_)
         .join(', ');
 
@@ -156,11 +160,19 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     onClick={() => setShowActionMenu(true)}
                     className='mr-3'
                 />
-                <Trash
-                    height={36}
-                    width={36}
-                    onClick={() => handleDelete()}
-                />
+                {item.deletedTimeUtc === null ? (
+                    <Trash
+                        height={36}
+                        width={36}
+                        onClick={() => handleDelete()}
+                    />
+                ) : (
+                    <Reply
+                        height={36}
+                        width={36}
+                        onClick={() => handleRestore()}
+                    />
+                )}
             </div>
             <ItemActionMenu
                 item={item}

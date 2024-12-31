@@ -89,69 +89,71 @@ const ItemGrid = ({ items }: Props) => {
     }
 
     return (
-        <GridContainer ref={containerRef}>
-            <div
-                style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative'
-                }}
-            >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const rowIndex = virtualRow.index;
+        <div className='flex flex-auto overflow-hidden relative'>
+            <GridContainer ref={containerRef}>
+                <div
+                    style={{
+                        height: `${rowVirtualizer.getTotalSize()}px`,
+                        width: '100%',
+                        position: 'relative'
+                    }}
+                >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const rowIndex = virtualRow.index;
 
-                    const rowItems: Item[] = [];
-                    for (let i = 0; i < columns; i++) {
-                        const itemIndex = rowIndex * columns + i;
-                        if (items[itemIndex]) {
-                            rowItems.push(items[itemIndex]);
+                        const rowItems: Item[] = [];
+                        for (let i = 0; i < columns; i++) {
+                            const itemIndex = rowIndex * columns + i;
+                            if (items[itemIndex]) {
+                                rowItems.push(items[itemIndex]);
+                            }
                         }
-                    }
 
-                    return (
-                        <div
-                            key={virtualRow.key}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: `${virtualRow.size}px`,
-                                transform: `translateY(${virtualRow.start}px)`
-                            }}
-                        >
-                            {rowItems.map((item, i) => (
-                                <div
-                                    key={item.itemId}
-                                    style={{
-                                        position: 'absolute',
-                                        left: tileSize * i,
-                                        width: tileSize,
-                                        height: tileSize
-                                    }}
-                                >
-                                    <ItemTile showBorder={zoomLevel.showTileBorder} minTileSize={zoomLevel.minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
-                                </div>
-                            ))}
-                        </div>
+                        return (
+                            <div
+                                key={virtualRow.key}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    height: `${virtualRow.size}px`,
+                                    transform: `translateY(${virtualRow.start}px)`
+                                }}
+                            >
+                                {rowItems.map((item, i) => (
+                                    <div
+                                        key={item.itemId}
+                                        style={{
+                                            position: 'absolute',
+                                            left: tileSize * i,
+                                            width: tileSize,
+                                            height: tileSize
+                                        }}
+                                    >
+                                        <ItemTile showBorder={zoomLevel.showTileBorder} minTileSize={zoomLevel.minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                    </div>
+                                ))}
+                            </div>
 
-                    );
-                })}
-            </div>
-            <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-            <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
-                {formattedRange}
-            </RangeLabel>
-            {selectedItem && (
-                <ItemPreview
-                    key={selectedItem.itemId}
-                    item={selectedItem}
-                    onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? 0 : selectedItemIndex! - 1)}
-                    onMoveNext={() => setSelectedItemIndex(selectedItemIndex === items.length - 1 ? items.length - 1 : selectedItemIndex! + 1)}
-                    onClose={() => setSelectedItemIndex(null)}
-                />
-            )}
-        </GridContainer>
+                        );
+                    })}
+                </div>
+                <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
+                <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
+                    {formattedRange}
+                </RangeLabel>
+                {selectedItem && (
+                    <ItemPreview
+                        key={selectedItem.itemId}
+                        item={selectedItem}
+                        onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? 0 : selectedItemIndex! - 1)}
+                        onMoveNext={() => setSelectedItemIndex(selectedItemIndex === items.length - 1 ? items.length - 1 : selectedItemIndex! + 1)}
+                        onClose={() => setSelectedItemIndex(null)}
+                    />
+                )}
+            </GridContainer>
+        </div>
     );
 }
 

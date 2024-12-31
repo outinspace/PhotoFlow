@@ -7,6 +7,7 @@ import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
 import Map from './map/map';
+import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -75,13 +76,24 @@ export const menuRoute = createRoute({
     )
 });
 
+export const recentlyDeletedRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/recently-deleted',
+    component: () => (
+        <BottomBarLayout>
+            <RecentlyDeletedItems />
+        </BottomBarLayout>
+    )
+});
+
 const routeTree = rootRoute.addChildren([
     galleryRoute,
     loginRoute,
     mapRoute,
     albumsRoute,
     searchRoute,
-    menuRoute
+    menuRoute,
+    recentlyDeletedRoute
 ]);
 
 export const router = createRouter({ routeTree });

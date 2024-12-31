@@ -43,4 +43,7 @@ export interface File {
 
 export interface GetGalleryResponse {
     items: Item[];
+
+    // Computed
+    deletedItems: Item[];
 }

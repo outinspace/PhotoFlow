@@ -44,6 +44,10 @@ export const useGallery = () => useQuery({
             type: getType(item)
         }));
 
+        // Separate deleted items
+        const deletedItems = gallery.items.filter(item => item.deletedTimeUtc !== null);
+        gallery.deletedItems = deletedItems;
+
         gallery.items = gallery.items.filter(item => item.deletedTimeUtc === null);
 
         return gallery;

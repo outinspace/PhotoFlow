@@ -1,4 +1,4 @@
-import { CreditCard, LogOut, ProfileCircle } from 'iconoir-react';
+import { CreditCard, LogOut, ProfileCircle, Trash } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -6,6 +6,13 @@ import { useGallery } from '../queries';
 import { formatBytes } from '../common/format.helpers';
 
 const options = [
+    {
+        name: 'Recently Deleted Items',
+        icon: Trash,
+        onClick: () => {
+            router.navigate({ to: '/recently-deleted' });
+        }
+    },
     {
         name: 'Profile',
         icon: ProfileCircle

@@ -28,9 +28,7 @@ const Gallery = () => {
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <FilterBar {...filterProps} items={items} />
-            <div className='flex flex-auto overflow-hidden relative'>
-                <ItemGrid items={filteredItems} />
-            </div>
+            <ItemGrid items={filteredItems} />
         </div>
     )
 };
