@@ -19,14 +19,14 @@ const Gallery = () => {
     // TODO: Filter button. Hide filter bar until pressed?
     // TODO: Reset button
     // TODO: Horizontal scroll
-    
-    // {processingItemsCount > 0 && (
-    //     <div className='p-1 bg-sky-100 text-sky-700 flex justify-center'>
-    //         {`${processingItemsCount} photos/videos are being processed.`}
-    //     </div>
-    // )}
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
+            {processingItemsCount > 0 && (
+                <div className='p-1 bg-sky-100 text-sky-700 flex justify-center'>
+                    {`${processingItemsCount} photos/videos are being processed.`}
+                </div>
+            )}
             <FilterBar {...filterProps} items={items} />
             <ItemGrid items={filteredItems} />
         </div>
@@ -34,30 +34,3 @@ const Gallery = () => {
 };
 
 export default Gallery;
-
-
-
-
-interface DropdownOption {
-    value: string;
-    displayText: string;
-}
-
-interface FilterDropdownProps {
-    options: DropdownOption;
-    value: null | string;
-    onChange: (value: null | string) => any;
-}
-
-const FilterDropdown = ({ options, value, onChange }) => {
-
-    return (
-        <select className='bg-slate-100 mr-1 rounded'>
-            <option value='null'>Filter</option>
-            <option>Favorites</option>
-            <option>Photos</option>
-            <option>Videos</option>
-        </select>
-    )
-}
-
