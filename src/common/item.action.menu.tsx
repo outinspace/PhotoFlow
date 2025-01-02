@@ -104,8 +104,7 @@ async function downloadAndShare(uri: string, name: string) {
 
         await navigator.share({
             title: name,
-            url: uri,
-            // files: [file],
+            files: [file]
         });
     } else {
         var link = document.createElement("a");
