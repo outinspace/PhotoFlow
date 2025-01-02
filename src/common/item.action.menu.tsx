@@ -1,6 +1,6 @@
 import React from 'react';
 import { Item } from '../types';
-import { Download } from 'iconoir-react';
+import { Download, MediaImage, MediaVideo } from 'iconoir-react';
 import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from './format.helpers';
 import 'leaflet/dist/leaflet.css';
@@ -72,11 +72,15 @@ const FileMetadata = ({ item }: { item: Item }) => {
             <div>
                 {item.files.map(file => (
                     <div key={file.fileId} className='flex items-center mb-1 bg-slate-100 rounded'>
-                        <div className='flex-auto p-2 truncate text-ellipsis'>
-                            {file.originalFileName}
+                        <div className='p-2 flex-none'>
+                            {file.contentType.startsWith('image') ? (
+                                <MediaVideo className='size-6' />
+                            ) : (
+                                <MediaImage className='size-6' />
+                            )}
                         </div>
-                        <div className='border-l border-slate-50 p-2 flex-none'>
-                            {getFileExtension(file.originalFileName)}
+                        <div className='border-l border-slate-50 flex-auto p-2 truncate text-ellipsis'>
+                            {file.originalFileName}
                         </div>
                         <div className='border-l border-slate-50 p-2 flex-none'>
                             {formatBytes(file.sizeBytes)}
@@ -114,12 +118,6 @@ async function downloadAndShare(uri: string, name: string) {
         link.click();
         document.body.removeChild(link);
     }
-}
-
-function getFileExtension(fileName: string) {
-    const segments = fileName.split('.');
-    const extension = '.' + segments.slice(-1);
-    return extension;
 }
 
 const LocationMetadata = ({ item }: { item: Item }) => {
