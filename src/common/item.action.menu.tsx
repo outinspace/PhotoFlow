@@ -82,7 +82,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
                             {formatBytes(file.sizeBytes)}
                         </div>
                         <div className='border-l border-slate-50 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => open(file.originalUrl)} />
+                            <Download onClick={() => downloadAndShare(file.originalUrl, file.originalFileName)} />
                         </div>
                     </div>
                 ))}
@@ -90,6 +90,31 @@ const FileMetadata = ({ item }: { item: Item }) => {
         </div>
     );
 };
+
+async function downloadAndShare(uri: string, name: string) {
+    // @ts-ignore
+    if (navigator.share) {
+        const res = await fetch(uri);
+        if (!res.ok) {
+            throw new Error('Failed to fetch');
+        }
+
+        const blob = await res.blob();
+        const file = new File([blob], name, { type: blob.type });
+
+        await navigator.share({
+            title: name,
+            files: [file],
+        });
+    } else {
+        var link = document.createElement("a");
+        link.download = name;
+        link.href = uri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
 
 function getFileExtension(fileName: string) {
     const segments = fileName.split('.');
