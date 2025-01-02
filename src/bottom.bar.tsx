@@ -1,4 +1,4 @@
-import { Link, useRouter, useRouterState } from '@tanstack/react-router';
+import { useRouter, useRouterState } from '@tanstack/react-router';
 import React from 'react';
 import { Book, Map, Menu, Search, ViewGrid } from 'iconoir-react';
 
@@ -30,12 +30,17 @@ const options = [
     }
 ];
 
+const isPwaApp = window.matchMedia('(display-mode: standalone)').matches;
+
 const BottomBar = () => {
     const routerState = useRouterState();
     const router = useRouter();
 
+    // HACK: Add bottom padding when in fullscreen PWA mode and on small device
+    const safeAreaPadding = isPwaApp ? 'pb-10 md:pb-2' : '';
+
     return (
-        <div className='flex-none flex bg-slate-50 border-t p-2 transition-all'>
+        <div className={'flex-none flex bg-slate-50 border-t p-2 transitin-all ' + safeAreaPadding}>
             {options.map(option => (
                 <div
                     key={option.route}
