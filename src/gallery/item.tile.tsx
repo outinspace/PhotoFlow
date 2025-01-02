@@ -17,16 +17,7 @@ for (let i = 0; i < 20; i++) {
 }
 
 export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
-    const [isHovering, setIsHovering] = useState(false);
-    const [videoIsLoaded, setVideoIsLoaded] = useState(false);
     const [showImage, setShowImage] = useState(false);
-
-    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
-
-    // const showLivePhoto = isHovering && videoFile;
-    const showLivePhoto = false; // TODO:
-
-    const isVideo = item.primaryFile.contentType.startsWith('video');
 
     // HACK: Prevent mass loading of tile images when scrolling
     useEffect(() => {
@@ -37,11 +28,8 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
         return () => clearTimeout(timeoutId);
     })
 
-
     return (
         <div
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             onClick={() => onClick()}
             style={{
                 height: '100%',
@@ -49,26 +37,6 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
                 outline: showBorder ? `solid ${constants.colors.surface.level0} 1px` : undefined,
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}>
-            {!!showLivePhoto && (
-                // TODO: Fix white flicker
-                <video
-                    onCanPlay={() => setVideoIsLoaded(true)}
-                    autoPlay
-                    controls={false}
-                    loop
-                    muted
-                    poster={item.primaryFile.tileImageUrl ?? undefined}
-                    playsInline
-                    style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        visibility: videoIsLoaded ? 'visible' : 'hidden'
-                    }}>
-                    <source src={videoFile?.previewUrl ?? undefined} type="video/mp4" />
-                </video>
-            )}
             <img
                 className={nonSelectable}
                 style={{
@@ -79,7 +47,7 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
                 }}
                 src={showImage ? item.primaryFile.tileImageUrl ?? undefined : undefined}
             />
-            {isVideo && (
+            {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: minTileSize / 8 }}>
                     {formatVideoSeconds(item.videoLength)}
                 </div>
