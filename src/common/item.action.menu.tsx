@@ -77,9 +77,9 @@ const FileMetadata = ({ item }: { item: Item }) => {
                     <div key={file.fileId} className='flex items-center mb-1 bg-slate-100 rounded'>
                         <div className='p-2 flex-none'>
                             {file.contentType.startsWith('image') ? (
-                                <MediaVideo className='size-6' />
-                            ) : (
                                 <MediaImage className='size-6' />
+                            ) : (
+                                <MediaVideo className='size-6' />
                             )}
                         </div>
                         <div className='border-l border-slate-50 flex-auto p-2 truncate text-ellipsis'>
