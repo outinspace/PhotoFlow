@@ -90,6 +90,8 @@ const ItemGrid = ({ items }: Props) => {
     const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
     const selectedItemsCount = useMemo(() => Object.values(selectedItems).length, [selectedItems]);
     const selectionModeEnabled = selectedItemsCount > 0;
+    // TODO: Add button to enable selection
+    // TODO: Move filter button to grid
 
     const handleItemClick = (item: Item) => {
         if (selectionModeEnabled) {
@@ -159,7 +161,6 @@ const ItemGrid = ({ items }: Props) => {
                                             item={item}
                                             minTileSize={zoomLevel.minTileSize}
                                             onClick={() => handleItemClick(item)}
-                                            onHold={() => toggleItemSelection(item)}
                                             isSelected={!!selectedItems[item.itemId]}
                                         />
                                     </div>

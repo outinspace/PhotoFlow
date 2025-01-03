@@ -5,7 +5,6 @@ import useLongPress from '../hooks/use.long.press';
 interface Props {
     item: Item;
     onClick: Function;
-    onHold: Function;
     minTileSize: number;
     isSelected: boolean;
 }
@@ -16,7 +15,7 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-export const ItemTile = ({ item, onClick, onHold, minTileSize, isSelected }: Props) => {
+export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
     const [showImage, setShowImage] = useState(false);
 
     // HACK: Prevent mass loading of tile images when scrolling
@@ -28,14 +27,9 @@ export const ItemTile = ({ item, onClick, onHold, minTileSize, isSelected }: Pro
         return () => clearTimeout(timeoutId);
     });
 
-    const longPressHandlers = useLongPress(
-        () => onHold(),
-        () => onClick()
-    );
-
     return (
         <div
-            {...longPressHandlers}
+            onClick={() => onClick()}
             className={`h-full w-full ${minTileSize > 50 && 'border-black border-b border-r'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
