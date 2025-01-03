@@ -22,13 +22,13 @@ const zoomControlOptions = [
         name: 'Month',
         minTileSize: 80,
         showTileBorder: true,
-        rangeDateFormat: 'MMM do yyyy'
+        rangeDateFormat: 'MMM d yyyy'
     },
     {
         name: 'Day',
         minTileSize: 120,
         showTileBorder: true,
-        rangeDateFormat: 'MMM do yyyy'
+        rangeDateFormat: 'MMM d yyyy'
     }
 ];
 
