@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Item } from '../types';
-import { nonSelectable } from '../styles';
-import constants from '../design.constants';
+import useLongPress from '../hooks/use.long.press';
 
 interface Props {
     item: Item;
     onClick: Function;
-    showBorder: boolean;
+    onHold: Function;
     minTileSize: number;
+    isSelected: boolean;
 }
 
 const placeholderColors: string[] = [];
@@ -16,7 +16,7 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
+export const ItemTile = ({ item, onClick, onHold, minTileSize, isSelected }: Props) => {
     const [showImage, setShowImage] = useState(false);
 
     // HACK: Prevent mass loading of tile images when scrolling
@@ -26,19 +26,23 @@ export const ItemTile = ({ item, onClick, showBorder, minTileSize }: Props) => {
         }, 100);
 
         return () => clearTimeout(timeoutId);
-    })
+    });
+
+    const longPressHandlers = useLongPress(
+        () => onHold(),
+        () => onClick()
+    );
 
     return (
         <div
-            onClick={() => onClick()}
+            {...longPressHandlers}
+            className={`h-full w-full ${minTileSize > 50 && 'border-black border-b border-r'}`}
             style={{
-                height: '100%',
-                width: '100%',
-                outline: showBorder ? `solid ${constants.colors.surface.level0} 1px` : undefined,
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
-            }}>
+            }}
+        >
             <img
-                className={nonSelectable}
+                className={`select-none ${isSelected && 'border-4 border-sky-400'}`}
                 style={{
                     position: 'relative',
                     width: '100%',

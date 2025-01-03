@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useState, useCallback } from 'react';
+import React, { useRef, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 import styled from '@emotion/styled';
 import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
@@ -35,8 +35,8 @@ const zoomControlOptions = [
 const ItemGrid = ({ items }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
-    const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
+    const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
+    const previewItem = previewItemIndex === null ? null : items[previewItemIndex];
 
     const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
@@ -81,11 +81,35 @@ const ItemGrid = ({ items }: Props) => {
     const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
     const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
 
-    // TODO: Use enum
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
         const start = format(rangeStartItem.captureTime, zoomLevel.rangeDateFormat);
-        formattedRange = start; // TODO: Revisit
+        formattedRange = start;
+    }
+
+    const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
+    const selectedItemsCount = useMemo(() => Object.values(selectedItems).length, [selectedItems]);
+    const selectionModeEnabled = selectedItemsCount > 0;
+
+    const handleItemClick = (item: Item) => {
+        if (selectionModeEnabled) {
+            toggleItemSelection(item);
+        } else {
+            const itemIndex = items.findIndex(i => i === item);
+            setPreviewItemIndex(itemIndex);
+        }
+    }
+
+    const toggleItemSelection = (item: Item) => {
+        if (selectedItems[item.itemId]) {
+            const newItems = { ...selectedItems };
+            delete newItems[item.itemId];
+
+            setSelectedItems(newItems);
+
+        } else {
+            setSelectedItems({ ...selectedItems, [item.itemId]: item });
+        }
     }
 
     return (
@@ -131,7 +155,13 @@ const ItemGrid = ({ items }: Props) => {
                                             height: tileSize
                                         }}
                                     >
-                                        <ItemTile showBorder={zoomLevel.showTileBorder} minTileSize={zoomLevel.minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                        <ItemTile
+                                            item={item}
+                                            minTileSize={zoomLevel.minTileSize}
+                                            onClick={() => handleItemClick(item)}
+                                            onHold={() => toggleItemSelection(item)}
+                                            isSelected={!!selectedItems[item.itemId]}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -141,15 +171,15 @@ const ItemGrid = ({ items }: Props) => {
                 </div>
                 <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
                 <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
-                    {formattedRange}
+                    {selectionModeEnabled ? `${selectedItemsCount} Selected` : formattedRange}
                 </RangeLabel>
-                {selectedItem && (
+                {previewItem && (
                     <ItemPreview
-                        key={selectedItem.itemId}
-                        item={selectedItem}
-                        onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? 0 : selectedItemIndex! - 1)}
-                        onMoveNext={() => setSelectedItemIndex(selectedItemIndex === items.length - 1 ? items.length - 1 : selectedItemIndex! + 1)}
-                        onClose={() => setSelectedItemIndex(null)}
+                        key={previewItem.itemId}
+                        item={previewItem}
+                        onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
+                        onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
+                        onClose={() => setPreviewItemIndex(null)}
                     />
                 )}
             </GridContainer>
