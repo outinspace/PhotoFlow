@@ -4,33 +4,12 @@ import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-vi
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
-import GridZoomControl from './grid.zoom.control';
 import { format } from 'date-fns';
+import { usePinch } from '@use-gesture/react';
 
 interface Props {
     items: Item[];
 }
-
-const zoomControlOptions = [
-    {
-        name: 'Year',
-        minTileSize: 50,
-        showTileBorder: false,
-        rangeDateFormat: 'MMMM yyyy'
-    },
-    {
-        name: 'Month',
-        minTileSize: 80,
-        showTileBorder: true,
-        rangeDateFormat: 'MMM do yyyy'
-    },
-    {
-        name: 'Day',
-        minTileSize: 120,
-        showTileBorder: true,
-        rangeDateFormat: 'MMM do yyyy'
-    }
-];
 
 const ItemGrid = ({ items }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -38,12 +17,16 @@ const ItemGrid = ({ items }: Props) => {
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
     const selectedItem = selectedItemIndex === null ? null : items[selectedItemIndex];
 
-    const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
+    const [minTileSize, setMinTileSize] = useState(80);
+    console.log({ minTileSize })
+
+    const rangeDateFormat = minTileSize > 50 ? 'MMM d yyyy' : 'MMMM yyyy';
+    const showTileBorder = minTileSize > 50 ? true : false;
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
 
     const containerWidth = containerRef.current?.clientWidth ?? 0;
-    const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
+    const columns = Math.floor(containerWidth / minTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -78,19 +61,32 @@ const ItemGrid = ({ items }: Props) => {
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
 
+    usePinch(e => {
+        let newMinTileSize = e.offset[0] * 80;
+        if (newMinTileSize < 30) {
+            newMinTileSize = 30;
+        }
+        if (newMinTileSize > 300) {
+            newMinTileSize = 300;
+        }
+        setMinTileSize(newMinTileSize);
+    }, {
+        target: containerRef
+    });
+
     const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
     const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
 
     // TODO: Use enum
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
-        const start = format(rangeStartItem.captureTime, zoomLevel.rangeDateFormat);
-        formattedRange = start; // TODO: Revisit
+        const start = format(rangeStartItem.captureTime, rangeDateFormat);
+        formattedRange = start;
     }
 
     return (
         <div className='flex flex-auto overflow-hidden relative'>
-            <GridContainer ref={containerRef}>
+            <GridContainer ref={containerRef} className='touch-none touch-pan-y'>
                 <div
                     style={{
                         height: `${rowVirtualizer.getTotalSize()}px`,
@@ -131,7 +127,7 @@ const ItemGrid = ({ items }: Props) => {
                                             height: tileSize
                                         }}
                                     >
-                                        <ItemTile showBorder={zoomLevel.showTileBorder} minTileSize={zoomLevel.minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
+                                        <ItemTile showBorder={showTileBorder} minTileSize={minTileSize} item={item} onClick={() => setSelectedItemIndex(rowIndex * columns + i)} />
                                     </div>
                                 ))}
                             </div>
@@ -139,7 +135,6 @@ const ItemGrid = ({ items }: Props) => {
                         );
                     })}
                 </div>
-                <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
                 <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
                     {formattedRange}
                 </RangeLabel>
