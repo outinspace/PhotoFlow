@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Reply, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { formatAsLongRelativeDateTime } from '../date.utils';
+import { formatRelativeOrLongDateTime } from '../date.utils';
 import { nonSelectable } from '../styles';
 import ItemActionMenu from '../common/item.action.menu';
 import { useDeleteItem } from '../queries';
@@ -54,7 +54,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 
     // TODO: https://use-gesture.netlify.app/
 
-    const heading = formatAsLongRelativeDateTime(item.captureTime);
+    const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
         item.city,
         item.region
