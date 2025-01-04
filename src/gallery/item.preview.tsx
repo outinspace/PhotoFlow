@@ -130,8 +130,8 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 <Xmark
                     onClick={() => onClose()}
                     color={constants.colors.text.level0}
-                    height={36}
-                    width={36}
+                    height={30}
+                    width={30}
                     className="mr-3"
                 />
                 <div
@@ -149,27 +149,27 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}
-                        height={36}
-                        width={36}
+                        height={30}
+                        width={30}
                         className='mr-3'
                     />
                 )}
                 <InfoCircle
-                    height={36}
-                    width={36}
+                    height={30}
+                    width={30}
                     onClick={() => setShowActionMenu(true)}
                     className='mr-3'
                 />
                 {item.deletedTimeUtc === null ? (
                     <Trash
-                        height={36}
-                        width={36}
+                        height={30}
+                        width={30}
                         onClick={() => handleDelete()}
                     />
                 ) : (
                     <Reply
-                        height={36}
-                        width={36}
+                        height={30}
+                        width={30}
                         onClick={() => handleRestore()}
                     />
                 )}
@@ -190,8 +190,8 @@ function renderNextButton(onMoveNext: Function) {
     >
         <NavArrowRight
             color={constants.colors.text.level0}
-            height={36}
-            width={36} />
+            height={30}
+            width={30} />
     </div>;
 }
 
@@ -202,8 +202,8 @@ function renderPreviousButton(onMovePrevious: Function) {
     >
         <NavArrowLeft
             color={constants.colors.text.level0}
-            height={36}
-            width={36} />
+            height={30}
+            width={30} />
     </div>;
 }
 
