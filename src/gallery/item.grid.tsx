@@ -171,9 +171,9 @@ const ItemGrid = ({ items }: Props) => {
                     })}
                 </div>
                 <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-                <RangeLabel className='absolute top-4 left-4 text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
+                <div className='absolute top-4 left-4 text-shadow text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
                     {selectionModeEnabled ? `${selectedItemsCount} Selected` : formattedRange}
-                </RangeLabel>
+                </div>
                 {previewItem && (
                     <ItemPreview
                         key={previewItem.itemId}
@@ -193,10 +193,6 @@ const GridContainer = styled.div`
     width: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
-`;
-
-const RangeLabel = styled.div`
-    filter: drop-shadow(0px 0px 10px black);
 `;
 
 export default ItemGrid;

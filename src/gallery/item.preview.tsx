@@ -126,7 +126,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
             {renderPreviousButton(onMovePrevious)}
             {renderNextButton(onMoveNext)}
             <div
-                className="absolute left-0 top-0 flex z-10 p-3 drop-shadow">
+                className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 <Xmark
                     onClick={() => onClose()}
                     color={constants.colors.text.level0}
@@ -145,7 +145,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     </div>
                 </div>
             </div>
-            <div className='absolute top-0 right-0 z-10 flex p-3 drop-shadow text-white'>
+            <div className='absolute top-0 right-0 z-10 flex p-3 text-shadow text-white'>
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}
@@ -186,7 +186,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
 function renderNextButton(onMoveNext: Function) {
     return <div
         onClick={() => onMoveNext()}
-        className='flex absolute right-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-1/5 drop-shadow'
+        className='flex absolute right-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-1/5 text-shadow'
     >
         <NavArrowRight
             color={constants.colors.text.level0}
@@ -198,7 +198,7 @@ function renderNextButton(onMoveNext: Function) {
 function renderPreviousButton(onMovePrevious: Function) {
     return <div
         onClick={() => onMovePrevious()}
-        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-1/5 drop-shadow'
+        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-1/5 text-shadow'
     >
         <NavArrowLeft
             color={constants.colors.text.level0}
