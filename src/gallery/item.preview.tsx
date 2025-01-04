@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Reply, Trash, Xmark } from 'iconoir-react';
+import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { nonSelectable } from '../styles';
-import ItemActionMenu from '../common/item.action.menu';
-import { useDeleteItem } from '../queries';
+import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
+import { ItemActionMenu } from './item.action.menu';
 
 interface Props {
     item: Item;
@@ -26,7 +26,6 @@ const zIndex = {
 const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
-    const deleteItem = useDeleteItem();
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious() },
@@ -39,18 +38,6 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
-
-    const handleDelete = async () => {
-        const confirmed = window.confirm('Mark this item as deleted?\n\nIt will be accessible in Recently Deleted Items for 30 days.');
-        if (confirmed) {
-            await deleteItem.mutateAsync(item.itemId);
-            onClose();
-        }
-    }
-
-    const handleRestore = async () => {
-        alert('TODO Not implemented');
-    }
 
     // TODO: https://use-gesture.netlify.app/
 
@@ -145,36 +132,24 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                     </div>
                 </div>
             </div>
-            <div className='absolute top-0 right-0 z-10 flex p-3 text-shadow text-white'>
+            <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}
                         height={30}
                         width={30}
-                        className='mr-3'
+                        className='mr-3 text-shadow'
                     />
                 )}
                 <InfoCircle
                     height={30}
                     width={30}
                     onClick={() => setShowActionMenu(true)}
-                    className='mr-3'
+                    className='mr-3 text-shadow'
                 />
-                {item.deletedTimeUtc === null ? (
-                    <Trash
-                        height={30}
-                        width={30}
-                        onClick={() => handleDelete()}
-                    />
-                ) : (
-                    <Reply
-                        height={30}
-                        width={30}
-                        onClick={() => handleRestore()}
-                    />
-                )}
+                <ItemActionMenu items={[item]} onDeleteCompletion={() => onClose()} />
             </div>
-            <ItemActionMenu
+            <ItemInfoSheet
                 item={item}
                 isOpen={showActionMenu}
                 onDismiss={() => setShowActionMenu(false)}

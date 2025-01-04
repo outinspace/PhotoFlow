@@ -2,7 +2,7 @@ import React from 'react';
 import { Item } from '../types';
 import { Download, MediaImage, MediaVideo, ShareIos } from 'iconoir-react';
 import { Icon, LatLngExpression } from 'leaflet';
-import { formatBytes } from './format.helpers';
+import { formatBytes } from '../common/format.helpers';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { useNavigate } from '@tanstack/react-router';
@@ -13,7 +13,7 @@ interface Props {
     onDismiss: () => any;
 }
 
-const ItemActionMenu = ({ item, isOpen, onDismiss }: Props) => {
+const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
     console.log(item);
 
 
@@ -174,4 +174,4 @@ const LocationMetadata = ({ item }: { item: Item }) => {
     )
 };
 
-export default ItemActionMenu;
+export default ItemInfoSheet;
