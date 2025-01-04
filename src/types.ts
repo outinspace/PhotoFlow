@@ -33,16 +33,24 @@ export interface File {
     fileId: string;
     contentType: string;
     originalFileName: string;
-    originalUrl: string;
     sizeBytes: number;
-    tileImageUrl: string | null;
-    previewUrl: string | null;
     uploadTimeUtc: string;
     lastProcessedTimeUtc: string | null;
+    tileVersion: number | null;
+    previewVersion: number | null;
+
+    // Computed
+    originalUrl: string;
+    tileImageUrl: string | null;
+    previewUrl: string | null;
 }
 
 export interface GetGalleryResponse {
     items: Item[];
+
+    originalUrlPrefix: string;
+    tileImageUrlPrefix: string;
+    previewUrlPrefix: string;
 
     // Computed
     deletedItems: Item[];

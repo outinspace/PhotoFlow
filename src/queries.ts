@@ -35,14 +35,25 @@ export const useGallery = () => useQuery({
         const body = await res.json();
         const gallery = body.result as GetGalleryResponse;
 
-        gallery.items = gallery.items.map(item => ({
-            ...item,
-            // Computed properties
-            primaryFile: item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0],
-            totalBytes: item.files.reduce((sum, file) => sum + file.sizeBytes, 0),
-            device: item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null,
-            type: getType(item)
-        }));
+        // Computed properties
+        for (const item of gallery.items) {
+            for (const file of item.files) {
+                file.originalUrl = gallery.originalUrlPrefix + file.fileId;
+
+                file.tileImageUrl = file.tileVersion ? `${gallery.tileImageUrlPrefix}${file.fileId}.jpeg?v=${file.tileVersion}` : null;
+
+                const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
+                file.previewUrl = file.previewVersion ? `${gallery.previewUrlPrefix}${file.fileId}${previewExtension}?v=${file.previewVersion}` : null;
+            }
+
+            item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
+
+            item.totalBytes = item.files.reduce((sum, file) => sum + file.sizeBytes, 0);
+
+            item.device = item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null;
+
+            item.type = getType(item);
+        }
 
         // Separate deleted items
         const deletedItems = gallery.items.filter(item => item.deletedTimeUtc !== null);
