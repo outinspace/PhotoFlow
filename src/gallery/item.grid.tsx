@@ -14,19 +14,19 @@ interface Props {
 const zoomControlOptions = [
     {
         name: 'Year',
-        minTileSize: 50,
+        minTileSize: 40,
         showTileBorder: false,
         rangeDateFormat: 'MMMM yyyy'
     },
     {
         name: 'Month',
-        minTileSize: 80,
+        minTileSize: 60,
         showTileBorder: true,
         rangeDateFormat: 'MMM d yyyy'
     },
     {
         name: 'Day',
-        minTileSize: 120,
+        minTileSize: 80,
         showTileBorder: true,
         rangeDateFormat: 'MMM d yyyy'
     }
