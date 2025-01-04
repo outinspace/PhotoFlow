@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Reply, Trash, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { formatRelativeOrLongDateTime } from '../date.utils';
 import { nonSelectable } from '../styles';
 import ItemActionMenu from '../common/item.action.menu';
 import { useDeleteItem } from '../queries';
+import { differenceInDays, format } from 'date-fns';
 
 interface Props {
     item: Item;
@@ -205,6 +205,16 @@ function renderPreviousButton(onMovePrevious: Function) {
             height={36}
             width={36} />
     </div>;
+}
+
+function formatRelativeOrLongDateTime(date: Date | string) {
+    const daysDifference = differenceInDays(date, new Date());
+
+    if (Math.abs(daysDifference) > 6) {
+        return format(date, 'EEEE LLL do yyyy');
+    } else {
+        return format(date, 'EEEE h:mm a');
+    }
 }
 
 const Container = styled.div`
