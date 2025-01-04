@@ -79,9 +79,18 @@ const GalleryStats = () => {
         return formatBytes(bytes);
     }, [items]);
 
+    const processingItemsCount = useMemo(() =>
+        items.filter(i => i.files.some(f => f.lastProcessedTimeUtc === null)).length,
+        [items]);
+
     return (
-        <div className='mt-5 justify-center flex'>
-            {`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}
+        <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light'>
+            <div>{`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}</div>
+            {processingItemsCount > 0 && (
+                <div>
+                    {`${processingItemsCount} items processing`}
+                </div>
+            )}
         </div>
     );
 };
