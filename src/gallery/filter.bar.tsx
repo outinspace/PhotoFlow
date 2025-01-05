@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
-import { Filter, FilterList, FilterListCircle, Xmark } from 'iconoir-react';
+import { Filter, Xmark } from 'iconoir-react';
 
 interface FilterState {
     sort: string;

@@ -6,6 +6,7 @@ import { Item } from '../types';
 import ItemPreview from './item.preview';
 import GridZoomControl from './grid.zoom.control';
 import { format } from 'date-fns';
+import { FilterBar, useFilterBar } from './filter.bar';
 
 interface Props {
     items: Item[];
@@ -32,11 +33,13 @@ const zoomControlOptions = [
     }
 ];
 
-const ItemGrid = ({ items }: Props) => {
+const ItemGrid = ({ items: allItems }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const { filterProps, filteredItems } = useFilterBar(allItems);
+
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
-    const previewItem = previewItemIndex === null ? null : items[previewItemIndex];
+    const previewItem = previewItemIndex === null ? null : filteredItems[previewItemIndex];
 
     const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
@@ -44,7 +47,7 @@ const ItemGrid = ({ items }: Props) => {
 
     const containerWidth = containerRef.current?.clientWidth ?? 0;
     const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
-    const rows = Math.ceil(items.length / columns);
+    const rows = Math.ceil(filteredItems.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
     const rowVirtualizer = useVirtualizer({
@@ -78,8 +81,8 @@ const ItemGrid = ({ items }: Props) => {
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
 
-    const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
-    const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
+    const rangeStartItem: Item | undefined = filteredItems[visibleRangeRef.current.startIndex * columns];
+    const rangeEndItem: Item | undefined = filteredItems[visibleRangeRef.current.endIndex * columns - 1];
 
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
@@ -97,7 +100,7 @@ const ItemGrid = ({ items }: Props) => {
         if (selectionModeEnabled) {
             toggleItemSelection(item);
         } else {
-            const itemIndex = items.findIndex(i => i === item);
+            const itemIndex = filteredItems.findIndex(i => i === item);
             setPreviewItemIndex(itemIndex);
         }
     }
@@ -115,75 +118,78 @@ const ItemGrid = ({ items }: Props) => {
     }
 
     return (
-        <div className='flex flex-auto overflow-hidden relative'>
-            <GridContainer ref={containerRef}>
-                <div
-                    style={{
-                        height: `${rowVirtualizer.getTotalSize()}px`,
-                        width: '100%',
-                        position: 'relative'
-                    }}
-                >
-                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                        const rowIndex = virtualRow.index;
+        <div className='flex flex-auto flex-col overflow-hidden'>
+            <FilterBar {...filterProps} items={allItems} />
+            <div className='flex flex-auto overflow-hidden relative'>
+                <GridContainer ref={containerRef}>
+                    <div
+                        style={{
+                            height: `${rowVirtualizer.getTotalSize()}px`,
+                            width: '100%',
+                            position: 'relative'
+                        }}
+                    >
+                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const rowIndex = virtualRow.index;
 
-                        const rowItems: Item[] = [];
-                        for (let i = 0; i < columns; i++) {
-                            const itemIndex = rowIndex * columns + i;
-                            if (items[itemIndex]) {
-                                rowItems.push(items[itemIndex]);
+                            const rowItems: Item[] = [];
+                            for (let i = 0; i < columns; i++) {
+                                const itemIndex = rowIndex * columns + i;
+                                if (filteredItems[itemIndex]) {
+                                    rowItems.push(filteredItems[itemIndex]);
+                                }
                             }
-                        }
 
-                        return (
-                            <div
-                                key={virtualRow.key}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: `${virtualRow.size}px`,
-                                    transform: `translateY(${virtualRow.start}px)`
-                                }}
-                            >
-                                {rowItems.map((item, i) => (
-                                    <div
-                                        key={item.itemId}
-                                        style={{
-                                            position: 'absolute',
-                                            left: tileSize * i,
-                                            width: tileSize,
-                                            height: tileSize
-                                        }}
-                                    >
-                                        <ItemTile
-                                            item={item}
-                                            minTileSize={zoomLevel.minTileSize}
-                                            onClick={() => handleItemClick(item)}
-                                            isSelected={!!selectedItems[item.itemId]}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
+                            return (
+                                <div
+                                    key={virtualRow.key}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        height: `${virtualRow.size}px`,
+                                        transform: `translateY(${virtualRow.start}px)`
+                                    }}
+                                >
+                                    {rowItems.map((item, i) => (
+                                        <div
+                                            key={item.itemId}
+                                            style={{
+                                                position: 'absolute',
+                                                left: tileSize * i,
+                                                width: tileSize,
+                                                height: tileSize
+                                            }}
+                                        >
+                                            <ItemTile
+                                                item={item}
+                                                minTileSize={zoomLevel.minTileSize}
+                                                onClick={() => handleItemClick(item)}
+                                                isSelected={!!selectedItems[item.itemId]}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
 
-                        );
-                    })}
-                </div>
-                <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-                <div className='absolute top-4 left-4 text-shadow text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
-                    {selectionModeEnabled ? `${selectedItemsCount} Selected` : formattedRange}
-                </div>
-                {previewItem && (
-                    <ItemPreview
-                        key={previewItem.itemId}
-                        item={previewItem}
-                        onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
-                        onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
-                        onClose={() => setPreviewItemIndex(null)}
-                    />
-                )}
-            </GridContainer>
+                            );
+                        })}
+                    </div>
+                    <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
+                    <div className='absolute top-4 left-4 text-shadow text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
+                        {selectionModeEnabled ? `${selectedItemsCount} Selected` : formattedRange}
+                    </div>
+                    {previewItem && (
+                        <ItemPreview
+                            key={previewItem.itemId}
+                            item={previewItem}
+                            onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
+                            onMoveNext={() => setPreviewItemIndex(previewItemIndex === filteredItems.length - 1 ? filteredItems.length - 1 : previewItemIndex! + 1)}
+                            onClose={() => setPreviewItemIndex(null)}
+                        />
+                    )}
+                </GridContainer>
+            </div>
         </div>
     );
 }
