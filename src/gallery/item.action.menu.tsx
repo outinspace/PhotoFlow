@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
-import { Menu } from 'iconoir-react';
+import { Book, Menu, Reply, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { useDeleteItem } from '../queries';
 
@@ -15,8 +15,6 @@ export const ItemActionMenu = ({ items, onDeleteCompletion }: Props) => {
     const [showAlbumModal, setShowAlbumModal] = useState(false);
 
     const deleteItem = useDeleteItem();
-
-    const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b';
 
     const isSingleDeletedItem = items.length === 1 && items[0].deletedTimeUtc !== null;
 
@@ -38,7 +36,8 @@ export const ItemActionMenu = ({ items, onDeleteCompletion }: Props) => {
         onDeleteCompletion?.();
     }
 
-    // TODO: Icons
+    const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
+
     return (
         <>
             <Menu
@@ -47,27 +46,32 @@ export const ItemActionMenu = ({ items, onDeleteCompletion }: Props) => {
             />
             {showMenu && (
                 <>
-                    <div className='fixed top-0 bottom-0 left-0 right-0' onClick={() => setShowMenu(false)}/>
+                    <div className='fixed top-0 bottom-0 left-0 right-0' onClick={() => setShowMenu(false)} />
                     <div className='absolute min-w-40 right-0 text-black mt-10 mr-5 drop-shadow'>
-                        <div
-                            className={optionClasses}
-                            onClick={openAlbumModal}
-                        >
-                            Add To Album
-                        </div>
                         {isSingleDeletedItem ? (
                             <div
                                 className={optionClasses + ' text-sky-500'}
                             >
+                                <Reply className='size-5 ml-1 mr-2' />
                                 Restore
                             </div>
                         ) : (
-                            <div
-                                className={optionClasses + ' text-red-500'}
-                                onClick={openDeleteModal}
-                            >
-                                Delete
-                            </div>
+                            <>
+                                <div
+                                    className={optionClasses}
+                                    onClick={openAlbumModal}
+                                >
+                                    <Book className='size-5 ml-1 mr-2' />
+                                    Add To Album
+                                </div>
+                                <div
+                                    className={optionClasses + ' text-red-500'}
+                                    onClick={openDeleteModal}
+                                >
+                                    <Trash className='size-5 ml-1 mr-2' />
+                                    Delete
+                                </div>
+                            </>
                         )}
                     </div>
                 </>
@@ -100,7 +104,7 @@ export const ItemActionMenu = ({ items, onDeleteCompletion }: Props) => {
                         onClick: () => setShowAlbumModal(false)
                     },
                     {
-                        text: 'Add To Album',
+                        text: 'Add',
                         color: 'primary',
                         onClick: () => alert('TODO')
                     }
