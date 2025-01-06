@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
+import { InfoCircle, Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { nonSelectable } from '../styles';
@@ -25,6 +25,7 @@ const zIndex = {
 
 const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+    const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
     useKeyBindings([
@@ -144,15 +145,28 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 <InfoCircle
                     height={30}
                     width={30}
-                    onClick={() => setShowActionMenu(true)}
+                    onClick={() => setShowInfoSheet(true)}
                     className='mr-3 text-shadow'
                 />
-                <ItemActionMenu items={[item]} onDeleteCompletion={() => onClose()} />
+                <Menu
+                    height={30}
+                    width={30}
+                    onClick={() => setShowActionMenu(!showActionMenu)}
+                    className='text-shadow'
+                />
+                {showActionMenu && (
+                    <ItemActionMenu
+                        items={[item]}
+                        onDeleteCompletion={() => onClose()}
+                        onDismiss={() => setShowActionMenu(false)}
+                        offsetTop={35}
+                    />
+                )}
             </div>
             <ItemInfoSheet
                 item={item}
-                isOpen={showActionMenu}
-                onDismiss={() => setShowActionMenu(false)}
+                isOpen={showInfoSheet}
+                onDismiss={() => setShowInfoSheet(false)}
             />
         </Container>
     );

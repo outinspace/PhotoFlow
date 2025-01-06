@@ -26,9 +26,8 @@ interface FilterBarProps {
     filters: FilterState;
     setFilters: (value: FilterState) => any;
 }
-export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
-    const [isExpanded, setIsExpanded] = useState(false);
 
+export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
     const distinctValues = (selector: (i: Item) => string | number | null, isNumeric: boolean = false) => {
         const valueMap = items.reduce((distinctValues, item) => {
             distinctValues[selector(item) ?? ''] = true;
@@ -61,23 +60,11 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
         setFilters(newFilters);
     };
 
-    if (!isExpanded) {
-        return (
-            <div className='absolute top-2 right-2 z-10 bg-slate-100 text-slate-900 rounded-full p-2 drop-shadow'>
-                <Filter
-                    className='size-6'
-                    style={{ marginTop: 2, marginBottom: -2 }}
-                    onClick={() => setIsExpanded(true)}
-                />
-            </div>
-        );
-    }
-
     const selectClasses = 'bg-slate-100 mr-2 p-1 rounded';
 
     return (
         <div className='flex w-dvw bg-white text-slate-900 items-center'>
-            <div className='pl-3 overflow-x-auto flex flex-auto'>
+            <div className='pl-3 py-2 overflow-x-auto flex flex-auto'>
                 <select className={selectClasses} onChange={e => handleSelect({ type: e.target.value })}>
                     <option value=''>All Items</option>
                     <option value='favorites'>Favorites</option>
@@ -120,12 +107,6 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                     ))}
                 </select>
             </div>
-            <div className='bg-slate-100 text-slate-900 rounded-full m-2 p-2'>
-                <Xmark
-                    className='size-6'
-                    onClick={() => setIsExpanded(false)}
-                />
-            </div>
         </div>
     );
 };
@@ -147,8 +128,6 @@ const monthNames = [
 
 export const useFilterBar = (items: Item[]) => {
     const [filters, setFilters] = useState<FilterState>(defaultFilterState);
-
-    console.log(filters);
 
     const filteredItems = useMemo(() => {
         let tempItems = [...items];
@@ -190,6 +169,10 @@ export const useFilterBar = (items: Item[]) => {
             filters,
             setFilters
         },
-        filteredItems
+        filteredItems,
+        resetFilters: () => {
+            setFilters(defaultFilterState);
+        }
+
     };
 };

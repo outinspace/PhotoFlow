@@ -7,6 +7,8 @@ import ItemPreview from './item.preview';
 import GridZoomControl from './grid.zoom.control';
 import { format } from 'date-fns';
 import { FilterBar, useFilterBar } from './filter.bar';
+import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
+import { ItemActionMenu } from './item.action.menu';
 
 interface Props {
     items: Item[];
@@ -36,10 +38,14 @@ const zoomControlOptions = [
 const ItemGrid = ({ items: allItems }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const { filterProps, filteredItems } = useFilterBar(allItems);
+    const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
+
+    const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
+
+    const items = filteredItems;
 
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
-    const previewItem = previewItemIndex === null ? null : filteredItems[previewItemIndex];
+    const previewItem = previewItemIndex === null ? null : items[previewItemIndex];
 
     const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
@@ -47,7 +53,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
 
     const containerWidth = containerRef.current?.clientWidth ?? 0;
     const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
-    const rows = Math.ceil(filteredItems.length / columns);
+    const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
     const rowVirtualizer = useVirtualizer({
@@ -81,8 +87,8 @@ const ItemGrid = ({ items: allItems }: Props) => {
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
 
-    const rangeStartItem: Item | undefined = filteredItems[visibleRangeRef.current.startIndex * columns];
-    const rangeEndItem: Item | undefined = filteredItems[visibleRangeRef.current.endIndex * columns - 1];
+    const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
+    const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
 
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
@@ -90,17 +96,19 @@ const ItemGrid = ({ items: allItems }: Props) => {
         formattedRange = start;
     }
 
+
     const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
-    const selectedItemsCount = useMemo(() => Object.values(selectedItems).length, [selectedItems]);
-    const selectionModeEnabled = selectedItemsCount > 0;
+    const selectedItemsArray = useMemo(() => Object.values(selectedItems), [selectedItems]);
+    const [showActionMenu, setShowActionMenu] = useState(false);
+
     // TODO: Add button to enable selection
     // TODO: Move filter button to grid
 
     const handleItemClick = (item: Item) => {
-        if (selectionModeEnabled) {
+        if (mode === 'select') {
             toggleItemSelection(item);
         } else {
-            const itemIndex = filteredItems.findIndex(i => i === item);
+            const itemIndex = items.findIndex(i => i === item);
             setPreviewItemIndex(itemIndex);
         }
     }
@@ -117,10 +125,64 @@ const ItemGrid = ({ items: allItems }: Props) => {
         }
     }
 
+    const closeModes = () => {
+        resetFilters();
+        setSelectedItems({});
+        setSelectedItems({});
+
+        setMode('view');
+    }
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <FilterBar {...filterProps} items={allItems} />
+            {mode === 'filter' && <FilterBar {...filterProps} items={allItems} />}
             <div className='flex flex-auto overflow-hidden relative'>
+                <div className='absolute top-2 right-2 z-10 flex'>
+                    {mode === 'view' && (
+                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow'>
+                            <OneFingerSelectHandGesture
+                                className='size-6'
+                                style={{ marginTop: 2, marginBottom: -2 }}
+                                onClick={() => setMode('select')}
+                            />
+                        </div>
+                    )}
+                    {mode === 'select' && (
+                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow'>
+                            <Menu
+                                className='size-6'
+                                style={{ marginTop: 2, marginBottom: -2 }}
+                                onClick={() => setShowActionMenu(!showActionMenu)}
+                            />
+                            {showActionMenu && (
+                                <ItemActionMenu
+                                    items={selectedItemsArray}
+                                    onDismiss={() => setShowActionMenu(false)}
+                                    onActionCompleted={() => closeModes()}
+                                    offsetTop={20}
+                                />
+                            )}
+                        </div>
+                    )}
+                    {mode === 'view' && (
+                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow ml-2'>
+                            <Filter
+                                className='size-6'
+                                style={{ marginTop: 2, marginBottom: -2 }}
+                                onClick={() => setMode('filter')}
+                            />
+                        </div>
+                    )}
+                    {mode !== 'view' && (
+                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow ml-2'>
+                            <Xmark
+                                className='size-6'
+                                style={{ marginTop: 2, marginBottom: -2 }}
+                                onClick={() => closeModes()}
+                            />
+                        </div>
+                    )}
+                </div>
                 <GridContainer ref={containerRef}>
                     <div
                         style={{
@@ -135,8 +197,8 @@ const ItemGrid = ({ items: allItems }: Props) => {
                             const rowItems: Item[] = [];
                             for (let i = 0; i < columns; i++) {
                                 const itemIndex = rowIndex * columns + i;
-                                if (filteredItems[itemIndex]) {
-                                    rowItems.push(filteredItems[itemIndex]);
+                                if (items[itemIndex]) {
+                                    rowItems.push(items[itemIndex]);
                                 }
                             }
 
@@ -176,15 +238,18 @@ const ItemGrid = ({ items: allItems }: Props) => {
                         })}
                     </div>
                     <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
-                    <div className='absolute top-4 left-4 text-shadow text-slate-50 font-bold text-2xl drop-shadow select-none pointer-events-none'>
-                        {selectionModeEnabled ? `${selectedItemsCount} Selected` : formattedRange}
+                    <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
+                        <div className='font-bold text-2xl'>{formattedRange}</div>
+                        {mode === 'select' && (
+                            <div className='font-bold text-xl'>{selectedItemsArray.length} Items Selected</div>
+                        )}
                     </div>
                     {previewItem && (
                         <ItemPreview
                             key={previewItem.itemId}
                             item={previewItem}
                             onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
-                            onMoveNext={() => setPreviewItemIndex(previewItemIndex === filteredItems.length - 1 ? filteredItems.length - 1 : previewItemIndex! + 1)}
+                            onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
                             onClose={() => setPreviewItemIndex(null)}
                         />
                     )}

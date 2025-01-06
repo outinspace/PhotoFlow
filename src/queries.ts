@@ -75,13 +75,19 @@ const getType = (item: Item) => {
     }
 }
 
-export const useDeleteItem = () => {
+export const useDeleteItems = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (itemId: number) => {
-            await fetchAuthenticatedRoute('/items/' + itemId, {
-                method: 'DELETE'
+        mutationFn: async (itemIds: number[]) => {
+            await fetchAuthenticatedRoute('/items', {
+                method: 'DELETE',
+                body: JSON.stringify({
+                    itemIds: itemIds
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
         },
         onSuccess: () => {
