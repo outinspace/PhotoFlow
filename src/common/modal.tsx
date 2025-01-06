@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalAction {
     text: string;
@@ -14,7 +15,6 @@ interface Props {
 }
 
 export const Modal = ({ isOpen, title, description, actions }: Props) => {
-
     if (!isOpen) {
         return;
     }
@@ -30,23 +30,26 @@ export const Modal = ({ isOpen, title, description, actions }: Props) => {
         }
     };
 
-    return (
-        <div className='fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center drop-shadow bg-black/50'>
-            <div className='flex-col bg-slate-50 rounded text-black p-6 m-10 max-w-80'>
-                <div className='flex justify-center font-bold text-slate-900 mb-2'>{title}</div>
-                <div className='text-slate-600 mb-5'>{description}</div>
-                <div className='flex justify-between'>
-                    {actions.map(action => (
-                        <div
-                            key={action.text}
-                            className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
-                            onClick={() => action.onClick()}
-                        >
-                            {action.text}
-                        </div>
-                    ))}
+    return <>
+        {createPortal(
+            <div className='z-10 fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center drop-shadow bg-black/50'>
+                <div className='flex-col bg-slate-50 rounded text-black p-6 m-10 max-w-80'>
+                    <div className='flex justify-center font-bold text-slate-900 mb-2'>{title}</div>
+                    <div className='text-slate-600 mb-5'>{description}</div>
+                    <div className='flex justify-between'>
+                        {actions.map(action => (
+                            <div
+                                key={action.text}
+                                className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
+                                onClick={() => action.onClick()}
+                            >
+                                {action.text}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
-        </div>
-    )
+            </div>,
+            document.getElementById('modal-root')
+        )}
+    </>;
 }
