@@ -101,9 +101,6 @@ const ItemGrid = ({ items: allItems }: Props) => {
     const selectedItemsArray = useMemo(() => Object.values(selectedItems), [selectedItems]);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
-    // TODO: Add button to enable selection
-    // TODO: Move filter button to grid
-
     const handleItemClick = (item: Item) => {
         if (mode === 'select') {
             toggleItemSelection(item);
