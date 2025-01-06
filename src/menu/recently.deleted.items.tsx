@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useGallery } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import PageHeader from '../common/page.header';
+import { TopBar } from '../common/top.bar';
 
 
 export const RecentlyDeletedItems = () => {
@@ -15,9 +16,7 @@ export const RecentlyDeletedItems = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <div className='p-5'>
-                <PageHeader name='Recently Deleted' />
-            </div>
+            <TopBar title='Recently Deleted' />
             <ItemGrid items={items} />
         </div>
     );
