@@ -20,14 +20,6 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
 
     const isSingleDeletedItem = items.length === 1 && items[0].deletedTimeUtc !== null;
 
-    const openDeleteModal = () => {
-        setShowDeleteModal(true);
-    }
-
-    const openAlbumModal = () => {
-        setShowAlbumModal(true);
-    }
-
     const handleDelete = async () => {
         const itemIds = items.map(i => i.itemId);
         await deleteItems.mutateAsync(itemIds);
@@ -60,14 +52,14 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                         <>
                             <div
                                 className={optionClasses}
-                                onClick={openAlbumModal}
+                                onClick={() => setShowAlbumModal(true)}
                             >
                                 <Book className='size-5 ml-1 mr-2' />
                                 Add To Album
                             </div>
                             <div
                                 className={optionClasses + ' text-red-500'}
-                                onClick={openDeleteModal}
+                                onClick={() => setShowDeleteModal(true)}
                             >
                                 <Trash className='size-5 ml-1 mr-2' />
                                 Delete
@@ -84,7 +76,10 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                     {
                         text: 'Cancel',
                         color: 'neutral',
-                        onClick: () => setShowDeleteModal(false)
+                        onClick: () => {
+                            setShowDeleteModal(false);
+                            onDismiss(true);
+                        }
                     },
                     {
                         text: 'Delete',
@@ -101,7 +96,10 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                     {
                         text: 'Cancel',
                         color: 'neutral',
-                        onClick: () => setShowAlbumModal(false)
+                        onClick: () => {
+                            setShowAlbumModal(false);
+                            onDismiss(true);
+                        }
                     },
                     {
                         text: 'Add',

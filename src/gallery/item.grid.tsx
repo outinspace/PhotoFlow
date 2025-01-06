@@ -36,8 +36,6 @@ const zoomControlOptions = [
 ];
 
 const ItemGrid = ({ items: allItems }: Props) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-
     const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
@@ -50,8 +48,12 @@ const ItemGrid = ({ items: allItems }: Props) => {
     const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    const containerWidth = containerRef.current?.clientWidth ?? 0;
+    const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
+
+
+    // TODO: Extract into useTileVirtualizer
     const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
@@ -59,7 +61,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
     const rowVirtualizer = useVirtualizer({
         enabled: tileSize > 0,
         count: rows ?? 0,
-        getScrollElement: () => containerRef.current,
+        getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
         overscan: 5,
         rangeExtractor: useCallback((range: Range) => {
@@ -86,16 +88,9 @@ const ItemGrid = ({ items: allItems }: Props) => {
 
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
+    // END: Extract into useTileVirtualizer
 
-    const rangeStartItem: Item | undefined = items[visibleRangeRef.current.startIndex * columns];
-    const rangeEndItem: Item | undefined = items[visibleRangeRef.current.endIndex * columns - 1];
-
-    let formattedRange = '';
-    if (rangeStartItem && rangeEndItem) {
-        const start = format(rangeStartItem.captureTime, zoomLevel.rangeDateFormat);
-        formattedRange = start;
-    }
-
+    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, zoomLevel.rangeDateFormat);
 
     const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
     const selectedItemsArray = useMemo(() => Object.values(selectedItems), [selectedItems]);
@@ -144,7 +139,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
                             />
                         </div>
                     )}
-                    {mode === 'select' && (
+                    {mode === 'select' && selectedItemsArray.length > 0 && (
                         <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow'>
                             <Menu
                                 className='size-6'
@@ -180,7 +175,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
                         </div>
                     )}
                 </div>
-                <GridContainer ref={containerRef}>
+                <ScrollContainer ref={scrollContainerRef}>
                     <div
                         style={{
                             height: `${rowVirtualizer.getTotalSize()}px`,
@@ -241,22 +236,22 @@ const ItemGrid = ({ items: allItems }: Props) => {
                             <div className='font-bold text-xl'>{selectedItemsArray.length} Items Selected</div>
                         )}
                     </div>
-                    {previewItem && (
-                        <ItemPreview
-                            key={previewItem.itemId}
-                            item={previewItem}
-                            onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
-                            onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
-                            onClose={() => setPreviewItemIndex(null)}
-                        />
-                    )}
-                </GridContainer>
+                </ScrollContainer>
             </div>
+            {previewItem && (
+                <ItemPreview
+                    key={previewItem.itemId}
+                    item={previewItem}
+                    onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
+                    onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
+                    onClose={() => setPreviewItemIndex(null)}
+                />
+            )}
         </div>
     );
 }
 
-const GridContainer = styled.div`
+const ScrollContainer = styled.div`
     flex: 1 1 auto;
     width: 100%;
     overflow-y: scroll;
@@ -264,3 +259,16 @@ const GridContainer = styled.div`
 `;
 
 export default ItemGrid;
+
+function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, columns: number, rangeDateFormat: string) {
+    const rangeStartItem: Item | undefined = items[visibleRange.startIndex * columns];
+    const rangeEndItem: Item | undefined = items[visibleRange.endIndex * columns - 1];
+
+    let formattedRange = '';
+    if (rangeStartItem && rangeEndItem) {
+        const start = format(rangeStartItem.captureTime, rangeDateFormat);
+        formattedRange = start;
+    }
+    return formattedRange;
+}
+
