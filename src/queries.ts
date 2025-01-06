@@ -82,9 +82,7 @@ export const useDeleteItems = () => {
         mutationFn: async (itemIds: number[]) => {
             await fetchAuthenticatedRoute('/items', {
                 method: 'DELETE',
-                body: JSON.stringify({
-                    itemIds: itemIds
-                }),
+                body: JSON.stringify(itemIds),
                 headers: {
                     'Content-Type': 'application/json'
                 }
