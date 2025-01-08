@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GetGalleryResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
+import { queryClient } from "./app";
 
 
 const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -61,6 +62,18 @@ export const useGallery = () => useQuery({
 
         gallery.items = gallery.items.filter(item => item.deletedTimeUtc === null);
 
+        // Link items to albums
+        const itemsById: Record<string, Item> = {};
+        for (const item of gallery.items) {
+            itemsById[item.itemId] = item;
+        }
+
+        for (const album of gallery.albums) {
+            album.items = album.itemIds
+                .map(itemId => itemsById[itemId])
+                .filter(item => !!item);
+        }
+
         return gallery;
     }
 });
@@ -76,8 +89,6 @@ const getType = (item: Item) => {
 }
 
 export const useDeleteItems = () => {
-    const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: async (itemIds: number[]) => {
             await fetchAuthenticatedRoute('/items', {
@@ -93,3 +104,55 @@ export const useDeleteItems = () => {
         }
     });
 }
+
+interface CreateAlbumArgs {
+    name: string;
+    itemIds: number[];
+}
+export const useCreateAlbum = () => {
+    return useMutation({
+        mutationFn: async ({ name, itemIds }: CreateAlbumArgs): Promise<number | null> => {
+            const res = await fetchAuthenticatedRoute('/album', {
+                method: 'POST',
+                body: JSON.stringify({ name, itemIds }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (res.ok) {
+                const body = await res.json();
+                return body.result.value.albumId;
+            } else {
+                return null;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
+
+interface AddItemsMutationArgs {
+    albumId: number;
+    itemIds: number[];
+}
+export const useAddItemsToAlbum = () => {
+    return useMutation({
+        mutationFn: async ({ albumId, itemIds }: AddItemsMutationArgs): Promise<boolean> => {
+            const res = await fetchAuthenticatedRoute(`/album/${albumId}/items`, {
+                method: 'PUT',
+                body: JSON.stringify(itemIds),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return res.ok;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
+

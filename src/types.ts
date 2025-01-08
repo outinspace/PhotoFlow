@@ -45,8 +45,20 @@ export interface File {
     previewUrl: string | null;
 }
 
+export interface Album {
+    albumId: number;
+    name: string;
+    createdTimeUtc: string;
+    updatedTimeUtc: string;
+    itemIds: number[];
+
+    // Computed
+    items: Item[];
+}
+
 export interface GetGalleryResponse {
     items: Item[];
+    albums: Album[];
 
     originalUrlPrefix: string;
     tileImageUrlPrefix: string;

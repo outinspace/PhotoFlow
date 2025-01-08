@@ -9,6 +9,7 @@ import Menu from './menu/menu';
 import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
+import { AlbumLayout } from './albums/album.layout';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -53,6 +54,17 @@ export const albumsRoute = createRoute({
     component: () => (
         <BottomBarLayout>
             <Albums />
+        </BottomBarLayout>
+    )
+});
+
+// TODO: Validate params
+export const albumRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/album',
+    component: () => (
+        <BottomBarLayout>
+            <AlbumLayout />
         </BottomBarLayout>
     )
 });
@@ -102,6 +114,7 @@ const routeTree = rootRoute.addChildren([
     loginRoute,
     mapRoute,
     albumsRoute,
+    albumRoute,
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,

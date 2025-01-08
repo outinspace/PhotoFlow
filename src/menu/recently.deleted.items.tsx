@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { useGallery } from "../queries";
 import ItemGrid from '../gallery/item.grid';
-import PageHeader from '../common/page.header';
 import { TopBar } from '../common/top.bar';
 
 
 export const RecentlyDeletedItems = () => {
     const { data: gallery } = useGallery();
 
+    // BUG: I don't think this is doing anything now that sorting is in grid.
     const items = useMemo(() => {
         const input = gallery?.deletedItems ?? [];
 

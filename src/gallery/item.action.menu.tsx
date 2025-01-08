@@ -3,6 +3,7 @@ import { Item } from '../types';
 import { Book, Reply, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { useDeleteItems } from '../queries';
+import { AddToAlbumModal } from './add.to.album.modal';
 
 interface Props {
     items: Item[];
@@ -78,7 +79,7 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                         color: 'neutral',
                         onClick: () => {
                             setShowDeleteModal(false);
-                            onDismiss(true);
+                            onDismiss();
                         }
                     },
                     {
@@ -88,25 +89,17 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                     }
                 ]}
             />
-            <Modal
+            <AddToAlbumModal
                 isOpen={showAlbumModal}
-                title='Add To Album'
-                description='TODO'
-                actions={[
-                    {
-                        text: 'Cancel',
-                        color: 'neutral',
-                        onClick: () => {
-                            setShowAlbumModal(false);
-                            onDismiss(true);
-                        }
-                    },
-                    {
-                        text: 'Add',
-                        color: 'primary',
-                        onClick: () => alert('TODO')
-                    }
-                ]}
+                items={items}
+                onCancel={() => {
+                    setShowAlbumModal(false);
+                    onDismiss(true);
+                }}
+                onAddComplete={() => {
+                    setShowAlbumModal(false);
+                    onActionCompleted?.();
+                }}
             />
         </>
     );

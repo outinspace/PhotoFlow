@@ -14,9 +14,6 @@ interface Props {
 }
 
 const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
-    console.log(item);
-
-
     // TODO: Escape keybinding
 
     if (!isOpen) {
