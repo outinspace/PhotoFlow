@@ -19,7 +19,10 @@ const options = [
     },
     {
         name: 'Billing',
-        icon: CreditCard
+        icon: CreditCard,
+        onClick: () => {
+            router.navigate({ to: '/billing' });
+        }
     },
     {
         name: 'Logout',

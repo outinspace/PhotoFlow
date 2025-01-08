@@ -8,6 +8,7 @@ import Search from './search/search';
 import Menu from './menu/menu';
 import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
+import { Billing } from './menu/billing';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -86,6 +87,16 @@ export const recentlyDeletedRoute = createRoute({
     )
 });
 
+export const billingRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/billing',
+    component: () => (
+        <BottomBarLayout>
+            <Billing />
+        </BottomBarLayout>
+    )
+});
+
 const routeTree = rootRoute.addChildren([
     galleryRoute,
     loginRoute,
@@ -93,7 +104,8 @@ const routeTree = rootRoute.addChildren([
     albumsRoute,
     searchRoute,
     menuRoute,
-    recentlyDeletedRoute
+    recentlyDeletedRoute,
+    billingRoute
 ]);
 
 export const router = createRouter({ routeTree });
