@@ -1,9 +1,9 @@
 import { useRouter } from '@tanstack/react-router';
 import { ArrowLeft } from 'iconoir-react';
-import React, { SVGProps } from 'react';
+import React from 'react';
 
 interface TopBarButton {
-    icon: SVGProps; // TODO: 
+    icon: React.ForwardRefExoticComponent<Omit<React.SVGProps<SVGSVGElement>, "ref"> & React.RefAttributes<SVGSVGElement>>;
     className?: string;
     onClick: Function;
 }
