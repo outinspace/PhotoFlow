@@ -63,7 +63,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
         count: rows ?? 0,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
-        overscan: 5,
+        overscan: 20,
         rangeExtractor: useCallback((range: Range) => {
             visibleRangeRef.current = {
                 startIndex: range.startIndex,
