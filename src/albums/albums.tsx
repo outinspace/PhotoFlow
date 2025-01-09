@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import PageHeader from '../common/page.header';
 import { useAlbumsWithItems, useGallery } from '../queries';
-import { Album } from '../types';
+import { Album, Item } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 
 const Albums = () => {
@@ -30,13 +30,32 @@ interface AlbumCoverProps {
 }
 
 const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
-    const coverItems = album.items.slice(0, 3);
+    let gridCols = 1;
+    if (album.items.length >= 16) {
+        gridCols = 4;
+    } else if (album.items.length >= 9) {
+        gridCols = 3;
+    } else if (album.items.length >= 4) {
+        gridCols = 2;
+    }
+
+    const gridTemplate = `repeat(${gridCols}, minmax(0, 1fr))`;
+    const coverItems = album.items.slice(0, gridCols * gridCols);
 
     return (
-        <div className='size-40 border' onClick={() => onClick()}>
-            <div>
+        <div className='m-1' onClick={() => onClick()}>
+            <div className={'rounded border size-40 overflow-hidden grid'}
+                style={{
+                    gridTemplateColumns: gridTemplate,
+                    gridTemplateRows: gridTemplate
+                }}
+            >
                 {coverItems.map(item => (
-                    <img key={item.itemId} src={item.primaryFile.tileImageUrl ?? ''} />
+                    <img
+                        key={item.itemId}
+                        src={item.primaryFile.tileImageUrl ?? ''}
+                        className='w-full h-full object-cover'
+                    />
                 ))}
             </div>
             {album.name}
