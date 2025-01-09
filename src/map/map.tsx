@@ -36,8 +36,6 @@ const Map = () => {
         setPreviewItems([]);
     }
 
-    console.log(selectedItemIndex, previewItems);
-
     return (
         <div className='flex-auto'>
             <MapContainer ref={mapRef} zoom={13} scrollWheelZoom={true} center={center} style={{ height: '100%', width: '100%', zIndex: 0 }}>

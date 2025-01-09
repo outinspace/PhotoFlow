@@ -58,6 +58,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
+    // TODO: Consider using virtualizer grid now that tile images are cached
     const rowVirtualizer = useVirtualizer({
         enabled: tileSize > 0,
         count: rows ?? 0,
