@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { File, GetGalleryResponse, Item } from "./types";
+import { File, GetAlbumsResponse, GetGalleryResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
+import { useMemo } from "react";
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -63,18 +64,6 @@ export const useGallery = () => useQuery({
 
         gallery.items = gallery.items.filter(item => item.deletedTimeUtc === null);
 
-        // Link items to albums
-        const itemsById: Record<string, Item> = {};
-        for (const item of gallery.items) {
-            itemsById[item.itemId] = item;
-        }
-
-        for (const album of gallery.albums) {
-            album.items = album.itemIds
-                .map(itemId => itemsById[itemId])
-                .filter(item => !!item);
-        }
-
         return gallery;
     }
 });
@@ -128,6 +117,46 @@ export const useDeleteItems = () => {
     });
 }
 
+const useAlbums = () => useQuery({
+    queryKey: ['albums'],
+    queryFn: async () => {
+        const res = await fetchAuthenticatedRoute('/albums');
+
+        const body = await res.json();
+        const response = body.result as GetAlbumsResponse;
+
+        return response.albums;
+    }
+})
+
+export const useAlbumsWithItems = () => {
+    const { data: gallery } = useGallery();
+    const { data: albums } = useAlbums();
+
+    const albumsWithItems = useMemo(() => {
+        if (!gallery || !albums) {
+            return;
+        }
+
+        // Link items to albums
+        const itemsById: Record<string, Item> = {};
+        for (const item of gallery.items) {
+            itemsById[item.itemId] = item;
+        }
+
+        for (const album of albums) {
+            album.items = album.itemIds
+                .map(itemId => itemsById[itemId])
+                .filter(item => !!item)
+                .filter(item => !item.deletedTimeUtc);
+        }
+
+        return albums;
+    }, [gallery, albums]);
+
+    return albumsWithItems
+}
+
 interface CreateAlbumArgs {
     name: string;
     itemIds: number[];
@@ -151,18 +180,18 @@ export const useCreateAlbum = () => {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['albums'] });
         }
     });
 }
 
-interface AddItemsMutationArgs {
+interface AlbumItemIds {
     albumId: number;
     itemIds: number[];
 }
 export const useAddItemsToAlbum = () => {
     return useMutation({
-        mutationFn: async ({ albumId, itemIds }: AddItemsMutationArgs): Promise<boolean> => {
+        mutationFn: async ({ albumId, itemIds }: AlbumItemIds): Promise<boolean> => {
             const res = await fetchAuthenticatedRoute(`/album/${albumId}/items`, {
                 method: 'PUT',
                 body: JSON.stringify(itemIds),
@@ -174,7 +203,26 @@ export const useAddItemsToAlbum = () => {
             return res.ok;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['albums'] });
+        }
+    });
+}
+
+export const useRemoveItemsFromAlbum = () => {
+    return useMutation({
+        mutationFn: async ({ albumId, itemIds }: AlbumItemIds): Promise<boolean> => {
+            const res = await fetchAuthenticatedRoute(`/album/${albumId}/items`, {
+                method: 'DELETE',
+                body: JSON.stringify(itemIds),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return res.ok;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['albums'] });
         }
     });
 }

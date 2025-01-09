@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react';
 import PageHeader from '../common/page.header';
-import { useGallery } from '../queries';
+import { useAlbumsWithItems, useGallery } from '../queries';
 import { Album } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 
 const Albums = () => {
     const navigate = useNavigate();
-
-    const { data: gallery } = useGallery();
-    const albums = gallery?.albums ?? [];
+    const albums = useAlbumsWithItems() ?? [];
 
     const openAlbum = (albumId: number) => {
         navigate({ to: '/album', search: { albumId } });

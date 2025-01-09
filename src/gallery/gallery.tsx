@@ -8,7 +8,7 @@ const Gallery = () => {
     const items = gallery?.items ?? [];
 
     return (
-        <ItemGrid items={items} />
+        <ItemGrid items={items} albumId={null} />
     )
 };
 

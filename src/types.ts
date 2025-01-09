@@ -45,6 +45,17 @@ export interface File {
     previewUrl: string | null;
 }
 
+export interface GetGalleryResponse {
+    items: Item[];
+
+    originalUrlPrefix: string;
+    tileImageUrlPrefix: string;
+    previewUrlPrefix: string;
+
+    // Computed
+    deletedItems: Item[];
+}
+
 export interface Album {
     albumId: number;
     name: string;
@@ -56,14 +67,6 @@ export interface Album {
     items: Item[];
 }
 
-export interface GetGalleryResponse {
-    items: Item[];
+export interface GetAlbumsResponse {
     albums: Album[];
-
-    originalUrlPrefix: string;
-    tileImageUrlPrefix: string;
-    previewUrlPrefix: string;
-
-    // Computed
-    deletedItems: Item[];
 }

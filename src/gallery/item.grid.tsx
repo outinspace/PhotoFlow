@@ -12,6 +12,7 @@ import { ItemActionMenu } from './item.action.menu';
 
 interface Props {
     items: Item[];
+    albumId: number | null;
 }
 
 const zoomControlOptions = [
@@ -35,7 +36,7 @@ const zoomControlOptions = [
     }
 ];
 
-const ItemGrid = ({ items: allItems }: Props) => {
+const ItemGrid = ({ items: allItems, albumId }: Props) => {
     const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
@@ -150,6 +151,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
                             {showActionMenu && (
                                 <ItemActionMenu
                                     items={selectedItemsArray}
+                                    albumId={albumId}
                                     onDismiss={() => setShowActionMenu(false)}
                                     onActionCompleted={() => closeModes()}
                                     offsetTop={20}
@@ -243,6 +245,7 @@ const ItemGrid = ({ items: allItems }: Props) => {
                 <ItemPreview
                     key={previewItem.itemId}
                     item={previewItem}
+                    albumId={albumId}
                     onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
                     onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
                     onClose={() => setPreviewItemIndex(null)}

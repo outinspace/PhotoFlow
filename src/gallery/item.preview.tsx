@@ -11,6 +11,7 @@ import { ItemActionMenu } from './item.action.menu';
 
 interface Props {
     item: Item;
+    albumId: number | null,
     onMoveNext: Function;
     onMovePrevious: Function;
     onClose: Function;
@@ -23,7 +24,7 @@ const zIndex = {
     tileImage: 1
 };
 
-const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
+const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
@@ -157,6 +158,7 @@ const ItemPreview = ({ item, onMovePrevious, onMoveNext, onClose }: Props) => {
                 {showActionMenu && (
                     <ItemActionMenu
                         items={[item]}
+                        albumId={albumId}
                         onDeleteCompletion={() => onClose()}
                         onDismiss={() => setShowActionMenu(false)}
                         offsetTop={35}
