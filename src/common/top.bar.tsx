@@ -18,21 +18,23 @@ export const TopBar = ({ title, rightButtons }: Props) => {
 
     return (
         <div className='flex justify-center items-center p-3 border-b'>
-            <div className='absolute left-3 hover:bg-slate-200 rounded'>
+            <div className='absolute left-3 hover:bg-slate-200 rounded p-1'>
                 <ArrowLeft
-                    className='size-6 m-1 text-sky-500'
+                    className='size-6 text-sky-500'
                     onClick={() => history.go(-1)}
                 />
             </div>
-            <div className='font-bold text-slate-900'>
+            <div className='font-bold text-slate-900 truncate text-ellipsis w-1/2'>
                 {title}
             </div>
-            <div className='absolute right-3 hover:bg-slate-200 rounded'>
+            <div className='flex absolute right-3'>
                 {rightButtons?.map(btn => (
-                    <btn.icon
-                        className={`size-6 m-1 ${btn.className}`}
-                        onClick={() => btn.onClick()}
-                    />
+                    <div className='ml-2 p-1 hover:bg-slate-200 rounded text-slate-500'>
+                        <btn.icon
+                            className={`size-6 ${btn.className}`}
+                            onClick={() => btn.onClick()}
+                        />
+                    </div>
                 ))}
             </div>
         </div>

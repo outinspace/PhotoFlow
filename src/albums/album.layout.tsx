@@ -3,8 +3,9 @@ import { useAlbumsWithItems } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Trash } from 'iconoir-react';
+import { EditPencil, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
+import { EditAlbumModal } from './edit.album.modal';
 
 interface SearchParams {
     albumId?: number;
@@ -13,6 +14,7 @@ interface SearchParams {
 export const AlbumLayout = () => {
     const navigate = useNavigate();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const params: SearchParams = useSearch({ strict: false });
 
     // TODO: Use params instead of search
@@ -32,15 +34,20 @@ export const AlbumLayout = () => {
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <TopBar
-            title={album.name}
-            rightButtons={[
-                {
-                    icon: Trash,
-                    className: 'text-red-500',
-                    onClick: () => setShowDeleteModal(true)
-                }
-            ]}
-        />
+                title={album.name}
+                rightButtons={[
+                    {
+                        icon: EditPencil,
+                        className: '',
+                        onClick: () => setShowEditModal(true)
+                    },
+                    {
+                        icon: Trash,
+                        className: 'text-red-500',
+                        onClick: () => setShowDeleteModal(true)
+                    }
+                ]}
+            />
             <ItemGrid items={album.items} albumId={params.albumId} />
             <DeleteAlbumModal
                 album={album}
@@ -49,6 +56,14 @@ export const AlbumLayout = () => {
                 onDeleteComplete={() => {
                     setShowDeleteModal(false);
                     navigate({ to: '/albums' });
+                }}
+            />
+            <EditAlbumModal
+                album={album}
+                isOpen={showEditModal}
+                onCancel={() => setShowEditModal(false)}
+                onEditComplete={() => {
+                    setShowEditModal(false);
                 }}
             />
         </div>
