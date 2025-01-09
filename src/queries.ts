@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GetGalleryResponse, Item } from "./types";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { File, GetGalleryResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
@@ -87,6 +87,28 @@ const getType = (item: Item) => {
         return 'live-photo';
     }
 }
+
+export const useTileImageBuffer = (file: File) => useQuery({
+    queryKey: ['tile-image', file.fileId, file.tileVersion],
+    staleTime: Infinity, // Will use cache max age
+    queryFn: async () => {
+        if (!file.tileImageUrl) {
+            return;
+        }
+
+        const res = await fetch(file.tileImageUrl, {
+            mode: 'cors'
+        });
+
+        const blob = await res.blob();
+
+        // Split blob into binary and MIME type. Blobs and object URLS cannot be cached.
+        return {
+            buffer: await blob.arrayBuffer(),
+            contentType: blob.type
+        };
+    }
+})
 
 export const useDeleteItems = () => {
     return useMutation({

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Item } from '../types';
-import useLongPress from '../hooks/use.long.press';
+import { get, set } from 'idb-keyval';
+import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
 
 interface Props {
     item: Item;
@@ -16,16 +17,16 @@ for (let i = 0; i < 20; i++) {
 }
 
 export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
-    const [showImage, setShowImage] = useState(false);
+    const { data: tileImageBinaryData } = useTileImageBinaryData(item.primaryFile);
 
-    // HACK: Prevent mass loading of tile images when scrolling
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setShowImage(true);
-        }, 100);
+    const tileImageObjectUrl = useMemo(() => {
+        if (tileImageBinaryData) {
+            const { buffer, contentType } = tileImageBinaryData;
+            const blob = new Blob([buffer], { type: contentType });
 
-        return () => clearTimeout(timeoutId);
-    });
+            return URL.createObjectURL(blob);
+        }
+    }, [tileImageBinaryData]);
 
     return (
         <div
@@ -41,9 +42,10 @@ export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
                     position: 'relative',
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
+                    opacity: tileImageObjectUrl ? 1 : 0
                 }}
-                src={showImage ? item.primaryFile.tileImageUrl ?? undefined : undefined}
+                src={tileImageObjectUrl ?? ''}
             />
             {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: minTileSize / 8 }}>

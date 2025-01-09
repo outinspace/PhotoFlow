@@ -1,6 +1,5 @@
 import {
     QueryClient,
-    QueryClientProvider,
 } from '@tanstack/react-query'
 import styled from '@emotion/styled';
 import React, { StrictMode, useEffect } from 'react';
@@ -24,7 +23,7 @@ export function createIDBPersister(idbValidKey: IDBValidKey) {
     } as Persister
 }
 
-const cacheMaxAgeMs = 2 * 24 * 60 * 60 * 1000; // 48 hours
+const cacheMaxAgeMs = 14 * 24 * 60 * 60 * 1000; // 14 days
 const cacheVersion = 'v1'; // Changing this string will clear existing persisted cache
 
 const persister = createIDBPersister('react-query');
