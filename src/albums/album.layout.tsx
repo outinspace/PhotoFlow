@@ -1,14 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAlbumsWithItems } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
-import { useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { Trash } from 'iconoir-react';
+import { DeleteAlbumModal } from './delete.album.modal';
 
 interface SearchParams {
     albumId?: number;
 }
 
 export const AlbumLayout = () => {
+    const navigate = useNavigate();
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const params: SearchParams = useSearch({ strict: false });
 
     // TODO: Use params instead of search
@@ -27,8 +31,26 @@ export const AlbumLayout = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar title={album.name} />
+            <TopBar
+            title={album.name}
+            rightButtons={[
+                {
+                    icon: Trash,
+                    className: 'text-red-500',
+                    onClick: () => setShowDeleteModal(true)
+                }
+            ]}
+        />
             <ItemGrid items={album.items} albumId={params.albumId} />
+            <DeleteAlbumModal
+                album={album}
+                isOpen={showDeleteModal}
+                onCancel={() => setShowDeleteModal(false)}
+                onDeleteComplete={() => {
+                    setShowDeleteModal(false);
+                    navigate({ to: '/albums' });
+                }}
+            />
         </div>
     );
 }
