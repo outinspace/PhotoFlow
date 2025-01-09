@@ -6,7 +6,7 @@ import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
 interface Props {
     item: Item;
     onClick: Function;
-    minTileSize: number;
+    idealTileSize: number;
     isSelected: boolean;
 }
 
@@ -16,7 +16,7 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
+export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
     // BUG: Isn't working properly on prod. Very slow.
     // const { data: tileImageBinaryData } = useTileImageBinaryData(item.primaryFile);
     //
@@ -34,7 +34,7 @@ export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
     return (
         <div
             onClick={() => onClick()}
-            className={`h-full w-full ${minTileSize > 50 && 'border-black border-b border-r'}`}
+            className={`h-full w-full ${idealTileSize > 50 && 'border-black border-b border-r'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}
@@ -51,7 +51,7 @@ export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
                 src={tileImageObjectUrl ?? ''}
             />
             {item.type === 'video' && (
-                <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: minTileSize / 8 }}>
+                <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
                     {formatVideoSeconds(item.videoLength)}
                 </div>
             )}

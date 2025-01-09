@@ -4,58 +4,38 @@ import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-vi
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
-import GridZoomControl from './grid.zoom.control';
 import { format } from 'date-fns';
 import { FilterBar, useFilterBar } from './filter.bar';
 import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
+import { ZoomButtons } from './zoom.buttons';
 
 interface Props {
     items: Item[];
     albumId: number | null;
 }
 
-const zoomControlOptions = [
-    {
-        name: 'Year',
-        minTileSize: 40,
-        showTileBorder: false,
-        rangeDateFormat: 'MMMM yyyy'
-    },
-    {
-        name: 'Month',
-        minTileSize: 60,
-        showTileBorder: true,
-        rangeDateFormat: 'MMM d yyyy'
-    },
-    {
-        name: 'Day',
-        minTileSize: 80,
-        showTileBorder: true,
-        rangeDateFormat: 'MMM d yyyy'
-    }
-];
+const MIN_TILE_SIZE = 20;
 
 const ItemGrid = ({ items: allItems, albumId }: Props) => {
     const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
-
     const items = filteredItems;
 
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
     const previewItem = previewItemIndex === null ? null : items[previewItemIndex];
-
-    const [zoomLevel, setZoomLevel] = useState(zoomControlOptions[2]);
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
+    const [idealTileSize, setIdealTileSize] = useState(70);
+    const rangeDateFormat = idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
 
     // TODO: Extract into useTileVirtualizer
-    const columns = Math.floor(containerWidth / zoomLevel.minTileSize);
+    const columns = Math.floor(containerWidth / idealTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -66,6 +46,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
         overscan: 20,
+        paddingEnd: 100,
         rangeExtractor: useCallback((range: Range) => {
             visibleRangeRef.current = {
                 startIndex: range.startIndex,
@@ -92,7 +73,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
     }, []);
     // END: Extract into useTileVirtualizer
 
-    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, zoomLevel.rangeDateFormat);
+    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, rangeDateFormat);
 
     const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
     const selectedItemsArray = useMemo(() => Object.values(selectedItems), [selectedItems]);
@@ -127,13 +108,14 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
         setMode('view');
     }
 
+    const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-2 drop-shadow ml-2';
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            {mode === 'filter' && <FilterBar {...filterProps} items={allItems} />}
             <div className='flex flex-auto overflow-hidden relative'>
-                <div className='absolute top-2 right-2 z-10 flex'>
+                <div className='absolute bottom-2 right-2 z-10 flex'>
                     {mode === 'view' && (
-                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow'>
+                        <div className={floatingButtonClasses}>
                             <OneFingerSelectHandGesture
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
@@ -142,7 +124,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                         </div>
                     )}
                     {mode === 'select' && selectedItemsArray.length > 0 && (
-                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow'>
+                        <div className={floatingButtonClasses}>
                             <Menu
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
@@ -160,7 +142,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                         </div>
                     )}
                     {mode === 'view' && (
-                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow ml-2'>
+                        <div className={floatingButtonClasses}>
                             <Filter
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
@@ -169,7 +151,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                         </div>
                     )}
                     {mode !== 'view' && (
-                        <div className='bg-slate-100 text-slate-500 rounded-full p-2 drop-shadow ml-2'>
+                        <div className={floatingButtonClasses}>
                             <Xmark
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
@@ -221,7 +203,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                                         >
                                             <ItemTile
                                                 item={item}
-                                                minTileSize={zoomLevel.minTileSize}
+                                                idealTileSize={idealTileSize}
                                                 onClick={() => handleItemClick(item)}
                                                 isSelected={!!selectedItems[item.itemId]}
                                             />
@@ -232,7 +214,10 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                             );
                         })}
                     </div>
-                    <GridZoomControl options={zoomControlOptions} onSelect={value => setZoomLevel(value)} value={zoomLevel} />
+                    <ZoomButtons
+                        onZoomOut={() => setIdealTileSize(Math.max(Math.round(idealTileSize * .5), MIN_TILE_SIZE))}
+                        onZoomIn={() => setIdealTileSize(Math.min(Math.round(idealTileSize * 1.5), containerWidth))}
+                    />
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
                         <div className='font-bold text-2xl'>{formattedRange}</div>
                         {mode === 'select' && (
@@ -241,6 +226,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                     </div>
                 </ScrollContainer>
             </div>
+            {mode === 'filter' && <FilterBar {...filterProps} items={allItems} />}
             {previewItem && (
                 <ItemPreview
                     key={previewItem.itemId}
