@@ -134,7 +134,7 @@ export const useRestoreItems = () => {
     });
 }
 
-const useAlbums = () => useQuery({
+export const useAlbums = () => useQuery({
     queryKey: ['albums'],
     queryFn: async () => {
         const res = await fetchAuthenticatedRoute('/albums');

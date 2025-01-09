@@ -43,8 +43,8 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
     const coverItems = album.items.slice(0, gridCols * gridCols);
 
     return (
-        <div className='m-1' onClick={() => onClick()}>
-            <div className={'rounded border size-40 overflow-hidden grid'}
+        <div className='flex-col m-1 justify-items-center' onClick={() => onClick()}>
+            <div className={'rounded border size-32 overflow-hidden grid'}
                 style={{
                     gridTemplateColumns: gridTemplate,
                     gridTemplateRows: gridTemplate
@@ -58,7 +58,7 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
                     />
                 ))}
             </div>
-            {album.name}
+            <div className='mt-1 truncate text-ellipsis w-32'>{album.name}</div>
         </div>
     )
 }

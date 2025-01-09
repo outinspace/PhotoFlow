@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from "../common/modal";
-import { useAddItemsToAlbum, useCreateAlbum } from '../queries';
+import { useAddItemsToAlbum, useAlbums, useCreateAlbum } from '../queries';
 import { Item } from '../types';
 
 interface Props {
@@ -11,19 +11,20 @@ interface Props {
 }
 
 export const AddToAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Props) => {
-    const [albumName, setAlbumName] = useState('');
-    const createAlbumMutation = useCreateAlbum();
-    // const addItemsToAlbumMutation = useAddItemsToAlbum()
+    const [selectedAlbumId, setSelectedAlbumId] = useState(0);
+    const addToAlbumMutation = useAddItemsToAlbum();
+
+    const { data: albums } = useAlbums();
 
     const handleAdd = async () => {
         const itemIds = items.map(i => i.itemId);
 
-        const albumId = await createAlbumMutation.mutateAsync({
-            name: albumName,
+        const success = await addToAlbumMutation.mutateAsync({
+            albumId: selectedAlbumId,
             itemIds
         });
 
-        if (!albumId) {
+        if (!success) {
             return;
         }
 
@@ -34,7 +35,7 @@ export const AddToAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Prop
         <Modal
             isOpen={isOpen}
             title='Add To Album'
-            description='Select an existing album or enter a name to create a new one.'
+            description='Select an album to add the selected items to.'
             actions={[
                 {
                     text: 'Cancel',
@@ -44,11 +45,26 @@ export const AddToAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Prop
                 {
                     text: 'Add',
                     color: 'primary',
-                    onClick: handleAdd
+                    onClick: handleAdd,
+                    disabled: selectedAlbumId === 0
                 }
             ]}
         >
-            <input type='text' placeholder='Album Name' onChange={e => setAlbumName(e.target.value)} />
+            <select
+                className='flex-auto border rounded bg-slate-100 p-2 hover:bg-slate-200'
+                onChange={e => setSelectedAlbumId(parseInt(e.target.value))}
+            >
+                <option
+                    key={0}
+                    value='0'
+                    disabled={selectedAlbumId !== 0}
+                >
+                    Select Album
+                </option>
+                {albums?.map(album => (
+                    <option key={album.albumId} value={album.albumId}>{album.name}</option>
+                ))}
+            </select>
         </Modal>
     );
 }

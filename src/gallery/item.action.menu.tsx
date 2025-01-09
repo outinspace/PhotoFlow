@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
-import { Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
+import { Book, CircleSpark, Minus, Plus, Refresh, Reply, Spark, Spiral, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { useDebugMode } from '../hooks/use.debug.mode';
+import { CreateAlbumModal } from './create.album.modal';
 
 interface Props {
     items: Item[];
@@ -17,7 +18,8 @@ interface Props {
 
 export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, onActionCompleted, offsetTop }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showAlbumModal, setShowAlbumModal] = useState(false);
+    const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
+    const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
     const showDebugOptions = useDebugMode();
 
     const deleteItems = useDeleteItems();
@@ -65,17 +67,24 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
 
     const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
 
-    const showMenu = !showDeleteModal && !showAlbumModal;
+    const showMenu = !showDeleteModal && !showAddToAlbumModal;
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
     const options = [
         {
+            title: 'Create New Album',
+            visible: !itemsAreDeleted,
+            icon: Book,
+            className: '',
+            onClick: () => setShowCreateAlbumModal(true)
+        },
+        {
             title: 'Add To Album',
             visible: !itemsAreDeleted,
             icon: Plus,
             className: '',
-            onClick: () => setShowAlbumModal(true)
+            onClick: () => setShowAddToAlbumModal(true)
         },
         {
             title: 'Remove From Album',
@@ -151,14 +160,26 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
                 ]}
             />
             <AddToAlbumModal
-                isOpen={showAlbumModal}
+                isOpen={showAddToAlbumModal}
                 items={items}
                 onCancel={() => {
-                    setShowAlbumModal(false);
+                    setShowAddToAlbumModal(false);
                     onDismiss(true);
                 }}
                 onAddComplete={() => {
-                    setShowAlbumModal(false);
+                    setShowAddToAlbumModal(false);
+                    onActionCompleted?.();
+                }}
+            />
+            <CreateAlbumModal
+                isOpen={showCreateAlbumModal}
+                items={items}
+                onCancel={() => {
+                    setShowCreateAlbumModal(false);
+                    onDismiss(true);
+                }}
+                onAddComplete={() => {
+                    setShowCreateAlbumModal(false);
                     onActionCompleted?.();
                 }}
             />

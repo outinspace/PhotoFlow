@@ -5,6 +5,7 @@ interface ModalAction {
     text: string;
     color: 'destructive' | 'neutral' | 'primary'
     onClick: Function;
+    disabled?: boolean;
 }
 
 interface Props {
@@ -20,6 +21,7 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
         return;
     }
 
+    // TODO: Handle disabled color
     const getButtonColorClasses = (action: ModalAction) => {
         switch (action.color) {
             case 'neutral':
@@ -40,19 +42,20 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
                         {description}
                     </div>
                     {children && (
-                        <div className='mb-5'>
+                        <div className='flex mb-5'>
                             {children}
                         </div>
                     )}
                     <div className='flex justify-between'>
                         {actions.map(action => (
-                            <div
+                            <button
                                 key={action.text}
                                 className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
                                 onClick={() => action.onClick()}
+                                disabled={action.disabled}
                             >
                                 {action.text}
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
