@@ -6,8 +6,36 @@ import styled from '@emotion/styled';
 import React, { StrictMode, useEffect } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './routes';
+import { get, set, del } from "idb-keyval";
+import { PersistedClient, Persister } from '@tanstack/query-persist-client-core';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
-const queryClient = new QueryClient()
+export function createIDBPersister(idbValidKey: IDBValidKey) {
+    return {
+        persistClient: async (client: PersistedClient) => {
+            await set(idbValidKey, client)
+        },
+        restoreClient: async () => {
+            return await get<PersistedClient>(idbValidKey)
+        },
+        removeClient: async () => {
+            await del(idbValidKey)
+        },
+    } as Persister
+}
+
+const cacheMaxAgeMs = 2 * 24 * 60 * 60 * 1000; // 48 hours
+const cacheVersion = 'v1'; // Changing this string will clear existing persisted cache
+
+const persister = createIDBPersister('react-query');
+
+export const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            gcTime: cacheMaxAgeMs
+        }
+    }
+})
 
 const App = () => {
 
@@ -20,11 +48,18 @@ const App = () => {
 
     return (
         <StrictMode>
-            <QueryClientProvider client={queryClient}>
+            <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{
+                    persister,
+                    maxAge: cacheMaxAgeMs,
+                    buster: cacheVersion
+                }}
+            >
                 <FlexContainer>
                     <RouterProvider router={router} />
                 </FlexContainer>
-            </QueryClientProvider>
+            </PersistQueryClientProvider>
         </StrictMode>
     );
 };
