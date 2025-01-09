@@ -17,16 +17,19 @@ for (let i = 0; i < 20; i++) {
 }
 
 export const ItemTile = ({ item, onClick, minTileSize, isSelected }: Props) => {
-    const { data: tileImageBinaryData } = useTileImageBinaryData(item.primaryFile);
+    // BUG: Isn't working properly on prod. Very slow.
+    // const { data: tileImageBinaryData } = useTileImageBinaryData(item.primaryFile);
+    //
+    // const tileImageObjectUrl = useMemo(() => {
+    //     if (tileImageBinaryData) {
+    //         const { buffer, contentType } = tileImageBinaryData;
+    //         const blob = new Blob([buffer], { type: contentType });
+    //
+    //         return URL.createObjectURL(blob);
+    //     }
+    // }, [tileImageBinaryData]);
 
-    const tileImageObjectUrl = useMemo(() => {
-        if (tileImageBinaryData) {
-            const { buffer, contentType } = tileImageBinaryData;
-            const blob = new Blob([buffer], { type: contentType });
-
-            return URL.createObjectURL(blob);
-        }
-    }, [tileImageBinaryData]);
+    const tileImageObjectUrl = item.primaryFile.tileImageUrl;
 
     return (
         <div
