@@ -5,7 +5,7 @@ import { router } from "./routes";
 import { queryClient } from "./app";
 
 
-const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
+export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
     request = request ?? {};
 
     request.headers = {

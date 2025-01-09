@@ -1,25 +1,30 @@
-import { CreditCard, LogOut, ProfileCircle, Trash } from 'iconoir-react';
-import React, { useMemo } from 'react';
+import { CreditCard, LogOut, ProfileCircle, Restart, Trash } from 'iconoir-react';
+import React, { useDebugValue, useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
-import { useGallery } from '../queries';
+import { fetchAuthenticatedRoute, useGallery } from '../queries';
 import { formatBytes } from '../common/format.helpers';
+import { useSearch } from '@tanstack/react-router';
+import { useDebugMode } from '../hooks/use.debug.mode';
 
 const options = [
     {
         name: 'Recently Deleted Items',
         icon: Trash,
+        debug: false,
         onClick: () => {
             router.navigate({ to: '/recently-deleted' });
         }
     },
     {
         name: 'Profile',
-        icon: ProfileCircle
+        icon: ProfileCircle,
+        debug: false,
     },
     {
         name: 'Billing',
         icon: CreditCard,
+        debug: false,
         onClick: () => {
             router.navigate({ to: '/billing' });
         }
@@ -27,20 +32,37 @@ const options = [
     {
         name: 'Logout',
         icon: LogOut,
+        debug: false,
         onClick: () => {
             localStorage.removeItem('tenantId');
             localStorage.removeItem('sessionId');
             router.navigate({ to: '/login' });
         }
+    },
+    {
+        name: 'Reprocess Failed Items',
+        icon: Restart,
+        debug: true,
+        onClick: async () => {
+            const res = await fetchAuthenticatedRoute(`/debug/reprocess-failed`, {
+                method: 'POST'
+            });
+
+            alert(res.status + ' ' + res.statusText);
+        }
     }
 ];
 
 const Menu = () => {
+    const showDebugOptions = useDebugMode();
+
     return (
         <div className='p-5'>
             <PageHeader name='Menu' />
             <div>
-                {options.map(option => (
+                {options
+                    .filter(option => !option.debug || showDebugOptions)
+                    .map(option => (
                     <div
                         key={option.name}
                         className='flex first:rounded-t-lg last:rounded-b-lg bg-slate-100 p-2 border-b last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300'

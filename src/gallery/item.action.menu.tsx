@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
-import { Book, Reply, Trash } from 'iconoir-react';
+import { Book, Reply, Restart, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
-import { useDeleteItems } from '../queries';
+import { fetchAuthenticatedRoute, useDeleteItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
+import { useDebugMode } from '../hooks/use.debug.mode';
 
 interface Props {
     items: Item[];
@@ -16,6 +17,8 @@ interface Props {
 export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionCompleted, offsetTop }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAlbumModal, setShowAlbumModal] = useState(false);
+
+    const showDebugOptions = useDebugMode();
 
     const deleteItems = useDeleteItems();
 
@@ -32,6 +35,18 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
     const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
 
     const showMenu = !showDeleteModal && !showAlbumModal;
+
+    const reprocessItems = async (items: Item[]) => {
+        for (const item of items) {
+            for (const file of item.files) {
+                const res = await fetchAuthenticatedRoute(`/debug/reprocess-file?fileId=${file.fileId}`, {
+                    method: 'POST'
+                });
+
+                console.log('Reprocess Result: ', item.itemId, file.fileId, res.statusText);
+            }
+        }
+    };
 
     return (
         <>
@@ -66,6 +81,15 @@ export const ItemActionMenu = ({ items, onDismiss, onDeleteCompletion, onActionC
                                 Delete
                             </div>
                         </>
+                    )}
+                    {showDebugOptions && (
+                        <div
+                            className={optionClasses}
+                            onClick={() => reprocessItems(items)}
+                        >
+                            <Restart className='size-5 ml-1 mr-2' />
+                            Reprocess Items
+                        </div>
                     )}
                 </div>
             </>}
