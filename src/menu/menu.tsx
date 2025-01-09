@@ -1,10 +1,9 @@
-import { CreditCard, LogOut, ProfileCircle, Restart, Trash } from 'iconoir-react';
-import React, { useDebugValue, useMemo } from 'react';
+import { CreditCard, LogOut, ProfileCircle, Refresh, RefreshDouble, Restart, Trash } from 'iconoir-react';
+import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
 import { fetchAuthenticatedRoute, useGallery } from '../queries';
 import { formatBytes } from '../common/format.helpers';
-import { useSearch } from '@tanstack/react-router';
 import { useDebugMode } from '../hooks/use.debug.mode';
 
 const options = [
@@ -14,6 +13,14 @@ const options = [
         debug: false,
         onClick: () => {
             router.navigate({ to: '/recently-deleted' });
+        }
+    },
+    {
+        name: 'Items In-Process',
+        icon: RefreshDouble,
+        debug: false,
+        onClick: () => {
+            router.navigate({ to: '/items-in-process' });
         }
     },
     {
@@ -41,7 +48,7 @@ const options = [
     },
     {
         name: 'Reprocess Failed Items',
-        icon: Restart,
+        icon: Refresh,
         debug: true,
         onClick: async () => {
             const res = await fetchAuthenticatedRoute(`/debug/reprocess-failed`, {

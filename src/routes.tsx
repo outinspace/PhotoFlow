@@ -10,6 +10,7 @@ import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import { AlbumLayout } from './albums/album.layout';
+import { ItemsInProcess } from './menu/items.in.process';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -109,6 +110,16 @@ export const billingRoute = createRoute({
     )
 });
 
+export const itemsInProcessRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/items-in-process',
+    component: () => (
+        <BottomBarLayout>
+            <ItemsInProcess />
+        </BottomBarLayout>
+    )
+});
+
 const routeTree = rootRoute.addChildren([
     galleryRoute,
     loginRoute,
@@ -118,7 +129,8 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,
-    billingRoute
+    billingRoute,
+    itemsInProcessRoute
 ]);
 
 export const router = createRouter({ routeTree });
