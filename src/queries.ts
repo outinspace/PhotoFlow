@@ -117,6 +117,23 @@ export const useDeleteItems = () => {
     });
 }
 
+export const useRestoreItems = () => {
+    return useMutation({
+        mutationFn: async (itemIds: number[]) => {
+            await fetchAuthenticatedRoute('/items/restore', {
+                method: 'POST',
+                body: JSON.stringify(itemIds),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
+
 const useAlbums = () => useQuery({
     queryKey: ['albums'],
     queryFn: async () => {

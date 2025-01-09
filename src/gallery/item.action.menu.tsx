@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
-import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum } from '../queries';
+import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { useDebugMode } from '../hooks/use.debug.mode';
 
@@ -22,6 +22,7 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
 
     const deleteItems = useDeleteItems();
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
+    const restoreItemsMutation = useRestoreItems();
 
     const handleDelete = async () => {
         const itemIds = items.map(i => i.itemId);
@@ -52,6 +53,13 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
         await removeFromAlbumMutation.mutateAsync({ albumId, itemIds });
 
         onDeleteCompletion?.();
+        onActionCompleted?.();
+    }
+
+    const restoreItems = async () => {
+        const itemIds = items.map(i => i.itemId);
+        await restoreItemsMutation.mutateAsync(itemIds);
+
         onActionCompleted?.();
     }
 
@@ -88,7 +96,7 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
             visible: itemsAreDeleted,
             icon: Reply,
             className: 'text-sky-500',
-            onClick: () => alert('TODO')
+            onClick: () => restoreItems()
         },
         {
             title: 'Reprocess',
