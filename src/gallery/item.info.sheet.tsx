@@ -130,17 +130,14 @@ const LocationMetadata = ({ item }: { item: Item }) => {
     const navigate = useNavigate();
     const positionAvailable = item.latitude && item.longitude;
 
-    if (!positionAvailable) {
+    if (!positionAvailable || !item.primaryFile.tileImageUrl) {
         return;
     }
 
     const position: LatLngExpression = [item.latitude ?? 0, item.longitude ?? 0];
 
-    const primaryFile = item.files.find(f => f.contentType.startsWith('image')) ?? item.files[0];
-    const tileUrl = primaryFile.tileImageUrl;
-
     const markerIcon = new Icon({
-        iconUrl: tileUrl ?? '',
+        iconUrl: item.primaryFile.tileImageUrl,
         iconSize: [40, 40],
         className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
     });
