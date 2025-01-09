@@ -36,7 +36,7 @@ export const useGallery = () => useQuery({
         const res = await fetchAuthenticatedRoute('/items/gallery');
 
         const body = await res.json();
-        const gallery = body.result as GetGalleryResponse;
+        const gallery = body as GetGalleryResponse;
 
         // Computed properties
         for (const item of gallery.items) {
@@ -123,7 +123,7 @@ const useAlbums = () => useQuery({
         const res = await fetchAuthenticatedRoute('/albums');
 
         const body = await res.json();
-        const response = body.result as GetAlbumsResponse;
+        const response = body as GetAlbumsResponse;
 
         return response.albums;
     }
@@ -174,7 +174,7 @@ export const useCreateAlbum = () => {
 
             if (res.ok) {
                 const body = await res.json();
-                return body.result.value.albumId;
+                return body.albumId;
             } else {
                 return null;
             }
