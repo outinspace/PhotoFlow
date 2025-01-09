@@ -24,7 +24,7 @@ export const TopBar = ({ title, rightButtons }: Props) => {
                     onClick={() => history.go(-1)}
                 />
             </div>
-            <div className='font-bold text-slate-900 truncate text-ellipsis w-1/2'>
+            <div className='font-bold text-slate-900 truncate text-ellipsis' style={{ maxWidth: '50%' }}>
                 {title}
             </div>
             <div className='flex absolute right-3'>
