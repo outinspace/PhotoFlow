@@ -67,7 +67,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
         count: rows ?? 0,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
-        overscan: 20,
+        overscan: zoomLevel.overscan,
         paddingEnd: 100,
         rangeExtractor: useCallback((range: Range) => {
             visibleRangeRef.current = {
