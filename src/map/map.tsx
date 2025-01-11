@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Leaflet, { Icon, LatLngExpression } from 'leaflet';
@@ -8,7 +8,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useSearch } from '@tanstack/react-router';
 import { Item } from '../types';
-import ItemPreview from '../gallery/item.preview';
+import { BottomSheet } from '../common/bottom.sheet';
+import ItemGrid from '../gallery/item.grid';
 
 interface SearchParams {
     latitude?: number;
@@ -18,10 +19,7 @@ interface SearchParams {
 const Map = () => {
     const [map, setMap] = useState<Leaflet.Map | null>(null);
     const params: SearchParams = useSearch({ strict: false });
-
     const [previewItems, setPreviewItems] = useState<Item[]>([]);
-    const [selectedItemIndex, setSelectedItemIndex] = useState(0);
-    const selectedItem: Item | undefined = previewItems[selectedItemIndex];
 
     let center: LatLngExpression | undefined = undefined;
     if (params.longitude && params.latitude) {
@@ -29,11 +27,6 @@ const Map = () => {
     }
 
     const { data: gallery } = useGallery();
-
-    const resetPreview = () => {
-        setSelectedItemIndex(0);
-        setPreviewItems([]);
-    }
 
     useItemMarkers({
         items: gallery?.items ?? null,
@@ -56,16 +49,14 @@ const Map = () => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
             </MapContainer>
-            {selectedItem && (
-                <ItemPreview
-                    key={selectedItem.itemId}
-                    item={selectedItem}
-                    albumId={null}
-                    onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? selectedItemIndex : selectedItemIndex - 1)}
-                    onMoveNext={() => setSelectedItemIndex(selectedItemIndex === previewItems.length - 1 ? selectedItemIndex : selectedItemIndex + 1)}
-                    onClose={resetPreview}
-                />
-            )}
+            <BottomSheet
+                isOpen={previewItems.length > 0}
+                onDismiss={() => setPreviewItems([])}
+            >
+                <div className='flex flex-grow rounded-lg overflow-hidden'>
+                    <ItemGrid items={previewItems} albumId={null} />
+                </div>
+            </BottomSheet>
         </div>
     );
 };
@@ -123,11 +114,8 @@ const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProp
 
         markerClusterGroup.on('clusterclick', e => {
             const items = e.sourceTarget.getAllChildMarkers().map(marker => marker.options.item);
-            const zoomLevel = map.getZoom();
 
-            if (zoomLevel > 15) {
-                onSelectItems(items);
-            }
+            onSelectItems(items);
         });
     }, [items, center, map, onSelectItems]);
 };

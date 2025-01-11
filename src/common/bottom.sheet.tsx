@@ -23,7 +23,7 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
             >
             </div>
             <div
-                className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:max-w-96 overflow-y-auto z-10 p-3 flex-initial pb-9'
+                className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:min-w-96 overflow-y-auto z-10 flex-initial p-3 pb-9 md:pb-3 flex'
             >
                 {children}
             </div>

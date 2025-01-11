@@ -24,9 +24,11 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
             isOpen={isOpen}
             onDismiss={onDismiss}
         >
-            <CameraMetadata item={item} />
-            <FileMetadata item={item} />
-            <LocationMetadata item={item} />
+            <div className='flex-auto'>
+                <CameraMetadata item={item} />
+                <FileMetadata item={item} />
+                <LocationMetadata item={item} />
+            </div>
         </BottomSheet>
     );
 };
