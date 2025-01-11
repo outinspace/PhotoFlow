@@ -34,13 +34,13 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
     return (
         <div
             onClick={() => onClick()}
-            className={`h-full w-full ${idealTileSize > 50 && 'border-black border-b border-r'}`}
+            className={`h-full w-full ${idealTileSize > 50 && 'outline outline-black outline-1'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}
         >
             <img
-                className={`select-none ${isSelected && 'border-4 border-sky-400'}`}
+                className={'select-none'}
                 style={{
                     position: 'relative',
                     width: '100%',
@@ -54,6 +54,9 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
                     {formatVideoSeconds(item.videoLength)}
                 </div>
+            )}
+            {isSelected && (
+                <div className='absolute top-0 bottom-0 left-0 right-0 bg-sky-500/50' />
             )}
         </div>
     );
