@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Leaflet, { Icon, LatLngExpression } from 'leaflet';
@@ -16,7 +16,7 @@ interface SearchParams {
 }
 
 const Map = () => {
-    const mapRef = useRef<Leaflet.Map>();
+    const [map, setMap] = useState<Leaflet.Map | null>(null);
     const params: SearchParams = useSearch({ strict: false });
 
     const [previewItems, setPreviewItems] = useState<Item[]>([]);
@@ -29,26 +29,38 @@ const Map = () => {
     }
 
     const { data: gallery } = useGallery();
-    const items = gallery?.items ?? [];
 
     const resetPreview = () => {
         setSelectedItemIndex(0);
         setPreviewItems([]);
     }
 
+    useItemMarkers({
+        items: gallery?.items ?? null,
+        map,
+        center,
+        onSelectItems: setPreviewItems
+    });
+
     return (
         <div className='flex-auto'>
-            <MapContainer ref={mapRef} zoom={13} scrollWheelZoom={true} center={center} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+            <MapContainer
+                ref={map => setMap(map)}
+                zoom={13}
+                scrollWheelZoom={true}
+                center={center}
+                style={{ height: '100%', width: '100%', zIndex: 0 }}
+            >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <ItemMarkerClusters items={items} map={mapRef.current} center={center} onSelectItems={setPreviewItems} />
             </MapContainer>
             {selectedItem && (
                 <ItemPreview
                     key={selectedItem.itemId}
                     item={selectedItem}
+                    albumId={null}
                     onMovePrevious={() => setSelectedItemIndex(selectedItemIndex === 0 ? selectedItemIndex : selectedItemIndex - 1)}
                     onMoveNext={() => setSelectedItemIndex(selectedItemIndex === previewItems.length - 1 ? selectedItemIndex : selectedItemIndex + 1)}
                     onClose={resetPreview}
@@ -66,18 +78,18 @@ const markerClusterGroup = Leaflet.markerClusterGroup({
 });
 
 interface MarkerClusterProps {
-    items: Item[];
-    map?: Leaflet.Map,
+    items: Item[] | null;
+    map: Leaflet.Map | null,
     center?: LatLngExpression;
     onSelectItems: (items: Item[]) => any;
 }
 
-const ItemMarkerClusters = ({ items, map, center, onSelectItems }: MarkerClusterProps) => {
-    if (!map) {
-        return;
-    }
-
+const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProps) => {
     useEffect(() => {
+        if (map === null || items === null) {
+            return;
+        }
+
         markerClusterGroup.clearLayers();
 
         items
@@ -117,9 +129,7 @@ const ItemMarkerClusters = ({ items, map, center, onSelectItems }: MarkerCluster
                 onSelectItems(items);
             }
         });
-    }, [items, center, map]);
-
-    return null;
+    }, [items, center, map, onSelectItems]);
 };
 
 export default Map;
