@@ -32,7 +32,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
     const [zoomLevelIndex, setZoomIndex] = useState(2);
     const zoomLevels = [
         {
-            idealTileSize: 20,
+            idealTileSize: 40,
             overscan: 0
         },
         {
