@@ -6,6 +6,7 @@ import { formatBytes } from '../common/format.helpers';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { useNavigate } from '@tanstack/react-router';
+import { BottomSheet } from '../common/bottom.sheet';
 
 interface Props {
     item: Item;
@@ -14,29 +15,19 @@ interface Props {
 }
 
 const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
-    // TODO: Escape keybinding
-
     if (!isOpen) {
         return;
     }
 
     return (
-        <div
-            className='left-0 right-0 top-0 bottom-0 fixed bg-slate-900/60 z-10 max-height-dvh bordered flex flex-col md:flex-row justify-end'
+        <BottomSheet
+            isOpen={isOpen}
+            onDismiss={onDismiss}
         >
-            <div
-                className='flex-auto min-h-20'
-                onClick={() => onDismiss()}
-            >
-            </div>
-            <div
-                className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:max-w-96 overflow-y-auto z-10 p-3 flex-initial pb-9'
-            >
-                <CameraMetadata item={item} />
-                <FileMetadata item={item} />
-                <LocationMetadata item={item} />
-            </div>
-        </div>
+            <CameraMetadata item={item} />
+            <FileMetadata item={item} />
+            <LocationMetadata item={item} />
+        </BottomSheet>
     );
 };
 
