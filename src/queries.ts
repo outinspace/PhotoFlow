@@ -4,6 +4,7 @@ import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
 import { useMemo } from "react";
+import toast from "react-hot-toast";
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -18,12 +19,19 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
     const res = await fetch(constants.apiUrl + path, request);
 
     if (res.status === 401) {
+        toast.error('You are not logged in.');
+
         localStorage.removeItem('tenantId');
         localStorage.removeItem('sessionId');
 
         router.navigate({ to: '/login' });
 
         throw new Error('Session Invalid');
+    }
+
+    // Display user errors
+    if (res.status >= 400 && res.status < 500) {
+        toast.error(await res.json());
     }
 
     return res;
