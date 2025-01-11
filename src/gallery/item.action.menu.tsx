@@ -13,10 +13,10 @@ interface Props {
     onDismiss: Function;
     onDeleteCompletion?: Function;
     onActionCompleted?: Function;
-    offsetTop: number;
+    position: 'top' | 'bottom';
 }
 
-export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, onActionCompleted, offsetTop }: Props) => {
+export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, onActionCompleted, position }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
@@ -124,7 +124,13 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
                     style={{ width: '10000px', height: '10000px', marginLeft: '-5000px', marginTop: '-5000px' }}
                     onClick={() => onDismiss()}
                 />
-                <div className={`absolute text-nowrap min-w-40 right-0 text-black mr-2 drop-shadow`} style={{ marginTop: offsetTop }}>
+                <div
+                    className={`absolute text-nowrap min-w-40 right-0 text-black mr-2 drop-shadow my-12`}
+                    style={{
+                        bottom: position === 'top' ? 0 : undefined,
+                        top: position === 'bottom' ? 0 : undefined
+                    }}
+                >
                     {options
                         .filter(option => option.visible)
                         .map(option => (

@@ -161,7 +161,7 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose }: Pro
                         albumId={albumId}
                         onDeleteCompletion={() => onClose()}
                         onDismiss={() => setShowActionMenu(false)}
-                        offsetTop={35}
+                        position='bottom'
                     />
                 )}
             </div>

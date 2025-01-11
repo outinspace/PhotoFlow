@@ -136,7 +136,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                                     albumId={albumId}
                                     onDismiss={() => setShowActionMenu(false)}
                                     onActionCompleted={() => closeModes()}
-                                    offsetTop={20}
+                                    position='top'
                                 />
                             )}
                         </div>
