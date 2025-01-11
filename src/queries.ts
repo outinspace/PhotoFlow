@@ -31,7 +31,7 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
 
 export const useGallery = () => useQuery({
     queryKey: ['gallery'],
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds
     queryFn: async () => {
         const res = await fetchAuthenticatedRoute('/items/gallery');
 
