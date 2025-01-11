@@ -116,7 +116,7 @@ const GalleryStats = () => {
         [items]);
 
     return (
-        <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light'>
+        <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light text-xs'>
             <div>{`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}</div>
             {processingItemsCount > 0 && (
                 <div>
