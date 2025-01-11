@@ -28,8 +28,8 @@ export const TopBar = ({ title, rightButtons }: Props) => {
                 {title}
             </div>
             <div className='flex absolute right-3'>
-                {rightButtons?.map(btn => (
-                    <div className='ml-2 p-1 hover:bg-slate-200 rounded text-slate-500'>
+                {rightButtons?.map((btn, i) => (
+                    <div key={i} className='ml-2 p-1 hover:bg-slate-200 rounded text-slate-500'>
                         <btn.icon
                             className={`size-6 ${btn.className}`}
                             onClick={() => btn.onClick()}
