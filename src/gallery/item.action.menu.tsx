@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
-import { Book, CircleSpark, Minus, Plus, Refresh, Reply, Spark, Spiral, Trash } from 'iconoir-react';
+import { Book, Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
