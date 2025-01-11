@@ -15,8 +15,6 @@ interface Props {
     albumId: number | null;
 }
 
-const MIN_TILE_SIZE = 20;
-
 const ItemGrid = ({ items: allItems, albumId }: Props) => {
     const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
 
@@ -31,11 +29,35 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
-    const [idealTileSize, setIdealTileSize] = useState(70);
-    const rangeDateFormat = idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
+    const [zoomLevelIndex, setZoomIndex] = useState(2);
+    const zoomLevels = [
+        {
+            idealTileSize: 20,
+            overscan: 0
+        },
+        {
+            idealTileSize: 50,
+            overscan: 5
+        },
+        {
+            idealTileSize: 70,
+            overscan: 20
+        },
+        {
+            idealTileSize: 110,
+            overscan: 30
+        },
+        {
+            idealTileSize: Math.min(containerWidth, 300),
+            overscan: 40
+        }
+    ];
+    const zoomLevel = zoomLevels[zoomLevelIndex];
+
+    const rangeDateFormat = zoomLevel.idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
 
     // TODO: Extract into useTileVirtualizer
-    const columns = Math.floor(containerWidth / idealTileSize);
+    const columns = Math.floor(containerWidth / zoomLevel.idealTileSize);
     const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -203,7 +225,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                                         >
                                             <ItemTile
                                                 item={item}
-                                                idealTileSize={idealTileSize}
+                                                idealTileSize={zoomLevel.idealTileSize}
                                                 onClick={() => handleItemClick(item)}
                                                 isSelected={!!selectedItems[item.itemId]}
                                             />
@@ -215,8 +237,8 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                         })}
                     </div>
                     <ZoomButtons
-                        onZoomOut={() => setIdealTileSize(Math.max(Math.round(idealTileSize * .5), MIN_TILE_SIZE))}
-                        onZoomIn={() => setIdealTileSize(Math.min(Math.round(idealTileSize * 1.5), containerWidth))}
+                        onZoomOut={() => setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1)}
+                        onZoomIn={() => setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1)}
                     />
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
                         <div className='font-bold text-2xl'>{formattedRange}</div>
