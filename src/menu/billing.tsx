@@ -10,7 +10,6 @@ export const Billing = () => {
     const totalBytes = items.reduce((bytes, item) => bytes + item.totalBytes, 0);
 
     const monthlyTotal = 0.007 * totalBytes / 1000 / 1000 / 1000;
-    const yearlyTotal = monthlyTotal * 12;
 
     return (
         <div className='flex-col'>
@@ -22,10 +21,6 @@ export const Billing = () => {
                 <div>
                     {'$' + monthlyTotal.toFixed(2) + '/month'}
                 </div>
-                <div>
-                    {'$' + yearlyTotal.toFixed(2) + '/year'}
-                </div>
-
             </div>
         </div>
     );

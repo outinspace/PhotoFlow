@@ -19,11 +19,6 @@ const options = [
         icon: Book
     },
     {
-        name: 'Search',
-        route: '/search',
-        icon: Search
-    },
-    {
         name: 'Menu',
         route: '/menu',
         icon: Menu

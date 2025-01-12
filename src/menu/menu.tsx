@@ -24,11 +24,6 @@ const options = [
         }
     },
     {
-        name: 'Profile',
-        icon: ProfileCircle,
-        debug: false,
-    },
-    {
         name: 'Billing',
         icon: CreditCard,
         debug: false,
