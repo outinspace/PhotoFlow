@@ -27,7 +27,7 @@ export const EditAlbumModal = ({ album, isOpen, onCancel, onEditComplete }: Prop
         <Modal
             isOpen={isOpen}
             title='Edit Album'
-            description='Give the album a new name and then press save.'
+            description='Give the album a new name.'
             actions={[
                 {
                     text: 'Cancel',

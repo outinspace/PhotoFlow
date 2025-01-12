@@ -47,6 +47,7 @@ export const AlbumLayout = () => {
                         onClick: () => setShowDeleteModal(true)
                     }
                 ]}
+                onTitleClick={() => setShowEditModal(true)}
             />
             <ItemGrid items={album.items} albumId={params.albumId} />
             <DeleteAlbumModal

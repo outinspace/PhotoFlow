@@ -11,9 +11,10 @@ interface TopBarButton {
 interface Props {
     title: string;
     rightButtons?: TopBarButton[];
+    onTitleClick?: Function;
 }
 
-export const TopBar = ({ title, rightButtons }: Props) => {
+export const TopBar = ({ title, rightButtons, onTitleClick }: Props) => {
     const { history } = useRouter();
 
     return (
@@ -24,7 +25,11 @@ export const TopBar = ({ title, rightButtons }: Props) => {
                     onClick={() => history.go(-1)}
                 />
             </div>
-            <div className='font-bold text-slate-900 truncate text-ellipsis' style={{ maxWidth: '50%' }}>
+            <div
+                className='font-bold text-slate-900 truncate text-ellipsis'
+                style={{ maxWidth: '50%' }}
+                onClick={() => onTitleClick?.()}
+            >
                 {title}
             </div>
             <div className='flex absolute right-3'>
