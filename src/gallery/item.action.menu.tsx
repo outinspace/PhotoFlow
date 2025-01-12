@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
-import { Book, Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
+import { Book, Link, Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { CreateAlbumModal } from './create.album.modal';
+import { useNavigate } from '@tanstack/react-router';
+import { compactGUID } from '../common/format.helpers';
 
 interface Props {
     items: Item[];
@@ -25,6 +27,25 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
     const deleteItems = useDeleteItems();
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
+
+    const navigate = useNavigate();
+
+    const sharePublicLink = () => {
+        const item = items[0];
+
+        const tenantId = localStorage.getItem('tenantId');
+        if (!tenantId) {
+            return;
+        }
+
+        navigate({
+            to: '/p/i/$shortTenantId/$shortPrimaryFileId',
+            params: {
+                shortTenantId: compactGUID(tenantId),
+                shortPrimaryFileId: compactGUID(item.primaryFile.fileId)
+            }
+        });
+    }
 
     const handleDelete = async () => {
         const itemIds = items.map(i => i.itemId);
@@ -67,11 +88,18 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
 
     const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
 
-    const showMenu = !showDeleteModal && !showAddToAlbumModal;
+    const showMenu = !showDeleteModal && !showAddToAlbumModal && !showCreateAlbumModal;
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
     const options = [
+        {
+            title: 'Open Public Link',
+            visible: items.length === 1,
+            icon: Link,
+            className: '',
+            onClick: () => sharePublicLink()
+        },
         {
             title: 'Create New Album',
             visible: !itemsAreDeleted,

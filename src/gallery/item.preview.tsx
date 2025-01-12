@@ -12,9 +12,10 @@ import { ItemActionMenu } from './item.action.menu';
 interface Props {
     item: Item;
     albumId: number | null,
-    onMoveNext: Function;
-    onMovePrevious: Function;
-    onClose: Function;
+    onMoveNext?: Function;
+    onMovePrevious?: Function;
+    onClose?: Function;
+    readonly: boolean;
 }
 
 const zIndex = {
@@ -24,15 +25,15 @@ const zIndex = {
     tileImage: 1
 };
 
-const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose }: Props) => {
+const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
     useKeyBindings([
-        { cmd: ['ArrowLeft'], callback: () => onMovePrevious() },
-        { cmd: ['ArrowRight'], callback: () => onMoveNext() },
-        { cmd: ['Escape'], callback: () => onClose() }
+        { cmd: ['ArrowLeft'], callback: () => onMovePrevious?.() },
+        { cmd: ['ArrowRight'], callback: () => onMoveNext?.() },
+        { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
 
     // const livePhotoLongPressHandlers = useLongPress(() => setShowLivePhoto(true), 250);
@@ -112,28 +113,30 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose }: Pro
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>
             )}
-            {renderPreviousButton(onMovePrevious)}
-            {renderNextButton(onMoveNext)}
-            <div
-                className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
-                <Xmark
-                    onClick={() => onClose()}
-                    color={constants.colors.text.level0}
-                    height={30}
-                    width={30}
-                    className="mr-3"
-                />
+            {onMovePrevious && renderPreviousButton(onMovePrevious)}
+            {onMoveNext && renderNextButton(onMoveNext)}
+            {!readonly && (
                 <div
-                    className='select-none text-white content-center font-normal'
-                >
-                    <div className='text-base pt-0.5'>
-                        {heading}
-                    </div>
-                    <div className='text-sm'>
-                        {subheading}
+                    className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
+                    <Xmark
+                        onClick={() => onClose?.()}
+                        color={constants.colors.text.level0}
+                        height={30}
+                        width={30}
+                        className="mr-3"
+                    />
+                    <div
+                        className='select-none text-white content-center font-normal'
+                    >
+                        <div className='text-base pt-0.5'>
+                            {heading}
+                        </div>
+                        <div className='text-sm'>
+                            {subheading}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
                 {isLivePhoto && (
                     <Play
@@ -149,17 +152,19 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose }: Pro
                     onClick={() => setShowInfoSheet(true)}
                     className='mr-3 text-shadow'
                 />
-                <Menu
-                    height={30}
-                    width={30}
-                    onClick={() => setShowActionMenu(!showActionMenu)}
-                    className='text-shadow'
-                />
+                {!readonly && (
+                    <Menu
+                        height={30}
+                        width={30}
+                        onClick={() => setShowActionMenu(!showActionMenu)}
+                        className='text-shadow'
+                    />
+                )}
                 {showActionMenu && (
                     <ItemActionMenu
                         items={[item]}
                         albumId={albumId}
-                        onDeleteCompletion={() => onClose()}
+                        onDeleteCompletion={() => onClose?.()}
                         onDismiss={() => setShowActionMenu(false)}
                         position='bottom'
                     />

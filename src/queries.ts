@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { File, GetAlbumsResponse, GetGalleryResponse, Item } from "./types";
+import { File, GetAlbumsResponse, GetGalleryResponse, GetPublicItemResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
@@ -48,22 +48,12 @@ export const useGallery = () => useQuery({
 
         // Computed properties
         for (const item of gallery.items) {
-            for (const file of item.files) {
-                file.originalUrl = gallery.originalUrlPrefix + file.fileId;
-
-                file.tileImageUrl = file.tileVersion ? `${gallery.tileImageUrlPrefix}${file.fileId}.jpeg?v=${file.tileVersion}` : null;
-
-                const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
-                file.previewUrl = file.previewVersion ? `${gallery.previewUrlPrefix}${file.fileId}${previewExtension}?v=${file.previewVersion}` : null;
-            }
-
-            item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
-
-            item.totalBytes = item.files.reduce((sum, file) => sum + file.sizeBytes, 0);
-
-            item.device = item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null;
-
-            item.type = getType(item);
+            computeItemProperties(
+                item,
+                gallery.originalUrlPrefix,
+                gallery.tileImageUrlPrefix,
+                gallery.previewUrlPrefix
+            );
         }
 
         // Separate deleted items
@@ -75,6 +65,45 @@ export const useGallery = () => useQuery({
         return gallery;
     }
 });
+
+export const usePublicItem = (tenantId: string, primaryFileId: string) => useQuery({
+    queryKey: ['public', 'item'],
+    queryFn: async () => {
+        const res = await fetchAuthenticatedRoute(`/public/item/${tenantId}/${primaryFileId}`);
+
+        const body = await res.json();
+        const response = body as GetPublicItemResponse;
+
+        // Computed properties
+        computeItemProperties(
+            response.item,
+            response.originalUrlPrefix,
+            response.tileImageUrlPrefix,
+            response.previewUrlPrefix
+        );
+
+        return response.item;
+    }
+});
+
+const computeItemProperties = (item: Item, originalUrlPrefix: string, tileImageUrlPrefix: string, previewUrlPrefix: string) => {
+    for (const file of item.files) {
+        file.originalUrl = originalUrlPrefix + file.fileId;
+
+        file.tileImageUrl = file.tileVersion ? `${tileImageUrlPrefix}${file.fileId}.jpeg?v=${file.tileVersion}` : null;
+
+        const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
+        file.previewUrl = file.previewVersion ? `${previewUrlPrefix}${file.fileId}${previewExtension}?v=${file.previewVersion}` : null;
+    }
+
+    item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
+
+    item.totalBytes = item.files.reduce((sum, file) => sum + file.sizeBytes, 0);
+
+    item.device = item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null;
+
+    item.type = getType(item);
+}
 
 const getType = (item: Item) => {
     if (item.files.length === 1 && item.files[0].contentType.startsWith('image')) {

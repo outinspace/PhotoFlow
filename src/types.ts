@@ -56,6 +56,14 @@ export interface GetGalleryResponse {
     deletedItems: Item[];
 }
 
+export interface GetPublicItemResponse {
+    item: Item;
+
+    originalUrlPrefix: string;
+    tileImageUrlPrefix: string;
+    previewUrlPrefix: string;
+}
+
 export interface Album {
     albumId: number;
     name: string;

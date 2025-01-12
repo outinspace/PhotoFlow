@@ -11,6 +11,7 @@ import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
+import { PublicItemLayout } from './public/public.item.layout';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
@@ -120,6 +121,14 @@ export const itemsInProcessRoute = createRoute({
     )
 });
 
+export const publicItemRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
+    component: () => (
+        <PublicItemLayout />
+    )
+});
+
 const routeTree = rootRoute.addChildren([
     galleryRoute,
     loginRoute,
@@ -130,7 +139,8 @@ const routeTree = rootRoute.addChildren([
     menuRoute,
     recentlyDeletedRoute,
     billingRoute,
-    itemsInProcessRoute
+    itemsInProcessRoute,
+    publicItemRoute
 ]);
 
 export const router = createRouter({ routeTree });
