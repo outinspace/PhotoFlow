@@ -143,21 +143,21 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
                         onClick={() => setShowLivePhoto(true)}
                         height={30}
                         width={30}
-                        className='mr-3 text-shadow'
+                        className='ml-3 text-shadow'
                     />
                 )}
                 <InfoCircle
                     height={30}
                     width={30}
                     onClick={() => setShowInfoSheet(true)}
-                    className='mr-3 text-shadow'
+                    className='ml-3 text-shadow'
                 />
                 {!readonly && (
                     <Menu
                         height={30}
                         width={30}
                         onClick={() => setShowActionMenu(!showActionMenu)}
-                        className='text-shadow'
+                        className='ml-3 text-shadow'
                     />
                 )}
                 {showActionMenu && (
