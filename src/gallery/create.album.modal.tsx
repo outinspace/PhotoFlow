@@ -53,6 +53,7 @@ export const CreateAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Pro
                 placeholder='Album Name'
                 onChange={e => setAlbumName(e.target.value)}
                 className='flex-auto border rounded bg-slate-100 p-2 hover:bg-slate-200'
+                maxLength={50}
             />
         </Modal>
     );

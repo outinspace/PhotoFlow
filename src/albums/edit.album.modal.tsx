@@ -48,6 +48,7 @@ export const EditAlbumModal = ({ album, isOpen, onCancel, onEditComplete }: Prop
                 value={albumName}
                 onChange={e => setAlbumName(e.target.value)}
                 className='flex-auto border rounded bg-slate-100 p-2 hover:bg-slate-200'
+                maxLength={50}
             />
         </Modal>
     );
