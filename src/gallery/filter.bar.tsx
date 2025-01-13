@@ -62,8 +62,8 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
     const selectClasses = 'bg-slate-100 mr-2 p-1 rounded';
 
     return (
-        <div className='flex w-dvw bg-white text-slate-900 items-center border-t'>
-            <div className='pl-3 py-2 overflow-x-auto flex flex-auto'>
+        <div className='flex max-w-[100dvw] bg-white text-slate-900 items-center border-t'>
+            <div className='pl-3 py-2 overflow-x-auto flex flex-shrink'>
                 <select className={selectClasses} onChange={e => handleSelect({ type: e.target.value })}>
                     <option value=''>All Items</option>
                     <option value='favorites'>Favorites</option>
