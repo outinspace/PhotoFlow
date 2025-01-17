@@ -8,6 +8,7 @@ import { useDebugMode } from '../hooks/use.debug.mode';
 import { CreateAlbumModal } from './create.album.modal';
 import { useNavigate } from '@tanstack/react-router';
 import { compactGUID } from '../common/format.helpers';
+import { ActionMenu } from '../common/action.menu';
 
 interface Props {
     items: Item[];
@@ -86,8 +87,6 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
         onActionCompleted?.();
     }
 
-    const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
-
     const showMenu = !showDeleteModal && !showAddToAlbumModal && !showCreateAlbumModal;
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
@@ -142,37 +141,18 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
             className: '',
             onClick: () => reprocessItems()
         }
-    ];
+    ]
+    .filter(_ => _.visible);
 
     return (
         <>
-            {showMenu && <>
-                <div
-                    className='absolute bg-slate-500/50 top-0 bottom-0 left-0 right-0'
-                    style={{ width: '10000px', height: '10000px', marginLeft: '-5000px', marginTop: '-5000px' }}
-                    onClick={() => onDismiss()}
+            {showMenu && (
+                <ActionMenu
+                    onDismiss={onDismiss}
+                    position={position}
+                    options={options}
                 />
-                <div
-                    className={`absolute text-nowrap min-w-40 right-0 text-black mr-2 drop-shadow my-12`}
-                    style={{
-                        bottom: position === 'top' ? 0 : undefined,
-                        top: position === 'bottom' ? 0 : undefined
-                    }}
-                >
-                    {options
-                        .filter(option => option.visible)
-                        .map(option => (
-                            <div
-                                key={option.title}
-                                className={`${optionClasses} ${option.className}`}
-                                onClick={() => option.onClick()}
-                            >
-                                <option.icon className='size-5 ml-1 mr-2' />
-                                {option.title}
-                            </div>
-                        ))}
-                </div>
-            </>}
+            )}
             <Modal
                 isOpen={showDeleteModal}
                 title='Mark For Deletion?'
