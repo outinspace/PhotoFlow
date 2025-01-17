@@ -1,11 +1,12 @@
 import { useRouter } from '@tanstack/react-router';
 import { ArrowLeft } from 'iconoir-react';
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 interface TopBarButton {
     icon: React.ForwardRefExoticComponent<Omit<React.SVGProps<SVGSVGElement>, "ref"> & React.RefAttributes<SVGSVGElement>>;
     className?: string;
     onClick: Function;
+    children?: ReactNode;
 }
 
 interface Props {
@@ -39,6 +40,7 @@ export const TopBar = ({ title, rightButtons, onTitleClick }: Props) => {
                             className={`size-6 ${btn.className}`}
                             onClick={() => btn.onClick()}
                         />
+                        {btn.children}
                     </div>
                 ))}
             </div>

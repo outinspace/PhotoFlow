@@ -3,9 +3,10 @@ import { useAlbumsWithItems } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { EditPencil, Trash } from 'iconoir-react';
+import { EditPencil, Link, Menu, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
+import { ActionMenu } from '../common/action.menu';
 
 interface SearchParams {
     albumId?: number;
@@ -15,6 +16,7 @@ export const AlbumLayout = () => {
     const navigate = useNavigate();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [actionMenuActive, setActionMenuActive] = useState(false);
     const params: SearchParams = useSearch({ strict: false });
 
     // TODO: Use params instead of search
@@ -31,20 +33,42 @@ export const AlbumLayout = () => {
         return;
     }
 
+    const actionOptions = [
+        {
+            title: 'Copy Public Link',
+            onClick: () => setShowEditModal(true),
+            icon: Link
+        },
+        {
+            title: 'Edit',
+            onClick: () => setShowEditModal(true),
+            icon: EditPencil
+        },
+        {
+            title: 'Delete',
+            onClick: () => setShowDeleteModal(true),
+            icon: Trash,
+            className: 'text-red-500'
+        },
+    ];
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <TopBar
                 title={album.name}
                 rightButtons={[
                     {
-                        icon: EditPencil,
+                        icon: Menu,
                         className: '',
-                        onClick: () => setShowEditModal(true)
-                    },
-                    {
-                        icon: Trash,
-                        className: 'text-red-500',
-                        onClick: () => setShowDeleteModal(true)
+                        onClick: () => setActionMenuActive(true),
+                        children: actionMenuActive && (
+                            <ActionMenu
+                                onActionStarted={() => setActionMenuActive(false)}
+                                onDismiss={() => setActionMenuActive(false)}
+                                position='bottom'
+                                options={actionOptions}
+                            />
+                        )
                     }
                 ]}
                 onTitleClick={() => setShowEditModal(true)}
