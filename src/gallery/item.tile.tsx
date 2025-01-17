@@ -38,7 +38,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             setShowImage(true);
-        }, 50);
+        }, 100);
 
         return () => clearTimeout(timeoutId);
     })
