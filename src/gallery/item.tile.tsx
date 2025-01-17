@@ -31,6 +31,18 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
 
     const tileImageObjectUrl = item.primaryFile.tileImageUrl;
 
+    const [imageReady, setImageReady] = useState(false);
+    const [showImage, setShowImage] = useState(false);
+
+    // HACK: Prevent mass loading of tile images when scrolling
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setShowImage(true);
+        }, 50);
+
+        return () => clearTimeout(timeoutId);
+    })
+
     return (
         <div
             onClick={() => onClick()}
@@ -40,15 +52,16 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             }}
         >
             <img
-                className={'select-none'}
+                onLoad={() => setImageReady(true)}
+                className={'select-none transition-opacity duration-150'}
                 style={{
                     position: 'relative',
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    opacity: tileImageObjectUrl ? 1 : 0
+                    opacity: imageReady ? 1 : 0
                 }}
-                src={tileImageObjectUrl ?? ''}
+                src={showImage ? tileImageObjectUrl ?? undefined : undefined}
             />
             {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
