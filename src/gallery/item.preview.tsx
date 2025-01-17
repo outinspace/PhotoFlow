@@ -15,7 +15,7 @@ interface Props {
     onMoveNext?: Function;
     onMovePrevious?: Function;
     onClose?: Function;
-    readonly: boolean;
+    readonly?: boolean;
 }
 
 const zIndex = {
@@ -115,9 +115,9 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
             )}
             {onMovePrevious && renderPreviousButton(onMovePrevious)}
             {onMoveNext && renderNextButton(onMoveNext)}
-            {!readonly && (
-                <div
-                    className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
+            <div
+                className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
+                {onClose && (
                     <Xmark
                         onClick={() => onClose?.()}
                         color={constants.colors.text.level0}
@@ -125,18 +125,18 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
                         width={30}
                         className="mr-3"
                     />
-                    <div
-                        className='select-none text-white content-center font-normal'
-                    >
-                        <div className='text-base pt-0.5'>
-                            {heading}
-                        </div>
-                        <div className='text-sm'>
-                            {subheading}
-                        </div>
+                )}
+                <div
+                    className='select-none text-white content-center font-normal'
+                >
+                    <div className='text-base pt-0.5'>
+                        {heading}
+                    </div>
+                    <div className='text-sm'>
+                        {subheading}
                     </div>
                 </div>
-            )}
+            </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
                 {isLivePhoto && (
                     <Play

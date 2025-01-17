@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { File, GetAlbumsResponse, GetGalleryResponse, GetPublicItemResponse, Item } from "./types";
+import { File, GetAlbumsResponse, GetGalleryResponse, GetPublicAlbumResponse, GetPublicItemResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
@@ -83,6 +83,28 @@ export const usePublicItem = (tenantId: string, primaryFileId: string) => useQue
         );
 
         return response.item;
+    }
+});
+
+export const usePublicAlbum = (tenantId: string, shareSecret: string) => useQuery({
+    queryKey: ['public', 'album'],
+    queryFn: async () => {
+        const res = await fetchAuthenticatedRoute(`/public/album/${tenantId}/${shareSecret}`);
+
+        const body = await res.json();
+        const response = body as GetPublicAlbumResponse;
+
+        // Computed properties
+        for (const item of response.items) {
+            computeItemProperties(
+                item,
+                response.originalUrlPrefix,
+                response.tileImageUrlPrefix,
+                response.previewUrlPrefix
+            );
+        }
+
+        return response;
     }
 });
 
@@ -317,6 +339,23 @@ export const useUpdateAlbum = () => {
             });
 
             return res.ok;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['albums'] });
+        }
+    });
+}
+
+export const useShareAlbum = () => {
+    return useMutation({
+        mutationFn: async (albumId: number): Promise<string> => {
+            const res = await fetchAuthenticatedRoute(`/album/share/${albumId}`, {
+                method: 'POST'
+            });
+
+            const shareSecret = await res.json();
+
+            return shareSecret as string;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['albums'] });

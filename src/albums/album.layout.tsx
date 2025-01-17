@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useAlbumsWithItems } from "../queries";
+import { useAlbumsWithItems, useShareAlbum } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useSearch } from '@tanstack/react-router';
@@ -7,6 +7,7 @@ import { EditPencil, Link, Menu, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
+import { compactGUID } from '../common/format.helpers';
 
 interface SearchParams {
     albumId?: number;
@@ -14,6 +15,8 @@ interface SearchParams {
 
 export const AlbumLayout = () => {
     const navigate = useNavigate();
+    const shareAlbumMutation = useShareAlbum();
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [actionMenuActive, setActionMenuActive] = useState(false);
@@ -33,10 +36,27 @@ export const AlbumLayout = () => {
         return;
     }
 
+    const navigateToPublicLink = async () => {
+        const tenantId = localStorage.getItem('tenantId');
+        if (!tenantId) {
+            return;
+        }
+
+        const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId);
+
+        navigate({
+            to: '/p/a/$shortTenantId/$shortShareSecret',
+            params: {
+                shortTenantId: compactGUID(tenantId),
+                shortShareSecret: compactGUID(shareSecret)
+            }
+        });
+    }
+
     const actionOptions = [
         {
             title: 'Copy Public Link',
-            onClick: () => setShowEditModal(true),
+            onClick: () => navigateToPublicLink(),
             icon: Link
         },
         {

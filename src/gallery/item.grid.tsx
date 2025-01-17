@@ -13,9 +13,10 @@ import { ZoomButtons } from './zoom.buttons';
 interface Props {
     items: Item[];
     albumId: number | null;
+    readonly?: boolean;
 }
 
-const ItemGrid = ({ items: allItems, albumId }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
@@ -136,7 +137,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
         <div className='flex flex-auto flex-col overflow-hidden'>
             <div className='flex flex-auto overflow-hidden relative'>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
-                    {mode === 'view' && (
+                    {!readonly && mode === 'view' && (
                         <div className={floatingButtonClasses}>
                             <OneFingerSelectHandGesture
                                 className='size-6'
@@ -145,7 +146,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
                             />
                         </div>
                     )}
-                    {mode === 'select' && selectedItemsArray.length > 0 && (
+                    {!readonly && mode === 'select' && selectedItemsArray.length > 0 && (
                         <div className={floatingButtonClasses}>
                             <Menu
                                 className='size-6'
@@ -252,6 +253,7 @@ const ItemGrid = ({ items: allItems, albumId }: Props) => {
             {previewItem && (
                 <ItemPreview
                     key={previewItem.itemId}
+                    readonly={readonly}
                     item={previewItem}
                     albumId={albumId}
                     onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}

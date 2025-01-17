@@ -64,9 +64,22 @@ export interface GetPublicItemResponse {
     previewUrlPrefix: string;
 }
 
+export interface GetPublicAlbumResponse {
+    name: string;
+    createdTimeUtc: string;
+    updatedTimeUtc: string;
+
+    items: Item[];
+
+    originalUrlPrefix: string;
+    tileImageUrlPrefix: string;
+    previewUrlPrefix: string;
+}
+
 export interface Album {
     albumId: number;
     name: string;
+    shareSecret: string | null;
     createdTimeUtc: string;
     updatedTimeUtc: string;
     itemIds: number[];
