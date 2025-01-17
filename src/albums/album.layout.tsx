@@ -55,7 +55,7 @@ export const AlbumLayout = () => {
 
     const actionOptions = [
         {
-            title: 'Copy Public Link',
+            title: 'Create Public Link',
             onClick: () => navigateToPublicLink(),
             icon: Link
         },
