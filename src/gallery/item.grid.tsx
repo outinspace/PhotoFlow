@@ -131,7 +131,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         setMode('view');
     }
 
-    const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-2 drop-shadow ml-2';
+    const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-3 drop-shadow ml-2';
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
