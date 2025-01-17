@@ -3,7 +3,7 @@ import { ArrowLeft } from 'iconoir-react';
 import React, { ReactNode } from 'react';
 
 interface TopBarButton {
-    icon: React.ForwardRefExoticComponent<Omit<React.SVGProps<SVGSVGElement>, "ref"> & React.RefAttributes<SVGSVGElement>>;
+    icon: any;
     className?: string;
     onClick: Function;
     children?: ReactNode;

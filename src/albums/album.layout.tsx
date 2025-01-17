@@ -8,6 +8,7 @@ import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
 import { compactGUID } from '../common/format.helpers';
+import { Ellipsis } from '../common/ellipsis';
 
 interface SearchParams {
     albumId?: number;
@@ -78,8 +79,8 @@ export const AlbumLayout = () => {
                 title={album.name}
                 rightButtons={[
                     {
-                        icon: Menu,
-                        className: '',
+                        icon: Ellipsis,
+                        className: 'text-slate-900',
                         onClick: () => setActionMenuActive(true),
                         children: actionMenuActive && (
                             <ActionMenu

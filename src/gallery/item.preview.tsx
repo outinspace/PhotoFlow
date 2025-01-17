@@ -8,6 +8,7 @@ import { nonSelectable } from '../styles';
 import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
+import { Ellipsis } from '../common/ellipsis';
 
 interface Props {
     item: Item;
@@ -138,22 +139,8 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
                 </div>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
-                {isLivePhoto && (
-                    <Play
-                        onClick={() => setShowLivePhoto(true)}
-                        height={30}
-                        width={30}
-                        className='ml-3 text-shadow'
-                    />
-                )}
-                <InfoCircle
-                    height={30}
-                    width={30}
-                    onClick={() => setShowInfoSheet(true)}
-                    className='ml-3 text-shadow'
-                />
                 {!readonly && (
-                    <Menu
+                    <Ellipsis
                         height={30}
                         width={30}
                         onClick={() => setShowActionMenu(!showActionMenu)}
@@ -169,6 +156,20 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
                         position='bottom'
                     />
                 )}
+                {isLivePhoto && (
+                    <Play
+                        onClick={() => setShowLivePhoto(true)}
+                        height={30}
+                        width={30}
+                        className='ml-3 text-shadow'
+                    />
+                )}
+                <InfoCircle
+                    height={30}
+                    width={30}
+                    onClick={() => setShowInfoSheet(true)}
+                    className='ml-3 text-shadow'
+                />
             </div>
             <ItemInfoSheet
                 item={item}
