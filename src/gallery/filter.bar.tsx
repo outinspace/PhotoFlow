@@ -80,7 +80,7 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                 <select className={selectClasses} onChange={e => handleSelect({ city: e.target.value })}>
                     <option value=''>City</option>
                     {cities.map(city => (
-                        <option key={city} value={city}>{city}</option>
+                        <option key={city} value={city}>{city.toString().substring(0, 20)}</option>
                     ))}
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ region: e.target.value })}>
@@ -104,7 +104,7 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                 <select className={selectClasses} onChange={e => handleSelect({ device: e.target.value })}>
                     <option value=''>Device</option>
                     {devices.map(device => (
-                        <option key={device} value={device}>{device}</option>
+                        <option key={device} value={device}>{device.toString().substr(0, 20)}</option>
                     ))}
                 </select>
             </div>
