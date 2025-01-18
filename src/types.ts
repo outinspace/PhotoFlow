@@ -83,9 +83,6 @@ export interface Album {
     createdTimeUtc: string;
     updatedTimeUtc: string;
     itemIds: number[];
-
-    // Computed
-    items: Item[];
 }
 
 export interface GetAlbumsResponse {

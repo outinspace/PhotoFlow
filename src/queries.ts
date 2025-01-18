@@ -220,14 +220,13 @@ export const useAlbumsWithItems = () => {
             itemsById[item.itemId] = item;
         }
 
-        for (const album of albums) {
-            album.items = album.itemIds
+        return albums.map(album => ({
+            ...album,
+            items: album.itemIds
                 .map(itemId => itemsById[itemId])
                 .filter(item => !!item)
-                .filter(item => !item.deletedTimeUtc);
-        }
-
-        return albums;
+                .filter(item => !item.deletedTimeUtc)
+        }));
     }, [gallery, albums]);
 
     return albumsWithItems

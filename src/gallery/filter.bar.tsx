@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
+import { useAlbums } from '../queries';
 
 interface FilterState {
     sort: string;
@@ -70,6 +71,7 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                     <option value='photos'>Photos</option>
                     <option value='videos'>Videos</option>
                     <option value='live-photos'>Live Photos</option>
+                    <option value='unsorted'>Unsorted</option>
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ sort: e.target.value })}>
                     <option value='capture-date'>Sort by Date</option>
@@ -128,6 +130,14 @@ const monthNames = [
 export const useFilterBar = (items: Item[]) => {
     const [filters, setFilters] = useState<FilterState>(defaultFilterState);
 
+    const { data: albums } = useAlbums();
+
+    const sortedItems = useMemo(() => {
+        const itemIds = (albums ?? []).flatMap(a => a.itemIds);
+
+        return new Set(itemIds);
+    }, [albums]);
+
     const filteredItems = useMemo(() => {
         let tempItems = [...items];
 
@@ -155,13 +165,15 @@ export const useFilterBar = (items: Item[]) => {
                     return item.type === 'video';
                 } else if (filters.type === 'live-photos') {
                     return item.type === 'live-photo';
+                } else if (filters.type === 'unsorted') {
+                    return !sortedItems.has(item.itemId);
                 } else {
                     return true;
                 }
             });
 
         return tempItems;
-    }, [items, filters]);
+    }, [items, filters, sortedItems]);
 
     return {
         filterProps: {
