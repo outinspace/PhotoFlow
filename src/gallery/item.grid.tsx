@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useLayoutEffect, useState, useCallback, useMemo, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
@@ -98,8 +98,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
 
     let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, rangeDateFormat);
 
-    const [selectedItems, setSelectedItems] = useState<Record<number, Item>>({});
-    const selectedItemsArray = useMemo(() => Object.values(selectedItems), [selectedItems]);
+    const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
     const handleItemClick = (item: Item) => {
@@ -111,22 +110,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         }
     }
 
-    const toggleItemSelection = (item: Item) => {
-        if (selectedItems[item.itemId]) {
-            const newItems = { ...selectedItems };
-            delete newItems[item.itemId];
-
-            setSelectedItems(newItems);
-
-        } else {
-            setSelectedItems({ ...selectedItems, [item.itemId]: item });
-        }
-    }
-
     const closeModes = () => {
         resetFilters();
-        setSelectedItems({});
-        setSelectedItems({});
+        resetSelection();
 
         setMode('view');
     }
@@ -146,7 +132,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             />
                         </div>
                     )}
-                    {!readonly && mode === 'select' && selectedItemsArray.length > 0 && (
+                    {!readonly && mode === 'select' && selectedItems.length > 0 && (
                         <div className={floatingButtonClasses}>
                             <Menu
                                 className='size-6'
@@ -155,7 +141,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             />
                             {showActionMenu && (
                                 <ItemActionMenu
-                                    items={selectedItemsArray}
+                                    items={selectedItems}
                                     albumId={albumId}
                                     onDismiss={() => setShowActionMenu(false)}
                                     onActionCompleted={() => closeModes()}
@@ -228,7 +214,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                                 item={item}
                                                 idealTileSize={zoomLevel.idealTileSize}
                                                 onClick={() => handleItemClick(item)}
-                                                isSelected={!!selectedItems[item.itemId]}
+                                                isSelected={!!selectedItemsById[item.itemId]}
                                             />
                                         </div>
                                     ))}
@@ -244,7 +230,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
                         <div className='font-bold text-2xl'>{formattedRange}</div>
                         {mode === 'select' && (
-                            <div className='font-bold text-xl'>{selectedItemsArray.length} Items Selected</div>
+                            <div className='font-bold text-xl'>{selectedItems.length} Items Selected</div>
                         )}
                     </div>
                 </ScrollContainer>
@@ -286,3 +272,67 @@ function useFormattedRange(items: Item[], visibleRange: { startIndex: number; en
     return formattedRange;
 }
 
+const keysPressed = new Set();
+
+const handleKeyDown = (e: KeyboardEvent) => {
+    keysPressed.add(e.key);
+};
+
+const handleKeyUp = (e: KeyboardEvent) => {
+    keysPressed.delete(e.key);
+};
+
+function useItemSelection(allItems: Item[]) {
+    const [selectedItemsById, setSelectedItemsById] = useState<Record<number, Item>>({});
+    const selectedItems = useMemo(() => Object.values(selectedItemsById), [selectedItemsById]);
+    const lastSelectedItem = useRef<Item | null>(null);
+
+    useEffect(() => {
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("keyup", handleKeyUp);
+        };
+    }, []);
+
+    const toggleItemSelection = (item: Item) => {
+        if (selectedItemsById[item.itemId]) {
+            const newItems = { ...selectedItemsById };
+            delete newItems[item.itemId];
+
+            setSelectedItemsById(newItems);
+            lastSelectedItem.current = null;
+        } else {
+            const newSelectedItemsById = { ...selectedItemsById, [item.itemId]: item };
+
+            // Select range
+            if (keysPressed.has('Shift') && lastSelectedItem.current !== null) {
+                const index1 = allItems.findIndex(i => i === item);
+                const index2 = allItems.findIndex(i => i === lastSelectedItem.current);
+
+                const minIndex = Math.min(index1, index2);
+                const maxIndex = Math.max(index1, index2);
+
+                const rangeItems = allItems.slice(minIndex, maxIndex);
+                for (const rangeItem of rangeItems) {
+                    newSelectedItemsById[rangeItem.itemId] = rangeItem;
+                }
+            }
+
+            lastSelectedItem.current = item;
+            setSelectedItemsById(newSelectedItemsById);
+        }
+    };
+
+    const resetSelection = () => {
+        setSelectedItemsById({});
+    };
+
+    return {
+        selectedItems,
+        selectedItemsById,
+        toggleItemSelection,
+        resetSelection
+    }
+}
