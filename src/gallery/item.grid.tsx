@@ -101,9 +101,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
-    const handleItemClick = (item: Item) => {
+    const handleItemClick = (item: Item, isDoubleClick: boolean) => {
         if (mode === 'select') {
-            toggleItemSelection(item);
+            toggleItemSelection(item, isDoubleClick);
         } else {
             const itemIndex = items.findIndex(i => i === item);
             setPreviewItemIndex(itemIndex);
@@ -213,7 +213,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                             <ItemTile
                                                 item={item}
                                                 idealTileSize={zoomLevel.idealTileSize}
-                                                onClick={() => handleItemClick(item)}
+                                                onClick={(isDoubleClick) => handleItemClick(item, isDoubleClick)}
                                                 isSelected={!!selectedItemsById[item.itemId]}
                                             />
                                         </div>
@@ -296,7 +296,7 @@ function useItemSelection(allItems: Item[]) {
         };
     }, []);
 
-    const toggleItemSelection = (item: Item) => {
+    const toggleItemSelection = (item: Item, isDoubleClick: boolean) => {
         if (selectedItemsById[item.itemId]) {
             const newItems = { ...selectedItemsById };
             delete newItems[item.itemId];
@@ -307,7 +307,7 @@ function useItemSelection(allItems: Item[]) {
             const newSelectedItemsById = { ...selectedItemsById, [item.itemId]: item };
 
             // Select range
-            if (keysPressed.has('Shift') && lastSelectedItem.current !== null) {
+            if ((isDoubleClick || keysPressed.has('Shift')) && lastSelectedItem.current !== null) {
                 const index1 = allItems.findIndex(i => i === item);
                 const index2 = allItems.findIndex(i => i === lastSelectedItem.current);
 

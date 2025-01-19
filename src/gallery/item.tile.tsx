@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Item } from '../types';
 import { get, set } from 'idb-keyval';
 import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
+import toast from 'react-hot-toast';
+import useDoubleClick from 'use-double-click';
 
 interface Props {
     item: Item;
-    onClick: Function;
+    onClick: (isDoubleClick: boolean) => any;
     idealTileSize: number;
     isSelected: boolean;
 }
@@ -41,11 +43,20 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
         }, 100);
 
         return () => clearTimeout(timeoutId);
-    })
+    });
+
+    const containerRef = useRef(null);
+
+    useDoubleClick({
+        ref: containerRef,
+        latency: 100,
+        onSingleClick: () => onClick(false),
+        onDoubleClick: () => onClick(true)
+    });
 
     return (
         <div
-            onClick={() => onClick()}
+            ref={containerRef}
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-black outline-1'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
