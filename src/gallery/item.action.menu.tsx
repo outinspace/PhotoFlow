@@ -103,19 +103,18 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
     const sharingSupported = !!navigator.share;
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
     const options = [
         {
             title: `Download ${items.length === 1 ? 'File' : 'Files'}`,
-            visible: !isPWA,
+            visible: !sharingSupported,
             icon: Download,
             className: '',
             onClick: () => downloadFiles(items)
         },
         {
             title: `Share ${items.length === 1 ? 'File' : 'Files'}`,
-            visible: isPWA,
+            visible: sharingSupported,
             icon: ShareIos,
             className: '',
             onClick: () => shareFiles(items)
