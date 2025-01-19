@@ -115,6 +115,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         resetFilters();
         resetSelection();
 
+        setShowActionMenu(false);
         setMode('view');
     }
 
