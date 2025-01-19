@@ -3,12 +3,13 @@ import { useAlbumsWithItems, useShareAlbum } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { EditPencil, Link, Menu, Trash } from 'iconoir-react';
+import { EditPencil, Link, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
 import { compactGUID } from '../common/format.helpers';
 import { Ellipsis } from '../common/ellipsis';
+import { router } from '../routes';
 
 interface SearchParams {
     albumId?: number;
@@ -37,7 +38,7 @@ export const AlbumLayout = () => {
         return;
     }
 
-    const navigateToPublicLink = async () => {
+    const sharePublicLink = async () => {
         const tenantId = localStorage.getItem('tenantId');
         if (!tenantId) {
             return;
@@ -45,19 +46,29 @@ export const AlbumLayout = () => {
 
         const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId);
 
-        navigate({
+        const link = router.buildLocation({
             to: '/p/a/$shortTenantId/$shortShareSecret',
             params: {
                 shortTenantId: compactGUID(tenantId),
                 shortShareSecret: compactGUID(shareSecret)
             }
         });
+
+        const url = window.location.origin + link.href;
+
+        if (!!navigator.share) {
+            navigator.share({ url });
+        } else {
+            window.open(url, '_blank');
+        }
     }
+
+    const sharingSupported = !!navigator.share;
 
     const actionOptions = [
         {
-            title: 'Create Public Link',
-            onClick: () => navigateToPublicLink(),
+            title: `${sharingSupported ? 'Share' : 'Open'} Public Link`,
+            onClick: () => sharePublicLink(),
             icon: Link
         },
         {
