@@ -84,7 +84,11 @@ const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProp
         markerClusterGroup.clearLayers();
 
         items
+            // Ignore missing coordinates
             .filter(item => item.latitude && item.longitude)
+            // Ignore invalid coordinates
+            .filter(item => Math.abs(item.latitude ?? 0) <= 90)
+            .filter(item => Math.abs(item.longitude ?? 0) <= 180)
             .forEach((item) =>
                 Leaflet
                     .marker([item.latitude ?? 0, item.longitude ?? 0], {
