@@ -1,6 +1,6 @@
 import React from 'react';
 import { Item } from '../types';
-import { Download, MediaImage, MediaVideo, ShareIos } from 'iconoir-react';
+import { Download, MediaImage, MediaVideo } from 'iconoir-react';
 import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from '../common/format.helpers';
 import 'leaflet/dist/leaflet.css';
@@ -55,8 +55,6 @@ const CameraMetadata = ({ item }: { item: Item }) => {
 
 const FileMetadata = ({ item }: { item: Item }) => {
 
-    const sharingSupported = !!navigator.share;
-
     return (
         <div className='mt-5'>
             <div className=''>
@@ -78,11 +76,6 @@ const FileMetadata = ({ item }: { item: Item }) => {
                         <div className='border-l border-slate-50 p-2 flex-none'>
                             {formatBytes(file.sizeBytes)}
                         </div>
-                        {sharingSupported && (
-                            <div className='border-l border-slate-50 p-2 flex-none hover:bg-slate-200'>
-                                <ShareIos onClick={() => shareFile(file.originalUrl, file.originalFileName)} />
-                            </div>
-                        )}
                         <div className='border-l border-slate-50 p-2 flex-none hover:bg-slate-200 rounded-r'>
                             <Download onClick={() => downloadfile(file.originalUrl, file.originalFileName)} />
                         </div>
@@ -92,23 +85,6 @@ const FileMetadata = ({ item }: { item: Item }) => {
         </div>
     );
 };
-
-async function shareFile(uri: string, name: string) {
-    // @ts-ignore
-    if (navigator.share) {
-        const res = await fetch(uri);
-        if (!res.ok) {
-            throw new Error('Failed to fetch');
-        }
-
-        const blob = await res.blob();
-        const file = new File([blob], name, { type: blob.type });
-
-        await navigator.share({
-            files: [file]
-        });
-    }
-}
 
 async function downloadfile(uri: string, name: string) {
     var link = document.createElement("a");

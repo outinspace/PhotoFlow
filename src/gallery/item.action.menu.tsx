@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
-import { Book, Link, Minus, Plus, Refresh, Reply, Trash } from 'iconoir-react';
+import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
 import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { CreateAlbumModal } from './create.album.modal';
-import { useNavigate } from '@tanstack/react-router';
+import { useLinkProps, useNavigate, useSearch } from '@tanstack/react-router';
 import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
+import toast from 'react-hot-toast';
+import { downloadFiles, shareFiles } from '../common/share.helpers';
 
 interface Props {
     items: Item[];
@@ -29,23 +31,32 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
 
-    const navigate = useNavigate();
+    // TODO: Extract
+    const shortTenantId = compactGUID(localStorage.getItem('tenantId') ?? '');
+    const shortFileId = compactGUID(items[0]?.primaryFile?.fileId ?? '');
+
+    const { href: itemPublicLinkPath } = useLinkProps({
+        to: '/p/i/$shortTenantId/$shortPrimaryFileId',
+        params: {
+            shortTenantId: shortTenantId,
+            shortPrimaryFileId: shortFileId
+        }
+    });
 
     const sharePublicLink = () => {
-        const item = items[0];
-
-        const tenantId = localStorage.getItem('tenantId');
-        if (!tenantId) {
+        if (!shortTenantId || !shortFileId || !itemPublicLinkPath) {
             return;
         }
 
-        navigate({
-            to: '/p/i/$shortTenantId/$shortPrimaryFileId',
-            params: {
-                shortTenantId: compactGUID(tenantId),
-                shortPrimaryFileId: compactGUID(item.primaryFile.fileId)
-            }
-        });
+        const href = window.location.origin + '/' + itemPublicLinkPath;
+
+        if (!!navigator.share) {
+            navigator.share({
+                url: href
+            });
+        } else {
+            window.open(href, '_blank');
+        }
     }
 
     const handleDelete = async () => {
@@ -91,9 +102,26 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
+    const sharingSupported = !!navigator.share;
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
     const options = [
         {
-            title: 'Open Public Link',
+            title: `Download ${items.length === 1 ? 'File' : 'Files'}`,
+            visible: !isPWA,
+            icon: Download,
+            className: '',
+            onClick: () => downloadFiles(items)
+        },
+        {
+            title: `Share ${items.length === 1 ? 'File' : 'Files'}`,
+            visible: isPWA,
+            icon: ShareIos,
+            className: '',
+            onClick: () => shareFiles(items)
+        },
+        {
+            title: `${sharingSupported ? 'Share' : 'Open'} Public Link`,
             visible: items.length === 1,
             icon: Link,
             className: '',
@@ -142,7 +170,7 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
             onClick: () => reprocessItems()
         }
     ]
-    .filter(_ => _.visible);
+        .filter(_ => _.visible);
 
     return (
         <>
