@@ -54,7 +54,9 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
         .join(', ');
 
     return (
-        <Container>
+        <Container
+            onDoubleClick={() => setShowLivePhoto(true)}
+        >
             {imageFile && <>
                 <img
                     className={nonSelectable}
