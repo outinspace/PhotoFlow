@@ -286,6 +286,8 @@ const handleKeyUp = (e: KeyboardEvent) => {
 function useItemSelection(allItems: Item[]) {
     const [selectedItemsById, setSelectedItemsById] = useState<Record<number, Item>>({});
     const selectedItems = useMemo(() => Object.values(selectedItemsById), [selectedItemsById]);
+
+    const lastLastSelectedItem = useRef<Item | null>(null);
     const lastSelectedItem = useRef<Item | null>(null);
 
     useEffect(() => {
@@ -298,7 +300,7 @@ function useItemSelection(allItems: Item[]) {
     }, []);
 
     const toggleItemSelection = (item: Item, isDoubleClick: boolean) => {
-        if (selectedItemsById[item.itemId]) {
+        if (!isDoubleClick && selectedItemsById[item.itemId]) {
             const newItems = { ...selectedItemsById };
             delete newItems[item.itemId];
 
@@ -307,10 +309,12 @@ function useItemSelection(allItems: Item[]) {
         } else {
             const newSelectedItemsById = { ...selectedItemsById, [item.itemId]: item };
 
+            const lastSelection = item === lastSelectedItem.current ? lastLastSelectedItem.current : lastSelectedItem.current;
+
             // Select range
-            if ((isDoubleClick || keysPressed.has('Shift')) && lastSelectedItem.current !== null) {
+            if ((isDoubleClick || keysPressed.has('Shift')) && lastSelection) {
                 const index1 = allItems.findIndex(i => i === item);
-                const index2 = allItems.findIndex(i => i === lastSelectedItem.current);
+                const index2 = allItems.findIndex(i => i === lastSelection);
 
                 const minIndex = Math.min(index1, index2);
                 const maxIndex = Math.max(index1, index2);
@@ -321,6 +325,7 @@ function useItemSelection(allItems: Item[]) {
                 }
             }
 
+            lastLastSelectedItem.current = lastSelectedItem.current;
             lastSelectedItem.current = item;
             setSelectedItemsById(newSelectedItemsById);
         }

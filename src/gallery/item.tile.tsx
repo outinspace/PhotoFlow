@@ -3,7 +3,6 @@ import { Item } from '../types';
 import { get, set } from 'idb-keyval';
 import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
 import toast from 'react-hot-toast';
-import useDoubleClick from 'use-double-click';
 
 interface Props {
     item: Item;
@@ -45,21 +44,16 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
         return () => clearTimeout(timeoutId);
     });
 
-    const containerRef = useRef(null);
-
-    useDoubleClick({
-        ref: containerRef,
-        latency: 200,
-        onSingleClick: () => onClick(false),
-        onDoubleClick: () => onClick(true)
-    });
-
     return (
         <div
-            ref={containerRef}
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-black outline-1'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
+            }}
+            onClick={e => {
+                const clickCount = e.detail;
+                const isDoubleClick = clickCount > 1;
+                onClick(isDoubleClick);
             }}
         >
             <img
