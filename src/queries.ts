@@ -67,7 +67,7 @@ export const useGallery = () => useQuery({
 });
 
 export const usePublicItem = (tenantId: string, primaryFileId: string) => useQuery({
-    queryKey: ['public', 'item'],
+    queryKey: ['public', 'item', tenantId, primaryFileId],
     queryFn: async () => {
         const res = await fetchAuthenticatedRoute(`/public/item/${tenantId}/${primaryFileId}`);
 
@@ -87,7 +87,7 @@ export const usePublicItem = (tenantId: string, primaryFileId: string) => useQue
 });
 
 export const usePublicAlbum = (tenantId: string, shareSecret: string) => useQuery({
-    queryKey: ['public', 'album'],
+    queryKey: ['public', 'album', tenantId, shareSecret],
     queryFn: async () => {
         const res = await fetchAuthenticatedRoute(`/public/album/${tenantId}/${shareSecret}`);
 
