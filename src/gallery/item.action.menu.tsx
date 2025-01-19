@@ -11,6 +11,7 @@ import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
 import toast from 'react-hot-toast';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
+import { router } from '../routes';
 
 interface Props {
     items: Item[];
@@ -31,31 +32,33 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
 
-    // TODO: Extract
-    const shortTenantId = compactGUID(localStorage.getItem('tenantId') ?? '');
-    const shortFileId = compactGUID(items[0]?.primaryFile?.fileId ?? '');
-
-    const { href: itemPublicLinkPath } = useLinkProps({
-        to: '/p/i/$shortTenantId/$shortPrimaryFileId',
-        params: {
-            shortTenantId: shortTenantId,
-            shortPrimaryFileId: shortFileId
-        }
-    });
-
     const sharePublicLink = () => {
-        if (!shortTenantId || !shortFileId || !itemPublicLinkPath) {
+        const tenantId = localStorage.getItem('tenantId');
+        const fileId = items[0]?.primaryFile?.fileId;
+
+        if (!tenantId || !fileId) {
             return;
         }
 
-        const href = window.location.origin + '/' + itemPublicLinkPath;
+        const shortTenantId = compactGUID(tenantId);
+        const shortFileId = compactGUID(fileId);
+
+        const link = router.buildLocation({
+            to: '/p/i/$shortTenantId/$shortPrimaryFileId',
+            params: {
+                shortTenantId: shortTenantId,
+                shortPrimaryFileId: shortFileId
+            }
+        });
+
+        const url = window.location.origin + link.href;
 
         if (!!navigator.share) {
             navigator.share({
-                url: href
+                url: url
             });
         } else {
-            window.open(href, '_blank');
+            window.open(url, '_blank');
         }
     }
 
