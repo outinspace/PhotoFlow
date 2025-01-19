@@ -49,7 +49,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
 
     useDoubleClick({
         ref: containerRef,
-        latency: 100,
+        latency: 200,
         onSingleClick: () => onClick(false),
         onDoubleClick: () => onClick(true)
     });
