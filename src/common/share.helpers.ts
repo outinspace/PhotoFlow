@@ -22,7 +22,7 @@ export const downloadFiles = async (items: Item[]) => {
 
     const combinedPromise = Promise.all(promises);
 
-    toast.promise(combinedPromise, {
+    await toast.promise(combinedPromise, {
         loading: 'Downloading...',
         error: 'Failed to download.',
         success: 'Download Complete'
@@ -48,7 +48,7 @@ export const shareFiles = async (items: Item[]) => {
 
     const combinedPromise = Promise.all(promises);
 
-    toast.promise(combinedPromise, {
+    await toast.promise(combinedPromise, {
         loading: 'Downloading...',
         error: 'Failed to download.',
         success: 'Download Complete'
