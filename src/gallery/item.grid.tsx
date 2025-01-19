@@ -9,6 +9,7 @@ import { FilterBar, useFilterBar } from './filter.bar';
 import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
+import { Ellipsis } from '../common/ellipsis';
 
 interface Props {
     items: Item[];
@@ -134,7 +135,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     )}
                     {!readonly && mode === 'select' && selectedItems.length > 0 && (
                         <div className={floatingButtonClasses}>
-                            <Menu
+                            <Ellipsis
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                                 onClick={() => setShowActionMenu(!showActionMenu)}
