@@ -21,7 +21,7 @@ export const ActionMenu = ({ onDismiss, onActionStarted, position, options }: Pr
     return (
         <>
             <div
-                className='fixed bg-slate-500/50 top-0 bottom-0 left-0 right-0 z-20'
+                className='fixed bg-black/50 top-0 bottom-0 left-0 right-0 z-20'
                 style={{ width: '10000px', height: '10000px', marginLeft: '-5000px', marginTop: '-5000px' }}
                 onClick={() => onDismiss()}
             />
