@@ -20,7 +20,7 @@ export const ActionMenu = ({ onDismiss, onActionStarted, position, options }: Pr
 
     const menuSpring = useSpring({
         from: {
-            y: 20,
+            y: position === 'top' ? 20 : -20,
             opacity: 0
         },
         to: {
@@ -59,7 +59,7 @@ export const ActionMenu = ({ onDismiss, onActionStarted, position, options }: Pr
                 onClick={() => onDismiss()}
             />
             <animated.div
-                className='absolute right-0 overflow-none z-20 text-nowrap text-black drop-shadow min-w-40'
+                className='absolute right-0 overflow-none z-20 text-nowrap text-black drop-shadow min-w-40 my-12'
                 style={{
                     bottom: position === 'top' ? 0 : undefined,
                     top: position === 'bottom' ? 0 : undefined,
