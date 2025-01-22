@@ -16,13 +16,14 @@ import { router } from '../routes';
 interface Props {
     items: Item[];
     albumId: number | null;
+    isOpen: boolean;
     onDismiss: Function;
     onDeleteCompletion?: Function;
     onActionCompleted?: Function;
     position: 'top' | 'bottom';
 }
 
-export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, onActionCompleted, position }: Props) => {
+export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
@@ -176,13 +177,12 @@ export const ItemActionMenu = ({ items, albumId, onDismiss, onDeleteCompletion, 
 
     return (
         <>
-            {showMenu && (
-                <ActionMenu
-                    onDismiss={onDismiss}
-                    position={position}
-                    options={options}
-                />
-            )}
+            <ActionMenu
+                isOpen={showMenu && isOpen}
+                onDismiss={onDismiss}
+                position={position}
+                options={options}
+            />
             <Modal
                 isOpen={showDeleteModal}
                 title='Mark For Deletion?'

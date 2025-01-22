@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { animated, useTransition } from '@react-spring/web';
 
 interface ModalAction {
     text: string;
@@ -17,9 +18,32 @@ interface Props {
 }
 
 export const Modal = ({ isOpen, title, description, children, actions }: Props) => {
-    if (!isOpen) {
-        return;
-    }
+    const modalTransitions = useTransition(isOpen, {
+        from: {
+            opacity: 0,
+            y: 20
+        },
+        enter: {
+            opacity: 1,
+            y: 0
+        },
+        leave: {
+            opacity: 0,
+            y: 20
+        }
+    });
+
+    const shadowTransitions = useTransition(isOpen, {
+        from: {
+            opacity: 0,
+        },
+        enter: {
+            opacity: 1,
+        },
+        leave: {
+            opacity: 0,
+        }
+    });
 
     // TODO: Handle disabled color
     const getButtonColorClasses = (action: ModalAction) => {
@@ -35,31 +59,45 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
 
     return <>
         {createPortal(
-            <div className='z-10 fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center drop-shadow bg-black/50'>
-                <div className='flex-col bg-slate-50 rounded text-black p-6 m-10 max-w-80'>
-                    <div className='flex justify-center font-bold text-slate-900 mb-2'>{title}</div>
-                    <div className='text-slate-600 mb-5'>
-                        {description}
-                    </div>
-                    {children && (
-                        <div className='flex mb-5'>
-                            {children}
+            <>
+                {shadowTransitions((styles, state) => state && (
+                    <animated.div
+                        className='fixed flex z-10 top-0 bottom-0 left-0 right-0 bg-black/50'
+                        style={styles}
+                    />
+                ))}
+                {modalTransitions((styles, state) => state && (
+                    <animated.div
+                        className='z-10 fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center drop-shadow'
+                        style={styles}
+                    >
+                        <div className='flex-col bg-slate-50 rounded text-black p-6 m-10 max-w-80'>
+                            <div className='flex justify-center font-bold text-slate-900 mb-2'>{title}</div>
+                            <div className='text-slate-600 mb-5'>
+                                {description}
+                            </div>
+                            {children && (
+                                <div className='flex mb-5'>
+                                    {children}
+                                </div>
+                            )}
+                            <div className='flex justify-between'>
+                                {actions.map(action => (
+                                    <button
+                                        key={action.text}
+                                        className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
+                                        onClick={() => action.onClick()}
+                                        disabled={action.disabled}
+                                    >
+                                        {action.text}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    )}
-                    <div className='flex justify-between'>
-                        {actions.map(action => (
-                            <button
-                                key={action.text}
-                                className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
-                                onClick={() => action.onClick()}
-                                disabled={action.disabled}
-                            >
-                                {action.text}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>,
+                    </animated.div>
+
+                ))}
+            </>,
             document.getElementById('modal-root')
         )}
     </>;

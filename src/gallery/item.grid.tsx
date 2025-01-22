@@ -147,15 +147,14 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
                             </div>
-                            {showActionMenu && (
-                                <ItemActionMenu
-                                    items={selectedItems}
-                                    albumId={albumId}
-                                    onDismiss={() => setShowActionMenu(false)}
-                                    onActionCompleted={() => closeModes()}
-                                    position='top'
-                                />
-                            )}
+                            <ItemActionMenu
+                                items={selectedItems}
+                                albumId={albumId}
+                                isOpen={showActionMenu}
+                                onDismiss={() => setShowActionMenu(false)}
+                                onActionCompleted={() => closeModes()}
+                                position='top'
+                            />
                         </>
                     )}
                     {mode === 'view' && (

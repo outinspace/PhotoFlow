@@ -149,15 +149,14 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
                         className='ml-3 text-shadow'
                     />
                 )}
-                {showActionMenu && (
-                    <ItemActionMenu
-                        items={[item]}
-                        albumId={albumId}
-                        onDeleteCompletion={() => onClose?.()}
-                        onDismiss={() => setShowActionMenu(false)}
-                        position='bottom'
-                    />
-                )}
+                <ItemActionMenu
+                    items={[item]}
+                    albumId={albumId}
+                    isOpen={showActionMenu}
+                    onDismiss={() => setShowActionMenu(false)}
+                    onDeleteCompletion={() => onClose?.()}
+                    position='bottom'
+                />
                 {isLivePhoto && (
                     <Play
                         onClick={() => setShowLivePhoto(true)}

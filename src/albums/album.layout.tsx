@@ -93,8 +93,9 @@ export const AlbumLayout = () => {
                         icon: Ellipsis,
                         className: 'text-slate-900',
                         onClick: () => setActionMenuActive(true),
-                        children: actionMenuActive && (
+                        children: (
                             <ActionMenu
+                                isOpen={actionMenuActive}
                                 onActionStarted={() => setActionMenuActive(false)}
                                 onDismiss={() => setActionMenuActive(false)}
                                 position='bottom'
