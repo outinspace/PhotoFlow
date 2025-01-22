@@ -126,20 +126,24 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
             <div className='flex flex-auto overflow-hidden relative'>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
                     {!readonly && mode === 'view' && (
-                        <div className={floatingButtonClasses}>
+                        <div
+                            className={floatingButtonClasses}
+                            onClick={() => setMode('select')}
+                        >
                             <OneFingerSelectHandGesture
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
-                                onClick={() => setMode('select')}
                             />
                         </div>
                     )}
                     {!readonly && mode === 'select' && selectedItems.length > 0 && (
-                        <div className={floatingButtonClasses}>
+                        <div
+                            className={floatingButtonClasses}
+                            onClick={() => setShowActionMenu(!showActionMenu)}
+                        >
                             <Ellipsis
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
-                                onClick={() => setShowActionMenu(!showActionMenu)}
                             />
                             {showActionMenu && (
                                 <ItemActionMenu
@@ -153,20 +157,24 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                         </div>
                     )}
                     {mode === 'view' && (
-                        <div className={floatingButtonClasses}>
+                        <div
+                            className={floatingButtonClasses}
+                            onClick={() => setMode('filter')}
+                        >
                             <Filter
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
-                                onClick={() => setMode('filter')}
                             />
                         </div>
                     )}
                     {mode !== 'view' && (
-                        <div className={floatingButtonClasses}>
+                        <div
+                            className={floatingButtonClasses}
+                            onClick={() => closeModes()}
+                        >
                             <Xmark
                                 className='size-6'
                                 style={{ marginTop: 2, marginBottom: -2 }}
-                                onClick={() => closeModes()}
                             />
                         </div>
                     )}
