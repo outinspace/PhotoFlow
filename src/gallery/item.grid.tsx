@@ -137,14 +137,16 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                         </div>
                     )}
                     {!readonly && mode === 'select' && selectedItems.length > 0 && (
-                        <div
-                            className={floatingButtonClasses}
-                            onClick={() => setShowActionMenu(!showActionMenu)}
-                        >
-                            <Ellipsis
-                                className='size-6'
-                                style={{ marginTop: 2, marginBottom: -2 }}
-                            />
+                        <>
+                            <div
+                                className={floatingButtonClasses}
+                                onClick={() => setShowActionMenu(!showActionMenu)}
+                            >
+                                <Ellipsis
+                                    className='size-6'
+                                    style={{ marginTop: 2, marginBottom: -2 }}
+                                />
+                            </div>
                             {showActionMenu && (
                                 <ItemActionMenu
                                     items={selectedItems}
@@ -154,7 +156,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                     position='top'
                                 />
                             )}
-                        </div>
+                        </>
                     )}
                     {mode === 'view' && (
                         <div
