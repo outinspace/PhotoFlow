@@ -24,7 +24,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const items = filteredItems;
 
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
-    const previewItem = previewItemIndex === null ? null : items[previewItemIndex];
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -247,11 +246,11 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                 </ScrollContainer>
             </div>
             {mode === 'filter' && <FilterBar {...filterProps} items={allItems} />}
-            {previewItem && (
+            {previewItemIndex !== null && (
                 <ItemPreview
-                    key={previewItem.itemId}
                     readonly={readonly}
-                    item={previewItem}
+                    items={items}
+                    itemIndex={previewItemIndex}
                     albumId={albumId}
                     onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
                     onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}

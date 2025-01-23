@@ -19,7 +19,8 @@ export const PublicItemLayout = () => {
     return (
         <ItemPreview
             readonly
-            item={item}
+            itemIndex={0}
+            items={[item]}
             albumId={null}
         />
     );

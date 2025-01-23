@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
@@ -9,9 +9,11 @@ import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
+import { animated, useTransition } from '@react-spring/web';
 
 interface Props {
-    item: Item;
+    items: Item[];
+    itemIndex: number;
     albumId: number | null,
     onMoveNext?: Function;
     onMovePrevious?: Function;
@@ -26,24 +28,52 @@ const zIndex = {
     tileImage: 1
 };
 
-const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
+const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+
+    const item = items[itemIndex];
+    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
+    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+    const isLivePhoto = !!imageFile && !!videoFile;
+
+    const direction = useRef<'ltr' | 'rtl' | null>(null);
+
+    if (onMoveNext) {
+        const original = onMoveNext;
+        onMoveNext = () => {
+            direction.current = 'rtl';
+            original!();
+        };
+    }
+
+    if (onMovePrevious) {
+        const original = onMovePrevious;
+        onMovePrevious = () => {
+            direction.current = 'ltr';
+            original!();
+        };
+    }
+
+    const mediaTransitions = useTransition(item, {
+        key: item,
+        from: {
+            x: direction.current === null ? '0%' : (direction.current === 'ltr' ? '-100%' : '100%')
+        },
+        enter: {
+            x: '0%'
+        },
+        leave: {
+            x: direction.current === null ? '0%' : (direction.current === 'ltr' ? '100%' : '-100%')
+        }
+    });
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious?.() },
         { cmd: ['ArrowRight'], callback: () => onMoveNext?.() },
         { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
-
-    // const livePhotoLongPressHandlers = useLongPress(() => setShowLivePhoto(true), 250);
-
-    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
-    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
-    const isLivePhoto = !!imageFile && !!videoFile;
-
-    // TODO: https://use-gesture.netlify.app/
 
     const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
@@ -53,69 +83,24 @@ const ItemPreview = ({ item, albumId, onMovePrevious, onMoveNext, onClose, reado
         .filter(_ => !!_)
         .join(', ');
 
+
     return (
         <Container
             onDoubleClick={() => setShowLivePhoto(true)}
         >
-            {imageFile && <>
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.tileImage
-                    }}
-                    src={imageFile?.tileImageUrl ?? undefined}
-                />
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewImage
-                    }}
-                    src={imageFile.previewUrl ?? undefined}
-                />
-            </>}
-            {isLivePhoto && showLivePhoto && (
-                <video
-                    autoPlay
-                    controls={false}
-                    playsInline
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
+            {mediaTransitions((style, item) => (
+                <animated.div
+                    key={item.itemId}
+                    className='absolute top-0 bottom-0 left-0 right-0'
+                    style={style}
                 >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-            {videoFile && !isLivePhoto && (
-                <video
-                    autoPlay
-                    controls
-                    playsInline
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
+                    <ItemMedia
+                        item={item}
+                        showLivePhoto={showLivePhoto}
+                        setShowLivePhoto={setShowLivePhoto}
+                    />
+                </animated.div>
+            ))}
             {onMovePrevious && renderPreviousButton(onMovePrevious)}
             {onMoveNext && renderNextButton(onMoveNext)}
             <div
@@ -228,3 +213,73 @@ const Container = styled.div`
 
 export default ItemPreview;
 
+
+const ItemMedia = ({ item, showLivePhoto, setShowLivePhoto }) => {
+    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
+    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+    const isLivePhoto = !!imageFile && !!videoFile;
+
+    return (
+        <>
+            {imageFile && <>
+                <img
+                    className={nonSelectable}
+                    style={{
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        zIndex: zIndex.tileImage
+                    }}
+                    src={imageFile?.tileImageUrl ?? undefined}
+                />
+                <img
+                    className={nonSelectable}
+                    style={{
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        zIndex: zIndex.previewImage
+                    }}
+                    src={imageFile.previewUrl ?? undefined}
+                />
+            </>}
+            {isLivePhoto && showLivePhoto && (
+                <video
+                    autoPlay
+                    controls={false}
+                    playsInline
+                    className={nonSelectable}
+                    style={{
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        zIndex: zIndex.previewVideo
+                    }}
+                    onEnded={() => setShowLivePhoto(false)}
+                >
+                    <source src={videoFile.previewUrl ?? undefined} />
+                </video>
+            )}
+            {videoFile && !isLivePhoto && (
+                <video
+                    autoPlay
+                    controls
+                    playsInline
+                    style={{
+                        position: 'absolute',
+                        objectFit: 'contain',
+                        height: '100%',
+                        width: '100%',
+                        zIndex: zIndex.previewVideo
+                    }}
+                    onEnded={() => setShowLivePhoto(false)}
+                >
+                    <source src={videoFile.previewUrl ?? undefined} />
+                </video>
+            )}
+        </>
+    );
+}
