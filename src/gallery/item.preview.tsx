@@ -9,7 +9,8 @@ import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
-import { animated, useTransition } from '@react-spring/web';
+import { animated, useSpring, useTransition } from '@react-spring/web';
+import { useDrag } from '@use-gesture/react';
 
 interface Props {
     items: Item[];
@@ -69,6 +70,30 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         }
     });
 
+    const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
+
+    const bind = useDrag(({ down, movement }) => {
+        const width = window.innerWidth;
+        const mx = movement[0];
+
+        if (!down && Math.abs(mx) > width / 2) {
+            // Snap to next/previous if swiped far enough
+            const direction = mx > 0 ? -1 : 1;
+            if (direction === -1) {
+                onMovePrevious?.();
+            } else {
+                onMoveNext?.();
+            }
+            swipeApi.start({ x: 0 }); // Reset position
+        } else if (!down) {
+            // Reset if swipe is canceled
+            swipeApi.start({ x: 0 });
+        } else {
+            // Follow user's drag
+            swipeApi.start({ x: mx, immediate: true });
+        }
+    });
+
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious?.() },
         { cmd: ['ArrowRight'], callback: () => onMoveNext?.() },
@@ -88,21 +113,26 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         <Container
             onDoubleClick={() => setShowLivePhoto(true)}
         >
-            {mediaTransitions((style, item) => (
-                <animated.div
-                    key={item.itemId}
-                    className='absolute top-0 bottom-0 left-0 right-0'
-                    style={style}
-                >
-                    <ItemMedia
-                        item={item}
-                        showLivePhoto={showLivePhoto}
-                        setShowLivePhoto={setShowLivePhoto}
-                    />
-                </animated.div>
-            ))}
-            {onMovePrevious && renderPreviousButton(onMovePrevious)}
-            {onMoveNext && renderNextButton(onMoveNext)}
+            <animated.div
+                className='absolute top-0 bottom-0 left-0 right-0'
+                style={{
+                    ...swipeSpring
+                }}
+            >
+                {mediaTransitions((style, item) => (
+                    <animated.div
+                        key={item.itemId}
+                        className='absolute top-0 bottom-0 left-0 right-0'
+                        style={style}
+                    >
+                        <ItemMedia
+                            item={item}
+                            showLivePhoto={showLivePhoto}
+                            setShowLivePhoto={setShowLivePhoto}
+                        />
+                    </animated.div>
+                ))}
+            </animated.div>
             <div
                 className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 {onClose && (
@@ -157,6 +187,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     className='ml-3 text-shadow'
                 />
             </div>
+            <SwipeArea {...bind()} />
             <ItemInfoSheet
                 item={item}
                 isOpen={showInfoSheet}
@@ -165,30 +196,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         </Container>
     );
 };
-
-function renderNextButton(onMoveNext: Function) {
-    return <div
-        onClick={() => onMoveNext()}
-        className='flex absolute right-0 z-10 top-1/4 bottom-1/4 mr-3 items-center justify-end w-1/5 text-shadow'
-    >
-        <NavArrowRight
-            color={constants.colors.text.level0}
-            height={30}
-            width={30} />
-    </div>;
-}
-
-function renderPreviousButton(onMovePrevious: Function) {
-    return <div
-        onClick={() => onMovePrevious()}
-        className='flex absolute left-0 z-10 top-1/4 bottom-1/4 ml-3 items-center justify-start w-1/5 text-shadow'
-    >
-        <NavArrowLeft
-            color={constants.colors.text.level0}
-            height={30}
-            width={30} />
-    </div>;
-}
 
 function formatRelativeOrLongDateTime(date: Date | string) {
     const daysDifference = differenceInDays(date, new Date());
@@ -209,6 +216,15 @@ const Container = styled.div`
     right: 0;
     display: flex;
     z-index: 10;
+`;
+
+const SwipeArea = styled.div`
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    touch-action: pan-y; /* Allow vertical scrolling but capture horizontal swipes */
 `;
 
 export default ItemPreview;
