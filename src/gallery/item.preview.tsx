@@ -224,7 +224,6 @@ const SwipeArea = styled.div`
     height: 100%;
     top: 0;
     left: 0;
-    touch-action: pan-y; /* Allow vertical scrolling but capture horizontal swipes */
 `;
 
 export default ItemPreview;
