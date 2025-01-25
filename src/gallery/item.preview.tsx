@@ -80,33 +80,34 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         }
     });
 
+    let animateMoveNext: Function;
+    let animateMovePrev: Function;
+
     if (onMoveNext) {
-        const original = onMoveNext;
-        onMoveNext = async () => {
+        animateMoveNext = async () => {
             await Promise.all(swipeApi.start({
                 x: -window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
-            original!();
+            onMoveNext();
             swipeApi.start({ x: 0, immediate: true }); // Reset position
         };
     }
 
     if (onMovePrevious) {
-        const original = onMovePrevious;
-        onMovePrevious = async () => {
+        animateMovePrev = async () => {
             await Promise.all(swipeApi.start({
                 x: window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
-            original!();
+            onMovePrevious();
             swipeApi.start({ x: 0, immediate: true }); // Reset position
         };
     }
 
     useKeyBindings([
-        { cmd: ['ArrowLeft'], callback: () => onMovePrevious?.() },
-        { cmd: ['ArrowRight'], callback: () => onMoveNext?.() },
+        { cmd: ['ArrowLeft'], callback: () => animateMovePrev?.() },
+        { cmd: ['ArrowRight'], callback: () => animateMoveNext?.() },
         { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
 
