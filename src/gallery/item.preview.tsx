@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Play, Xmark } from 'iconoir-react';
@@ -9,7 +9,7 @@ import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
-import { animated, useSpring, useTransition } from '@react-spring/web';
+import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 
 interface Props {
@@ -39,24 +39,9 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
 
-    const direction = useRef<'ltr' | 'rtl' | null>(null);
-
-    const mediaTransitions = useTransition(item, {
-        key: item,
-        from: {
-            x: direction.current === null ? '0%' : (direction.current === 'ltr' ? '-100%' : '100%')
-        },
-        enter: {
-            x: '0%'
-        },
-        leave: {
-            x: direction.current === null ? '0%' : (direction.current === 'ltr' ? '100%' : '-100%')
-        }
-    });
-
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
 
-    const bind = useDrag(async ({ down, movement }) => {
+    const dragBindings = useDrag(async ({ down, movement, ...e }) => {
         const width = window.innerWidth;
         const mx = movement[0];
 
@@ -198,7 +183,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     className='ml-3 text-shadow'
                 />
             </div>
-            <SwipeArea {...bind()} />
+            <SwipeArea {...dragBindings()} />
             <ItemInfoSheet
                 item={item}
                 isOpen={showInfoSheet}
