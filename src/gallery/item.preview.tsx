@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Menu, NavArrowLeft, NavArrowRight, Play, Xmark } from 'iconoir-react';
+import { InfoCircle, Play, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { nonSelectable } from '../styles';
@@ -41,22 +41,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const direction = useRef<'ltr' | 'rtl' | null>(null);
 
-    if (onMoveNext) {
-        const original = onMoveNext;
-        onMoveNext = () => {
-            direction.current = 'rtl';
-            original!();
-        };
-    }
-
-    if (onMovePrevious) {
-        const original = onMovePrevious;
-        onMovePrevious = () => {
-            direction.current = 'ltr';
-            original!();
-        };
-    }
-
     const mediaTransitions = useTransition(item, {
         key: item,
         from: {
@@ -72,7 +56,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
 
-    const bind = useDrag(({ down, movement }) => {
+    const bind = useDrag(async ({ down, movement }) => {
         const width = window.innerWidth;
         const mx = movement[0];
 
@@ -80,11 +64,13 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
+                await Promise.all(swipeApi.start({ x: width }));
                 onMovePrevious?.();
             } else {
+                await Promise.all(swipeApi.start({ x: -width }));
                 onMoveNext?.();
             }
-            swipeApi.start({ x: 0 }); // Reset position
+            swipeApi.start({ x: 0, immediate: true }); // Reset position
         } else if (!down) {
             // Reset if swipe is canceled
             swipeApi.start({ x: 0 });
@@ -93,6 +79,30 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             swipeApi.start({ x: mx, immediate: true });
         }
     });
+
+    if (onMoveNext) {
+        const original = onMoveNext;
+        onMoveNext = async () => {
+            await Promise.all(swipeApi.start({
+                x: -window.innerWidth,
+                config: { tension: 500, clamp: true }
+            }));
+            original!();
+            swipeApi.start({ x: 0, immediate: true }); // Reset position
+        };
+    }
+
+    if (onMovePrevious) {
+        const original = onMovePrevious;
+        onMovePrevious = async () => {
+            await Promise.all(swipeApi.start({
+                x: window.innerWidth,
+                config: { tension: 500, clamp: true }
+            }));
+            original!();
+            swipeApi.start({ x: 0, immediate: true }); // Reset position
+        };
+    }
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => onMovePrevious?.() },
@@ -113,26 +123,26 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         <Container
             onDoubleClick={() => setShowLivePhoto(true)}
         >
-            <animated.div
-                className='absolute top-0 bottom-0 left-0 right-0'
-                style={{
-                    ...swipeSpring
-                }}
-            >
-                {mediaTransitions((style, item) => (
+            {[itemIndex - 1, itemIndex, itemIndex + 1]
+                .filter((i) => i >= 0 && i < items.length) // Only render relevant images
+                .map((i) => (
                     <animated.div
-                        key={item.itemId}
+                        key={i}
                         className='absolute top-0 bottom-0 left-0 right-0'
-                        style={style}
+                        style={{
+                            transform: swipeSpring.x.to((val) => {
+                                const offset = (i - itemIndex) * window.innerWidth + val;
+                                return `translateX(${offset}px)`;
+                            })
+                        }}
                     >
                         <ItemMedia
-                            item={item}
+                            item={items[i]}
                             showLivePhoto={showLivePhoto}
                             setShowLivePhoto={setShowLivePhoto}
                         />
                     </animated.div>
                 ))}
-            </animated.div>
             <div
                 className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 {onClose && (
