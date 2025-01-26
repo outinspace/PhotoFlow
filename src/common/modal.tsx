@@ -21,16 +21,17 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
     const modalTransitions = useTransition(isOpen, {
         from: {
             opacity: 0,
-            y: 20
+            scale: 0.75
         },
         enter: {
             opacity: 1,
-            y: 0
+            scale: 1
         },
         leave: {
             opacity: 0,
-            y: 20
-        }
+            scale: 0.75
+        },
+        config: { tension: 500 }
     });
 
     const shadowTransitions = useTransition(isOpen, {
@@ -42,7 +43,8 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
         },
         leave: {
             opacity: 0,
-        }
+        },
+        config: { tension: 500 }
     });
 
     // TODO: Handle disabled color
