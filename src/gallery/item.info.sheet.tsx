@@ -15,10 +15,6 @@ interface Props {
 }
 
 const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
-    if (!isOpen) {
-        return;
-    }
-
     return (
         <BottomSheet
             isOpen={isOpen}

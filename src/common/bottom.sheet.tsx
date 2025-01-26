@@ -1,4 +1,7 @@
-import React, { ReactNode } from 'react';
+import { animated, useSpring, useTransition } from '@react-spring/web';
+import { useDrag } from '@use-gesture/react';
+import React, { ReactNode, useEffect } from 'react';
+import useMeasure from 'react-use-measure';
 
 interface Props {
     children: ReactNode;
@@ -7,27 +10,82 @@ interface Props {
 }
 
 export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
-    // TODO: Escape keybinding
+    const [containerRef, bounds] = useMeasure();
+    const placement = bounds.width < 768 ? 'bottom' : 'side';
 
-    if (!isOpen) {
-        return;
-    }
+    const [sheetSpring, sheetApi] = useSpring(() => ({
+        y: window.innerHeight,
+        x: window.innerWidth
+    }));
+
+    const shadowTransitions = useTransition(isOpen, {
+        from: {
+            opacity: 0,
+        },
+        enter: {
+            opacity: 1,
+        },
+        leave: {
+            opacity: 0,
+        }
+    });
+
+
+    useEffect(() => {
+        sheetApi.start({
+            y: placement === 'bottom' ? (isOpen ? 0 : bounds.height) : 0,
+            x: placement === 'side' ? (isOpen ? 0 : bounds.width) : 0,
+            config: { tension: 300, clamp: true }
+        });
+    }, [isOpen, bounds]);
+
+    const dragBindings = useDrag(async ({ down, movement }) => {
+        const [mx, my] = movement;
+
+        const animateDismiss = (placement === 'bottom' && my > 50) || (placement === 'side' && mx > 50);
+
+        if (!down && animateDismiss) {
+            await Promise.all(sheetApi.start({
+                y: placement === 'bottom' ? bounds.height : 0,
+                x: placement === 'side' ? bounds.width : 0
+            }));
+            onDismiss();
+        } else if (!down) {
+            sheetApi.start({ y: 0, x: 0 });
+        } else {
+            sheetApi.set({
+                y: placement === 'bottom' ? my : 0,
+                x: placement === 'side' ? mx : 0
+            });
+        }
+    });
 
     return (
-        <div
-            className='left-0 right-0 top-0 bottom-0 fixed bg-slate-900/60 z-10 max-height-dvh bordered flex flex-col md:flex-row justify-end'
-        >
-            <div
-                className='flex-auto min-h-20'
-                onClick={() => onDismiss()}
+        <>
+            {shadowTransitions((style, openState) => openState && (
+                <animated.div
+                    className='left-0 right-0 top-0 bottom-0 fixed bg-slate-900/60 z-10'
+                    style={style}
+                />
+            ))}
+            <animated.div
+                ref={containerRef}
+                className='left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end'
+                style={sheetSpring}
+                {...dragBindings()}
             >
-            </div>
-            <div
-                className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:w-[50%] lg:w-[33%] overflow-y-auto z-10 flex-initial p-3 pb-9 md:pb-3 flex flex-col'
-            >
-                {children}
-            </div>
-        </div>
+                <div
+                    className='flex-auto min-h-20'
+                    onClick={() => onDismiss()}
+                >
+                </div>
+                <div
+                    className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:w-[50%] lg:w-[33%] overflow-y-auto z-10 flex-initial p-3 pb-9 md:pb-3 flex flex-col'
+                >
+                    {children}
+                </div>
+            </animated.div>
+        </>
     );
 };
 
