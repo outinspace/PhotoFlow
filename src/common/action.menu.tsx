@@ -31,7 +31,8 @@ export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, optio
         leave: {
             y: position === 'top' ? 20 : -20,
             opacity: 0
-        }
+        },
+        config: { tension: 500 }
     });
 
     const shadowTransitions = useTransition(isOpen, {
@@ -43,7 +44,8 @@ export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, optio
         },
         leave: {
             opacity: 0
-        }
+        },
+        config: { tension: 500 }
     });
 
     return (
