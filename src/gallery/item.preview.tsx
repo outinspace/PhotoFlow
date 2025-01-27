@@ -46,16 +46,25 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
-                await Promise.all(swipeApi.start({ x: width }));
+                await Promise.all(swipeApi.start({
+                    x: width,
+                    config: { tension: 500 }
+                }));
                 onMovePrevious?.();
             } else {
-                await Promise.all(swipeApi.start({ x: -width }));
+                await Promise.all(swipeApi.start({
+                    x: -width,
+                    config: { tension: 500 }
+                }));
                 onMoveNext?.();
             }
             swipeApi.start({ x: 0, immediate: true }); // Reset position
         } else if (!down) {
             // Reset if swipe is canceled
-            swipeApi.start({ x: 0 });
+            swipeApi.start({
+                x: 0,
+                config: { tension: 500 }
+            });
         } else {
             // Follow user's drag
             swipeApi.start({ x: mx, immediate: true });
