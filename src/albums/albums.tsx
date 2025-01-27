@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import PageHeader from '../common/page.header';
-import { useAlbumsWithItems, useGallery } from '../queries';
-import { Album, Item } from '../types';
+import { useAlbumsWithItems } from '../queries';
+import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 
 const Albums = () => {
@@ -15,7 +15,12 @@ const Albums = () => {
     return (
         <div className='p-5'>
             <PageHeader name='Albums' />
-            <div className='flex flex-wrap'>
+            <div
+                className='w-full grid justify-items-center justify-around md:justify-normal'
+                style={{
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min-content, 150px))'
+                }}
+            >
                 {albums.map(album => (
                     <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
                 ))}
@@ -25,7 +30,7 @@ const Albums = () => {
 };
 
 interface AlbumCoverProps {
-    album: Album;
+    album: AlbumWithItems;
     onClick: Function;
 }
 
