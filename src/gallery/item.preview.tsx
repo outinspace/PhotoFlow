@@ -43,12 +43,9 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const dragBindings = useDrag(async ({ down, movement, velocity }) => {
         const width = window.innerWidth;
         const mx = movement[0];
-        const vx = movement[0];
+        const vx = velocity[0];
 
-        console.log(vx)
-
-        // TODO: Reduce
-        if (!down && Math.abs(mx) > width / 2) {
+        if (!down && (Math.abs(mx) > width / 2 || vx > 1)) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
