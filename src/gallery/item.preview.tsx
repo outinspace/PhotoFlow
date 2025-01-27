@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Play, Xmark } from 'iconoir-react';
+import { InfoCircle, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { nonSelectable } from '../styles';
@@ -169,14 +169,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onDeleteCompletion={() => onClose?.()}
                     position='bottom'
                 />
-                {isLivePhoto && (
-                    <Play
-                        onClick={() => setShowLivePhoto(true)}
-                        height={30}
-                        width={30}
-                        className='ml-3 text-shadow'
-                    />
-                )}
                 <InfoCircle
                     height={30}
                     width={30}
