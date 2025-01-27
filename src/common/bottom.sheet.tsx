@@ -11,11 +11,14 @@ interface Props {
 
 export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
     const [containerRef, bounds] = useMeasure();
-    const placement = bounds.width < 768 ? 'bottom' : 'side';
+    const height = bounds.height ? bounds.height : window.innerHeight;
+    const width = bounds.width ? bounds.width : window.innerWidth;
+
+    const placement = width < 768 ? 'bottom' : 'side';
 
     const [sheetSpring, sheetApi] = useSpring(() => ({
-        y: window.innerHeight,
-        x: window.innerWidth
+        y: height,
+        x: width
     }));
 
     const shadowTransitions = useTransition(isOpen, {
@@ -33,11 +36,11 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
 
     useEffect(() => {
         sheetApi.start({
-            y: placement === 'bottom' ? (isOpen ? 0 : bounds.height) : 0,
-            x: placement === 'side' ? (isOpen ? 0 : bounds.width) : 0,
+            y: placement === 'bottom' ? (isOpen ? 0 : height) : 0,
+            x: placement === 'side' ? (isOpen ? 0 : width) : 0,
             config: { tension: 300, clamp: true }
         });
-    }, [isOpen, bounds]);
+    }, [isOpen, width, height]);
 
     const dragBindings = useDrag(async ({ down, movement }) => {
         const [mx, my] = movement;
@@ -46,8 +49,8 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
 
         if (!down && animateDismiss) {
             await Promise.all(sheetApi.start({
-                y: placement === 'bottom' ? bounds.height : 0,
-                x: placement === 'side' ? bounds.width : 0
+                y: placement === 'bottom' ? height : 0,
+                x: placement === 'side' ? width : 0
             }));
             onDismiss();
         } else if (!down) {
