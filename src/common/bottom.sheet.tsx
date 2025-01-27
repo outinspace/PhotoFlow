@@ -43,7 +43,14 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
     }, [isOpen, width, height]);
 
     const dragBindings = useDrag(async ({ down, movement }) => {
-        const [mx, my] = movement;
+        let [mx, my] = movement;
+
+        // Prevent over dragging
+        if (placement === 'bottom') {
+            my = Math.max(0, my);
+        } else {
+            mx = Math.max(0, mx);
+        }
 
         const animateDismiss = (placement === 'bottom' && my > 50) || (placement === 'side' && mx > 50);
 
