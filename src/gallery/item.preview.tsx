@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Play, Xmark } from 'iconoir-react';
@@ -30,7 +30,6 @@ const zIndex = {
 };
 
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
-    const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
@@ -41,10 +40,14 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
 
-    const dragBindings = useDrag(async ({ down, movement, ...e }) => {
+    const dragBindings = useDrag(async ({ down, movement, velocity }) => {
         const width = window.innerWidth;
         const mx = movement[0];
+        const vx = movement[0];
 
+        console.log(vx)
+
+        // TODO: Reduce
         if (!down && Math.abs(mx) > width / 2) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
@@ -63,6 +66,8 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             // Follow user's drag
             swipeApi.start({ x: mx, immediate: true });
         }
+    }, {
+        filterTaps: true
     });
 
     let animateMoveNext: Function;
@@ -106,29 +111,28 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container
-            onDoubleClick={() => setShowLivePhoto(true)}
-        >
-            {[itemIndex - 1, itemIndex, itemIndex + 1]
-                .filter((i) => i >= 0 && i < items.length) // Only render relevant images
-                .map((i) => (
-                    <animated.div
-                        key={i}
-                        className='absolute top-0 bottom-0 left-0 right-0'
-                        style={{
-                            transform: swipeSpring.x.to((val) => {
-                                const offset = (i - itemIndex) * window.innerWidth + val;
-                                return `translateX(${offset}px)`;
-                            })
-                        }}
-                    >
-                        <ItemMedia
-                            item={items[i]}
-                            showLivePhoto={showLivePhoto}
-                            setShowLivePhoto={setShowLivePhoto}
-                        />
-                    </animated.div>
-                ))}
+        <Container>
+            <SwipeArea {...dragBindings()}>
+                {[itemIndex - 1, itemIndex, itemIndex + 1]
+                    .filter((i) => i >= 0 && i < items.length) // Only render relevant images
+                    .map((i) => (
+                        <animated.div
+                            key={i}
+                            className='absolute top-0 bottom-0 left-0 right-0'
+                            style={{
+                                transform: swipeSpring.x.to((val) => {
+                                    const offset = (i - itemIndex) * window.innerWidth + val;
+                                    return `translateX(${offset}px)`;
+                                })
+                            }}
+                        >
+                            <ItemMedia
+                                isPrimary={i === itemIndex}
+                                item={items[i]}
+                            />
+                        </animated.div>
+                    ))}
+            </SwipeArea>
             <div
                 className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 {onClose && (
@@ -183,7 +187,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     className='ml-3 text-shadow'
                 />
             </div>
-            <SwipeArea {...dragBindings()} />
             <ItemInfoSheet
                 item={item}
                 isOpen={showInfoSheet}
@@ -225,13 +228,31 @@ const SwipeArea = styled.div`
 export default ItemPreview;
 
 
-const ItemMedia = ({ item, showLivePhoto, setShowLivePhoto }) => {
+interface ItemMediaProps {
+    item: Item;
+    isPrimary: boolean;
+}
+const ItemMedia = ({ item, isPrimary }: ItemMediaProps) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [showLivePhoto, setShowLivePhoto] = useState(false);
+
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
 
+    useEffect(() => {
+        if (isPrimary) {
+            videoRef.current?.play();
+        } else {
+            videoRef.current?.pause();
+        }
+    }, [isPrimary, videoRef]);
+
     return (
-        <>
+        <div
+            className='fixed top-0 bottom-0 left-0 right-0'
+            onDoubleClick={() => setShowLivePhoto(true)}
+        >
             {imageFile && <>
                 <img
                     className={nonSelectable}
@@ -256,7 +277,7 @@ const ItemMedia = ({ item, showLivePhoto, setShowLivePhoto }) => {
                     src={imageFile.previewUrl ?? undefined}
                 />
             </>}
-            {isLivePhoto && showLivePhoto && (
+            {isLivePhoto && showLivePhoto && isPrimary && (
                 <video
                     autoPlay
                     controls={false}
@@ -276,7 +297,7 @@ const ItemMedia = ({ item, showLivePhoto, setShowLivePhoto }) => {
             )}
             {videoFile && !isLivePhoto && (
                 <video
-                    autoPlay
+                    ref={videoRef}
                     controls
                     playsInline
                     style={{
@@ -291,6 +312,6 @@ const ItemMedia = ({ item, showLivePhoto, setShowLivePhoto }) => {
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>
             )}
-        </>
+        </div>
     );
 }
