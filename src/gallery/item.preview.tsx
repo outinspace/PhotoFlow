@@ -35,14 +35,31 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const item = items[itemIndex];
 
-    const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
+    const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
 
     const dragBindings = useDrag(async ({ down, movement, velocity }) => {
         const width = window.innerWidth;
-        const mx = movement[0];
-        const vx = velocity[0];
+        const [vx, vy] = velocity;
+        let [omx, omy] = movement;
 
-        if (!down && (Math.abs(mx) > width / 2 || vx > 0.25)) {
+        // Smoothly transition between swipe and dismiss
+        const dismissPercent = omy / (window.innerHeight / 2);
+        const mx = omx * (1 - dismissPercent);
+        const my = omy;
+
+        // Track user drag
+        if (down) {
+            swipeApi.start({
+                x: mx,
+                y: my,
+                opacity: 1 - Math.abs(my) / window.innerHeight,
+                scale: 1 - Math.abs(my) / window.innerHeight,
+                immediate: true
+            });
+            return;
+        }
+
+        if (Math.abs(mx) > width / 2 || vx > 0.25) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
@@ -58,16 +75,28 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 }));
                 onMoveNext?.();
             }
-            swipeApi.start({ x: 0, immediate: true }); // Reset position
-        } else if (!down) {
+            // Reset position
+            swipeApi.start({ x: 0, immediate: true });
+        } if (Math.abs(my) > window.innerHeight / 4 || vy > 0.5) {
+            // Animate closed
+            await Promise.all(swipeApi.start({
+                x: 0,
+                y: 0,
+                opacity: 0,
+                scale: 0,
+                config: { tension: 300, clamp: true }
+            }));
+
+            onClose?.();
+        } else {
             // Reset if swipe is canceled
             swipeApi.start({
                 x: 0,
+                y: 0,
+                opacity: 1,
+                scale: 1,
                 config: { tension: 300, clamp: true }
             });
-        } else {
-            // Follow user's drag
-            swipeApi.start({ x: mx, immediate: true });
         }
     }, {
         filterTaps: true
@@ -114,7 +143,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container>
+        <Container style={{ opacity: swipeSpring.opacity }}>
             <SwipeArea {...dragBindings()}>
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length) // Only render relevant images
@@ -123,10 +152,11 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                             key={i}
                             className='absolute top-0 bottom-0 left-0 right-0'
                             style={{
-                                transform: swipeSpring.x.to((val) => {
-                                    const offset = (i - itemIndex) * window.innerWidth + val;
-                                    return `translateX(${offset}px)`;
-                                })
+                                x: swipeSpring.x.to((val) => {
+                                    return (i - itemIndex) * window.innerWidth + val;
+                                }),
+                                y: swipeSpring.y,
+                                scale: swipeSpring.scale
                             }}
                         >
                             <ItemMedia
@@ -201,7 +231,7 @@ function formatRelativeOrLongDateTime(date: Date | string) {
     }
 }
 
-const Container = styled.div`
+const Container = styled(animated.div)`
     background-color: ${constants.colors.surface.level0};
     position: fixed;
     top: 0;
