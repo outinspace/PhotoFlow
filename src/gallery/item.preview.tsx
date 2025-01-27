@@ -42,7 +42,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         const mx = movement[0];
         const vx = velocity[0];
 
-        if (!down && (Math.abs(mx) > width / 2 || vx > 1)) {
+        if (!down && (Math.abs(mx) > width / 2 || vx > 0.25)) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
