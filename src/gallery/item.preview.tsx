@@ -48,13 +48,13 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             if (direction === -1) {
                 await Promise.all(swipeApi.start({
                     x: width,
-                    config: { tension: 500 }
+                    config: { tension: 500, clamp: true }
                 }));
                 onMovePrevious?.();
             } else {
                 await Promise.all(swipeApi.start({
                     x: -width,
-                    config: { tension: 500 }
+                    config: { tension: 500, clamp: true }
                 }));
                 onMoveNext?.();
             }
@@ -63,7 +63,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             // Reset if swipe is canceled
             swipeApi.start({
                 x: 0,
-                config: { tension: 500 }
+                config: { tension: 500, clamp: true }
             });
         } else {
             // Follow user's drag
