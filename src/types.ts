@@ -85,6 +85,17 @@ export interface Album {
     itemIds: number[];
 }
 
+export interface AlbumWithItems {
+    albumId: number;
+    name: string;
+    shareSecret: string | null;
+    createdTimeUtc: string;
+    updatedTimeUtc: string;
+    itemIds: number[];
+
+    items: Item[];
+}
+
 export interface GetAlbumsResponse {
     albums: Album[];
 }

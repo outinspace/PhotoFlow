@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { File, GetAlbumsResponse, GetGalleryResponse, GetPublicAlbumResponse, GetPublicItemResponse, Item } from "./types";
+import { AlbumWithItems, File, GetAlbumsResponse, GetGalleryResponse, GetPublicAlbumResponse, GetPublicItemResponse, Item } from "./types";
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
@@ -205,7 +205,7 @@ export const useAlbums = () => useQuery({
     }
 })
 
-export const useAlbumsWithItems = () => {
+export const useAlbumsWithItems = (): AlbumWithItems[] | undefined => {
     const { data: gallery } = useGallery();
     const { data: albums } = useAlbums();
 
@@ -229,7 +229,7 @@ export const useAlbumsWithItems = () => {
         }));
     }, [gallery, albums]);
 
-    return albumsWithItems
+    return albumsWithItems;
 }
 
 interface CreateAlbumArgs {
