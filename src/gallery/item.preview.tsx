@@ -34,9 +34,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const [showActionMenu, setShowActionMenu] = useState(false);
 
     const item = items[itemIndex];
-    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
-    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
-    const isLivePhoto = !!imageFile && !!videoFile;
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0 }));
 
