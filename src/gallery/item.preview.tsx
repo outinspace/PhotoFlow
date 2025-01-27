@@ -38,14 +38,18 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
 
     const dragBindings = useDrag(async ({ down, movement, velocity }) => {
-        const width = window.innerWidth;
-        const [vx, vy] = velocity;
         let [omx, omy] = movement;
+
+        // Don't start dismiss until threshold
+        if (Math.abs(omy) < 50) {
+            omy = 0;
+        }
 
         // Smoothly transition between swipe and dismiss
         const dismissPercent = omy / (window.innerHeight / 2);
+        const swipePercent = omx / (window.innerWidth / 2);
         const mx = omx * (1 - dismissPercent);
-        const my = omy;
+        const my = omy * (1 - swipePercent);
 
         // Track user drag
         if (down) {
@@ -59,25 +63,25 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             return;
         }
 
-        if (Math.abs(mx) > width / 2 || vx > 0.25) {
+        if (Math.abs(mx) > window.innerWidth / 4) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
                 await Promise.all(swipeApi.start({
-                    x: width,
+                    x: window.innerWidth,
                     config: { tension: 300, clamp: true }
                 }));
                 onMovePrevious?.();
             } else {
                 await Promise.all(swipeApi.start({
-                    x: -width,
+                    x: -window.innerWidth,
                     config: { tension: 300, clamp: true }
                 }));
                 onMoveNext?.();
             }
             // Reset position
             swipeApi.start({ x: 0, immediate: true });
-        } if (Math.abs(my) > window.innerHeight / 4 || vy > 0.5) {
+        } if (Math.abs(my) > window.innerHeight / 4) {
             // Animate closed
             await Promise.all(swipeApi.start({
                 x: 0,
