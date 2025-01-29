@@ -361,3 +361,27 @@ export const useShareAlbum = () => {
         }
     });
 }
+
+// TODO: Lock down upload endpoint
+export const uploadFiles = async (files: FileList) => {
+    const tenantId = localStorage.getItem('tenantId') ?? '';
+
+    for (const file of files) {
+        const res = await fetchAuthenticatedRoute(`/import/s3/${tenantId}/${file.name}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': file.type
+            },
+            duplex: 'half',
+            body: file.stream(),
+        });
+
+        if (res.ok) {
+            toast.success('File Uploaded');
+        } else {
+            toast.error('Failed to upload');
+        }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['gallery'] });
+}
