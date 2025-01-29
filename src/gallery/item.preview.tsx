@@ -41,7 +41,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         let [omx, omy] = movement;
 
         // Don't start dismiss until threshold
-        if (Math.abs(omy) < 50) {
+        if (Math.abs(omy) < 100) {
             omy = 0;
         }
 
