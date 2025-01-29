@@ -4,7 +4,7 @@ import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-vi
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
-import { format } from 'date-fns';
+import { differenceInSeconds, format } from 'date-fns';
 import { FilterBar, useFilterBar } from './filter.bar';
 import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
@@ -22,7 +22,28 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
-    const items = filteredItems;
+
+    const items = useMemo(() => {
+        if (filteredItems.length === 0) {
+            return [];
+        }
+
+        const output: Item[] = [];
+
+        let currentStack: Item = filteredItems[0];
+        output.push(filteredItems[0]);
+
+        for (const item of filteredItems) {
+            if (Math.abs(differenceInSeconds(currentStack.captureTime, item.captureTime)) < 30) {
+                // TODO: nest
+            } else {
+                currentStack = item;
+                output.push(item);
+            }
+        }
+
+        return output;
+    }, [filteredItems]);
 
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
 
