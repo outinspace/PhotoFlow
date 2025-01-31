@@ -74,7 +74,8 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                     <option value='unsorted'>Unsorted</option>
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ sort: e.target.value })}>
-                    <option value='capture-date'>Sort by Date</option>
+                    <option value='capture-date'>Sort by Capture Date</option>
+                    <option value='upload-date'>Sort by Upload Date</option>
                     <option value='file-size'>Sort by Size</option>
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ city: e.target.value })}>
@@ -144,8 +145,10 @@ export const useFilterBar = (items: Item[]) => {
         tempItems.sort((a, b) => {
             if (filters.sort === 'capture-date') {
                 return b.captureTime.localeCompare(a.captureTime);
+            } else if (filters.sort === 'upload-date') {
+                return b.primaryFile.uploadTimeUtc.localeCompare(a.primaryFile.uploadTimeUtc);
             } else if (filters.sort === 'file-size') {
-                return b.totalBytes - a.totalBytes; // TODO: Test
+                return b.totalBytes - a.totalBytes;
             } else {
                 throw new Error('Unknown sort');
             }
