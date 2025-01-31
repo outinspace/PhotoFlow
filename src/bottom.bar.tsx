@@ -35,7 +35,7 @@ const BottomBar = () => {
     const safeAreaPadding = isPwaApp ? 'pb-10 md:pb-2' : '';
 
     return (
-        <div className={'flex-none flex bg-slate-50 border-t p-2 transition-all ' + safeAreaPadding}>
+        <div className={'flex-none flex bg-slate-50 border-t border-slate-200 p-2 transition-all ' + safeAreaPadding}>
             {options.map(option => (
                 <div
                     key={option.route}

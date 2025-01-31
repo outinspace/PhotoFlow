@@ -49,7 +49,7 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
 
     return (
         <div className='flex-col m-1 justify-items-center' onClick={() => onClick()}>
-            <div className={'rounded border size-32 overflow-hidden grid'}
+            <div className={'rounded border border-slate-200 size-32 overflow-hidden grid'}
                 style={{
                     gridTemplateColumns: gridTemplate,
                     gridTemplateRows: gridTemplate

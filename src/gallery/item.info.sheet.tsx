@@ -120,7 +120,7 @@ const LocationMetadata = ({ item }: { item: Item }) => {
             <div className=''>
                 Location
             </div>
-            <div className='border h-64 overflow-hidden rounded' onClick={navigateToMap}>
+            <div className='border border-slate-200 h-64 overflow-hidden rounded' onClick={navigateToMap}>
                 <MapContainer center={position} zoom={13} scrollWheelZoom={false} zoomControl={false} className='select-none' dragging={false} style={{ height: '100%', width: '100%' }}>
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

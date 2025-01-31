@@ -34,12 +34,13 @@
   "devDependencies": {
     "@parcel/packager-raw-url": "^2.13.3",
     "@parcel/transformer-webmanifest": "^2.13.3",
+    "@tailwindcss/postcss": "^4.0.2",
     "@types/leaflet": "^1.9.14",
     "@types/leaflet.markercluster": "^1.5.5",
     "@types/react": "^18.3.12",
     "parcel": "^2.13.3",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.1",
     "process": "^0.11.10",
-    "tailwindcss": "^3.4.15"
+    "tailwindcss": "^4.0.2"
   }
 }
