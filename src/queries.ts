@@ -112,10 +112,10 @@ const computeItemProperties = (item: Item, originalUrlPrefix: string, tileImageU
     for (const file of item.files) {
         file.originalUrl = originalUrlPrefix + file.fileId;
 
-        file.tileImageUrl = file.tileVersion ? `${tileImageUrlPrefix}${file.fileId}.jpeg?v=${file.tileVersion}` : null;
+        file.tileImageUrl = file.tileVersion ? `${tileImageUrlPrefix}${file.fileId}.jpeg?t=${file.lastProcessedTimeUtc}` : null;
 
         const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
-        file.previewUrl = file.previewVersion ? `${previewUrlPrefix}${file.fileId}${previewExtension}?v=${file.previewVersion}` : null;
+        file.previewUrl = file.previewVersion ? `${previewUrlPrefix}${file.fileId}${previewExtension}?t=${file.lastProcessedTimeUtc}` : null;
     }
 
     item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
