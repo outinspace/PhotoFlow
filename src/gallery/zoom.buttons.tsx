@@ -9,7 +9,7 @@ interface Props {
 export const ZoomButtons = ({ onZoomIn, onZoomOut }: Props) => {
 
     return (
-        <div className='flex absolute bottom-2 left-2 bg-slate-100 rounded-full drop-shadow overflow-hidden'>
+        <div className='flex bg-slate-100 rounded-full drop-shadow overflow-hidden'>
             <div
                 className='p-3 hover:bg-slate-200 active:bg-slate-300'
                 onClick={() => onZoomIn()}

@@ -18,7 +18,8 @@ interface Props {
 }
 
 const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
-    const [mode, setMode] = useState<'view' | 'filter' | 'select'>('view');
+    const [filterBarVisible, setFilterBarVisible] = useState(false);
+    const [selectModeEnabled, setSelectModeEnabled] = useState(false);
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
     const items = filteredItems;
@@ -102,7 +103,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const [showActionMenu, setShowActionMenu] = useState(false);
 
     const handleItemClick = (item: Item, isDoubleClick: boolean) => {
-        if (mode === 'select') {
+        if (selectModeEnabled) {
             toggleItemSelection(item, isDoubleClick);
         } else {
             const itemIndex = items.findIndex(i => i === item);
@@ -110,12 +111,11 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         }
     }
 
-    const closeModes = () => {
-        resetFilters();
+    const closeSelectionMode = () => {
         resetSelection();
 
         setShowActionMenu(false);
-        setMode('view');
+        setSelectModeEnabled(false);
     }
 
     const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-3 drop-shadow ml-2';
@@ -124,10 +124,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         <div className='flex flex-auto flex-col overflow-hidden'>
             <div className='flex flex-auto overflow-hidden relative'>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
-                    {!readonly && mode === 'view' && (
+                    {!readonly && !selectModeEnabled && (
                         <div
                             className={floatingButtonClasses}
-                            onClick={() => setMode('select')}
+                            onClick={() => setSelectModeEnabled(true)}
                         >
                             <OneFingerSelectHandGesture
                                 className='size-6'
@@ -135,7 +135,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             />
                         </div>
                     )}
-                    {!readonly && mode === 'select' && selectedItems.length > 0 && (
+                    {!readonly && selectModeEnabled && selectedItems.length > 0 && (
                         <>
                             <div
                                 className={floatingButtonClasses}
@@ -151,26 +151,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                 albumId={albumId}
                                 isOpen={showActionMenu}
                                 onDismiss={() => setShowActionMenu(false)}
-                                onActionCompleted={() => closeModes()}
+                                onActionCompleted={() => closeSelectionMode()}
                                 position='top'
                             />
                         </>
                     )}
-                    {mode === 'view' && (
+                    {selectModeEnabled && (
                         <div
                             className={floatingButtonClasses}
-                            onClick={() => setMode('filter')}
-                        >
-                            <Filter
-                                className='size-6'
-                                style={{ marginTop: 2, marginBottom: -2 }}
-                            />
-                        </div>
-                    )}
-                    {mode !== 'view' && (
-                        <div
-                            className={floatingButtonClasses}
-                            onClick={() => closeModes()}
+                            onClick={() => closeSelectionMode()}
                         >
                             <Xmark
                                 className='size-6'
@@ -233,19 +222,43 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             );
                         })}
                     </div>
-                    <ZoomButtons
-                        onZoomOut={() => setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1)}
-                        onZoomIn={() => setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1)}
-                    />
+                    <div className='flex absolute bottom-2 left-2'>
+                        <ZoomButtons
+                            onZoomOut={() => setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1)}
+                            onZoomIn={() => setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1)}
+                        />
+                        {!filterBarVisible && (
+                            <div
+                                className={floatingButtonClasses}
+                                onClick={() => setFilterBarVisible(true)}
+                            >
+                                <Filter
+                                    className='size-6'
+                                    style={{ marginTop: 2, marginBottom: -2 }}
+                                />
+                            </div>
+                        )}
+                        {filterBarVisible && (
+                            <div
+                                className={floatingButtonClasses}
+                                onClick={() => setFilterBarVisible(false)}
+                            >
+                                <Xmark
+                                    className='size-6'
+                                    style={{ marginTop: 2, marginBottom: -2 }}
+                                />
+                            </div>
+                        )}
+                    </div>
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
                         <div className='font-bold text-2xl'>{formattedRange}</div>
-                        {mode === 'select' && (
+                        {selectModeEnabled && (
                             <div className='font-bold text-xl'>{selectedItems.length} Items Selected</div>
                         )}
                     </div>
                 </ScrollContainer>
             </div>
-            {mode === 'filter' && <FilterBar {...filterProps} items={allItems} />}
+            {filterBarVisible && <FilterBar {...filterProps} items={allItems} />}
             {previewItemIndex !== null && (
                 <ItemPreview
                     readonly={readonly}
