@@ -3,8 +3,9 @@ import { AlbumWithItems, File, GetAlbumsResponse, GetGalleryResponse, GetPublicA
 import constants from "./constants";
 import { router } from "./routes";
 import { queryClient } from "./app";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import * as idb from 'idb-keyval';
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -137,27 +138,78 @@ const getType = (item: Item) => {
     }
 }
 
-export const useTileImageBuffer = (file: File) => useQuery({
-    queryKey: ['tile-image', file.fileId, file.tileVersion],
-    staleTime: Infinity, // Will use cache max age
+export const useTileImageCache = () => useQuery({
+    queryKey: ['tile-image-cache'],
+    retry: false,
+    staleTime: 5000,
     queryFn: async () => {
-        if (!file.tileImageUrl) {
+        const entries = await idb.entries();
+
+        const files = entries
+            .filter(([key, val]) => key.toString().startsWith('file/'))
+            .map(entry => ({
+                fileId: entry[0].toString().substring(5),
+                buffer: entry[1].buffer,
+                contentType: entry[1].contentType
+            }));
+
+        const map = {};
+        for (const file of files) {
+            map[file.fileId] = file;
+        }
+
+        return map;
+    }
+});
+
+interface TileImageBlob {
+    fileId: string;
+    buffer: ArrayBuffer;
+    contentType: string;
+}
+
+export const useTileImageBuffer = (file: File) => {
+    const { data: cache } = useTileImageCache();
+    const [tileImage, setTileImage] = useState<TileImageBlob | null>(null);
+
+    console.log(cache)
+
+    useEffect(() => {
+        if (!file.tileImageUrl || !cache) {
             return;
         }
 
-        const res = await fetch(file.tileImageUrl, {
-            mode: 'cors'
-        });
+        const cachedTileImage = cache[file.fileId];
+        if (cachedTileImage) {
+            setTileImage(cachedTileImage);
+        } else {
+            fetchAndCacheTileImage(file);
+        }
+    }, [cache, file.fileId, file.tileImageUrl]);
 
-        const blob = await res.blob();
+    return tileImage;
+};
 
-        // Split blob into binary and MIME type. Blobs and object URLS cannot be cached.
-        return {
-            buffer: await blob.arrayBuffer(),
-            contentType: blob.type
-        };
-    }
-})
+const fetchAndCacheTileImage = async (file: File) => {
+    console.time('fetch' + file.fileId)
+    const res = await fetch(file.tileImageUrl ?? '', {
+        mode: 'cors'
+    });
+
+    const blob = await res.blob();
+
+    // Split blob into binary and MIME type. Blobs and object URLS cannot be cached.
+    const tileImageData: TileImageBlob = {
+        fileId: file.fileId,
+        buffer: await blob.arrayBuffer(),
+        contentType: blob.type
+    };
+
+    await idb.set(`file/${file.fileId}`, tileImageData);
+
+    queryClient.invalidateQueries({ queryKey: ['tile-image-cache']});
+    console.timeEnd('fetch' + file.fileId);
+}
 
 export const useDeleteItems = () => {
     return useMutation({
