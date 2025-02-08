@@ -42,7 +42,9 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
         });
     }, [isOpen, width, height]);
 
-    const dragBindings = useDrag(async ({ down, movement }) => {
+    const dragBindings = useDrag(async ({ down, movement, event }) => {
+        event.stopPropagation();
+
         let [mx, my] = movement;
 
         // Prevent over dragging
@@ -80,7 +82,7 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
             ))}
             <animated.div
                 ref={containerRef}
-                className='left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end'
+                className='left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end touch-none'
                 style={sheetSpring}
                 {...dragBindings()}
             >

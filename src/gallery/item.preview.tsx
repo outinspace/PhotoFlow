@@ -33,11 +33,13 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
-    const item = items[itemIndex];
+    const item: Item | undefined = items[itemIndex];
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
 
-    const dragBindings = useDrag(async ({ down, movement, velocity }) => {
+    const dragBindings = useDrag(async ({ down, movement, velocity, event }) => {
+        event.stopPropagation();
+
         let [omx, omy] = movement;
 
         // Don't start dismiss until threshold
@@ -136,6 +138,10 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         { cmd: ['ArrowRight'], callback: () => animateMoveNext?.() },
         { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
+
+    if (!item) {
+        return;
+    }
 
     const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
@@ -252,6 +258,7 @@ const SwipeArea = styled.div`
     height: 100%;
     top: 0;
     left: 0;
+    touch-action: none;
 `;
 
 export default ItemPreview;
