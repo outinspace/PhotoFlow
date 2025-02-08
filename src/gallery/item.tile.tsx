@@ -17,32 +17,21 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
+// TODO: Maybe try fetching the image after timeout in a single tile hook
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
-    // BUG: Isn't working properly on prod. Very slow.
-    // const { data: tileImageBinaryData } = useTileImageBinaryData(item.primaryFile);
-    //
+    // const cachedTileImage = useTileImageBuffer(item.primaryFile);
+
     // const tileImageObjectUrl = useMemo(() => {
-    //     if (tileImageBinaryData) {
-    //         const { buffer, contentType } = tileImageBinaryData;
+    //     if (cachedTileImage) {
+    //         const { buffer, contentType } = cachedTileImage;
     //         const blob = new Blob([buffer], { type: contentType });
-    //
     //         return URL.createObjectURL(blob);
     //     }
-    // }, [tileImageBinaryData]);
+    // }, [cachedTileImage]);
 
-    const tileImageObjectUrl = item.primaryFile.tileImageUrl;
+    // const tileImageUrl = tileImageObjectUrl ?? undefined;
 
     const [imageReady, setImageReady] = useState(false);
-    const [showImage, setShowImage] = useState(false);
-
-    // HACK: Prevent mass loading of tile images when scrolling
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setShowImage(true);
-        }, 100);
-
-        return () => clearTimeout(timeoutId);
-    });
 
     return (
         <div
@@ -66,7 +55,8 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     objectFit: 'cover',
                     opacity: imageReady ? 1 : 0
                 }}
-                src={showImage ? tileImageObjectUrl ?? undefined : undefined}
+                src={item.primaryFile.tileImageUrl ?? undefined}
+                loading='lazy'
             />
             {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>

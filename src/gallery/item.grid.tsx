@@ -34,7 +34,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const zoomLevels = [
         {
             idealTileSize: 40,
-            overscan: 0
+            overscan: 5
         },
         {
             idealTileSize: 50,
