@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { nonSelectable } from '../styles';
 import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
+import ItemMedia from './item.media';
 
 interface Props {
     items: Item[];
@@ -21,13 +21,6 @@ interface Props {
     onClose?: Function;
     readonly?: boolean;
 }
-
-const zIndex = {
-    controls: 10,
-    previewVideo: 3,
-    previewImage: 2,
-    tileImage: 1
-};
 
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
@@ -268,92 +261,3 @@ const SwipeArea = styled.div`
 `;
 
 export default ItemPreview;
-
-
-interface ItemMediaProps {
-    item: Item;
-    isPrimary: boolean;
-}
-const ItemMedia = ({ item, isPrimary }: ItemMediaProps) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [showLivePhoto, setShowLivePhoto] = useState(false);
-
-    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
-    const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
-    const isLivePhoto = !!imageFile && !!videoFile;
-
-    useEffect(() => {
-        if (isPrimary) {
-            videoRef.current?.play();
-        } else {
-            videoRef.current?.pause();
-        }
-    }, [isPrimary, videoRef]);
-
-    return (
-        <div
-            className='fixed top-0 bottom-0 left-0 right-0'
-            onDoubleClick={() => setShowLivePhoto(true)}
-        >
-            {imageFile && <>
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.tileImage
-                    }}
-                    src={imageFile?.tileImageUrl ?? undefined}
-                />
-                <img
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewImage
-                    }}
-                    src={imageFile.previewUrl ?? undefined}
-                />
-            </>}
-            {isLivePhoto && showLivePhoto && isPrimary && (
-                <video
-                    autoPlay
-                    controls={false}
-                    playsInline
-                    className={nonSelectable}
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-            {videoFile && !isLivePhoto && (
-                <video
-                    ref={videoRef}
-                    controls
-                    playsInline
-                    style={{
-                        position: 'absolute',
-                        objectFit: 'contain',
-                        height: '100%',
-                        width: '100%',
-                        zIndex: zIndex.previewVideo
-                    }}
-                    onEnded={() => setShowLivePhoto(false)}
-                >
-                    <source src={videoFile.previewUrl ?? undefined} />
-                </video>
-            )}
-        </div>
-    );
-}
