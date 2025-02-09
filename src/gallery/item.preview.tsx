@@ -141,7 +141,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
-        prettyTypeNames[item.type],
+        item.type === 'live-photo' ? 'Live Photo' : null,
         item.city && item.region ? `${item.city}, ${item.region}` : null
     ]
         .filter(_ => !!_)
@@ -252,12 +252,6 @@ function formatRelativeOrLongDateTime(date: Date | string) {
         return format(date, 'EEEE h:mm a');
     }
 }
-
-const prettyTypeNames = {
-    'photo': 'Photo',
-    'video': 'Video',
-    'live-photo': 'Live'
-};
 
 const Container = styled(animated.div)`
     background-color: ${constants.colors.surface.level0};
