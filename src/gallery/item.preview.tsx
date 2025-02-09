@@ -37,15 +37,15 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
 
-    const dragBindings = useDrag(async ({ down, movement, velocity, event }) => {
+    const dragBindings = useDrag(async ({ down, movement, event }) => {
         event.stopPropagation();
 
         let [omx, omy] = movement;
 
         // Don't start dismiss until threshold
-        if (Math.abs(omy) < 100) {
-            omy = 0;
-        }
+        // if (Math.abs(omy) < 100) {
+        //     omy = 0;
+        // }
 
         // Smoothly transition between swipe and dismiss
         const dismissPercent = omy / (window.innerHeight / 2);
@@ -65,7 +65,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             return;
         }
 
-        if (Math.abs(mx) > window.innerWidth / 4) {
+        if (Math.abs(mx) > window.innerWidth / 6) {
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
