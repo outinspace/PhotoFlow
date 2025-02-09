@@ -35,7 +35,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
 
     return (
         <div
-            className={`h-full w-full ${idealTileSize > 50 && 'outline outline-black outline-1'}`}
+            className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
             }}
