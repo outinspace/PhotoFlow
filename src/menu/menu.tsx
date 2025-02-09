@@ -5,6 +5,7 @@ import PageHeader from '../common/page.header';
 import { fetchAuthenticatedRoute, useGallery } from '../queries';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
+import { queryClient } from '../app';
 
 const options = [
     {
@@ -36,6 +37,7 @@ const options = [
         icon: LogOut,
         debug: false,
         onClick: () => {
+            queryClient.clear();
             localStorage.removeItem('tenantId');
             localStorage.removeItem('sessionId');
             router.navigate({ to: '/login' });

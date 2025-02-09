@@ -22,6 +22,7 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
     if (res.status === 401) {
         toast.error('You are not logged in.');
 
+        queryClient.clear();
         localStorage.removeItem('tenantId');
         localStorage.removeItem('sessionId');
 
