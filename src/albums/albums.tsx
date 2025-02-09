@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PageHeader from '../common/page.header';
 import { useAlbumsWithItems } from '../queries';
 import { AlbumWithItems } from '../types';
@@ -7,6 +7,10 @@ import { useNavigate } from '@tanstack/react-router';
 const Albums = () => {
     const navigate = useNavigate();
     const albums = useAlbumsWithItems() ?? [];
+
+    const sortedAlbums = useMemo(() => {
+        return albums.sort((a, b) => a.name.localeCompare(b.name));
+    }, [albums]);
 
     const openAlbum = (albumId: number) => {
         navigate({ to: '/album', search: { albumId } });
@@ -21,7 +25,7 @@ const Albums = () => {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(min-content, 150px))'
                 }}
             >
-                {albums.map(album => (
+                {sortedAlbums.map(album => (
                     <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
                 ))}
             </div>
