@@ -246,6 +246,32 @@ export const useRestoreItems = () => {
     });
 }
 
+export const useFavoriteItem = () => {
+    return useMutation({
+        mutationFn: async (itemId: number) => {
+            await fetchAuthenticatedRoute(`/items/${itemId}/favorite`, {
+                method: 'POST'
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
+
+export const useUnfavoriteItem = () => {
+    return useMutation({
+        mutationFn: async (itemId: number) => {
+            await fetchAuthenticatedRoute(`/items/${itemId}/unfavorite`, {
+                method: 'POST'
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
+
 export const useAlbums = () => useQuery({
     queryKey: ['albums'],
     queryFn: async () => {

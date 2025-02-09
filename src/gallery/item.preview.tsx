@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Xmark } from 'iconoir-react';
+import { InfoCircle, Star, StarSolid, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import ItemInfoSheet from './item.info.sheet';
@@ -11,6 +11,7 @@ import { Ellipsis } from '../common/ellipsis';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
+import { useFavoriteItem, useUnfavoriteItem } from '../queries';
 
 interface Props {
     items: Item[];
@@ -25,6 +26,8 @@ interface Props {
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+    const favoriteItem = useFavoriteItem();
+    const unfavoriteItem = useUnfavoriteItem();
 
     const item: Item | undefined = items[itemIndex];
 
@@ -208,6 +211,22 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onDeleteCompletion={() => onClose?.()}
                     position='bottom'
                 />
+                {!readonly && !item.isFavorite && (
+                    <Star
+                        height={30}
+                        width={30}
+                        onClick={() => favoriteItem.mutateAsync(item.itemId)}
+                        className='ml-3 text-shadow'
+                    />
+                )}
+                {!readonly && item.isFavorite && (
+                    <StarSolid
+                        height={30}
+                        width={30}
+                        onClick={() => unfavoriteItem.mutateAsync(item.itemId)}
+                        className='ml-3 text-shadow'
+                    />
+                )}
                 <InfoCircle
                     height={30}
                     width={30}

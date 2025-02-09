@@ -170,6 +170,8 @@ export const useFilterBar = (items: Item[]) => {
                     return item.type === 'live-photo';
                 } else if (filters.type === 'unsorted') {
                     return !sortedItems.has(item.itemId);
+                } else if (filters.type === 'favorites') {
+                    return item.isFavorite;
                 } else {
                     return true;
                 }
