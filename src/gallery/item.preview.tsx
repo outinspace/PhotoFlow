@@ -38,10 +38,23 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
         let [omx, omy] = movement;
 
-        // Don't start dismiss until threshold
-        // if (Math.abs(omy) < 100) {
+        // const axis = Math.abs(omx) > Math.abs(omy) ? 'x' : 'y';
+        // if (axis === 'x') {
         //     omy = 0;
+        // } else {
+        //     omx = 0;
         // }
+
+        // if (Math.abs(omx) > 100) {
+        //     omy = 0;
+        // } else if (Math.abs(omy) > 100) {
+        //     omx = 0;
+        // }
+
+        // Don't start dismiss until threshold
+        if (Math.abs(omy) < 100) {
+            omy = 0;
+        }
 
         // Smoothly transition between swipe and dismiss
         const dismissPercent = omy / (window.innerHeight / 2);
