@@ -20,7 +20,7 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
     const { history } = useRouter();
 
     return (
-        <div className='flex justify-center items-center p-3 border-b'>
+        <div className='flex justify-center items-center p-3 border-b border-slate-200'>
             {!hideBack && (
                 <div className='absolute left-3 hover:bg-slate-200 rounded p-1'>
                     <ArrowLeft
