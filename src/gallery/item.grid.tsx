@@ -241,7 +241,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                         {filterBarVisible && (
                             <div
                                 className={floatingButtonClasses}
-                                onClick={() => setFilterBarVisible(false)}
+                                onClick={() => {
+                                    resetFilters();
+                                    setFilterBarVisible(false);
+                                }}
                             >
                                 <Xmark
                                     className='size-6'
