@@ -283,6 +283,35 @@ export const useUnfavoriteItem = () => {
     });
 }
 
+export const useReprocessItem = () => {
+    return useMutation({
+        mutationFn: async (itemId: number) => {
+            const promise = fetchAuthenticatedRoute(`/items/${itemId}/reprocess`, {
+                method: 'POST'
+            });
+
+            await toast.promise(promise, {
+                loading: 'Reprocessing',
+                success: 'Complete',
+                error: 'Failed to reprocess item'
+            });
+        },
+        onSuccess: (_, itemId) => {
+            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
+                return produce(gallery, draft => {
+                    const item = draft.items.find(_ => _.itemId === itemId);
+
+                    // Update item file urls to trigger <img> update
+                    item!.files.forEach(file => {
+                        file.previewUrl = file.previewUrl?.split('?')[0] + '?t=' + new Date().toISOString();
+                        file.tileImageUrl = file.tileImageUrl?.split('?')[0] + '?t=' + new Date().toISOString();
+                    });
+                });
+            });
+        }
+    });
+}
+
 export const useAlbums = () => useQuery({
     queryKey: ['albums'],
     queryFn: async () => {

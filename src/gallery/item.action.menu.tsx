@@ -2,14 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
-import { fetchAuthenticatedRoute, useDeleteItems, useRemoveItemsFromAlbum, useRestoreItems } from '../queries';
+import { useDeleteItems, useRemoveItemsFromAlbum, useReprocessItem, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
-import { useDebugMode } from '../hooks/use.debug.mode';
 import { CreateAlbumModal } from './create.album.modal';
-import { useLinkProps, useNavigate, useSearch } from '@tanstack/react-router';
 import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
-import toast from 'react-hot-toast';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
 import { router } from '../routes';
 
@@ -27,11 +24,11 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
-    const showDebugOptions = useDebugMode();
 
     const deleteItems = useDeleteItems();
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
+    const reprocessItemMutation = useReprocessItem();
 
     const sharePublicLink = () => {
         const tenantId = localStorage.getItem('tenantId');
@@ -70,18 +67,6 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         onDeleteCompletion?.();
         onActionCompleted?.();
     }
-
-    const reprocessItems = async () => {
-        for (const item of items) {
-            for (const file of item.files) {
-                const res = await fetchAuthenticatedRoute(`/debug/reprocess-file?fileId=${file.fileId}`, {
-                    method: 'POST'
-                });
-
-                console.log('Reprocess Result: ', item.itemId, file.fileId, res.statusText);
-            }
-        }
-    };
 
     const removeItemsFromAlbum = async () => {
         if (!albumId) {
@@ -152,6 +137,16 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
             onClick: () => removeItemsFromAlbum()
         },
         {
+            title: 'Reprocess',
+            visible: items.length === 1,
+            icon: Refresh,
+            className: '',
+            onClick: () => {
+                reprocessItemMutation.mutate(items[0].itemId);
+                onDismiss();
+            }
+        },
+        {
             title: 'Delete',
             visible: !itemsAreDeleted,
             icon: Trash,
@@ -164,13 +159,6 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
             icon: Reply,
             className: 'text-sky-500',
             onClick: () => restoreItems()
-        },
-        {
-            title: 'Reprocess',
-            visible: showDebugOptions,
-            icon: Refresh,
-            className: '',
-            onClick: () => reprocessItems()
         }
     ]
         .filter(_ => _.visible);
