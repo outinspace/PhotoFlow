@@ -33,7 +33,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
 
-    const dragBindings = useDrag(async ({ down, movement, event }) => {
+    const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
         event.stopPropagation();
 
         let [omx, omy] = movement;
@@ -54,6 +54,11 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         // Don't start dismiss until threshold
         if (Math.abs(omy) < 100) {
             omy = 0;
+        }
+
+        // Ignore pinch zoom
+        if (touches > 1) {
+            return;
         }
 
         // Smoothly transition between swipe and dismiss
