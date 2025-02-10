@@ -154,7 +154,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
-        item.type === 'live-photo' ? 'Live Photo' : null,
+        item.type === 'live-photo' ? 'Live' : null,
         item.city && item.region ? `${item.city}, ${item.region}` : null
     ]
         .filter(_ => !!_)
