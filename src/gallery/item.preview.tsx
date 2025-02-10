@@ -208,21 +208,11 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 </div>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
-                {!readonly && (
-                    <Ellipsis
-                        height={30}
-                        width={30}
-                        onClick={() => setShowActionMenu(!showActionMenu)}
-                        className='ml-3 text-shadow'
-                    />
-                )}
-                <ItemActionMenu
-                    items={[item]}
-                    albumId={albumId}
-                    isOpen={showActionMenu}
-                    onDismiss={() => setShowActionMenu(false)}
-                    onDeleteCompletion={() => onClose?.()}
-                    position='bottom'
+                <InfoCircle
+                    height={30}
+                    width={30}
+                    onClick={() => setShowInfoSheet(true)}
+                    className='ml-3 text-shadow'
                 />
                 {!readonly && !item.isFavorite && (
                     <Star
@@ -240,11 +230,21 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                         className='ml-3 text-shadow'
                     />
                 )}
-                <InfoCircle
-                    height={30}
-                    width={30}
-                    onClick={() => setShowInfoSheet(true)}
-                    className='ml-3 text-shadow'
+                {!readonly && (
+                    <Ellipsis
+                        height={30}
+                        width={30}
+                        onClick={() => setShowActionMenu(!showActionMenu)}
+                        className='ml-3 text-shadow'
+                    />
+                )}
+                <ItemActionMenu
+                    items={[item]}
+                    albumId={albumId}
+                    isOpen={showActionMenu}
+                    onDismiss={() => setShowActionMenu(false)}
+                    onDeleteCompletion={() => onClose?.()}
+                    position='bottom'
                 />
             </div>
             <ItemInfoSheet
