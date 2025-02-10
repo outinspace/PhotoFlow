@@ -6,6 +6,7 @@ import { queryClient } from "./app";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import * as idb from 'idb-keyval';
+import { produce } from 'immer';
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -253,8 +254,13 @@ export const useFavoriteItem = () => {
                 method: 'POST'
             });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        onSuccess: (_, itemId) => {
+            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
+                return produce(gallery, draft => {
+                    const item = draft.items.find(_ => _.itemId === itemId);
+                    item!.isFavorite = true;
+                });
+            });
         }
     });
 }
@@ -266,8 +272,13 @@ export const useUnfavoriteItem = () => {
                 method: 'POST'
             });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        onSuccess: (_, itemId) => {
+            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
+                return produce(gallery, draft => {
+                    const item = draft.items.find(_ => _.itemId === itemId);
+                    item!.isFavorite = false;
+                });
+            });
         }
     });
 }
