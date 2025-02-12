@@ -61,10 +61,9 @@ export const albumsRoute = createRoute({
     )
 });
 
-// TODO: Validate params
 export const albumRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/album',
+    path: '/album/$albumId',
     component: () => (
         <BottomBarLayout>
             <AlbumLayout />
