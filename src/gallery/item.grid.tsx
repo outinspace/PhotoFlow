@@ -35,23 +35,23 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const zoomLevels = [
         {
             idealTileSize: 40,
-            overscan: 5
+            overscanRows: 5
         },
         {
             idealTileSize: 50,
-            overscan: 5
+            overscanRows: 5
         },
         {
             idealTileSize: 70,
-            overscan: 20
+            overscanRows: 20
         },
         {
             idealTileSize: 110,
-            overscan: 30
+            overscanRows: 30
         },
         {
             idealTileSize: Math.min(containerWidth, 300),
-            overscan: 40
+            overscanRows: 40
         }
     ];
     const zoomLevel = zoomLevels[zoomLevelIndex];
@@ -60,16 +60,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
 
     // TODO: Extract into useTileVirtualizer
     const columns = Math.floor(containerWidth / zoomLevel.idealTileSize);
-    const rows = Math.ceil(items.length / columns);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
-    // TODO: Consider using virtualizer grid now that tile images are cached
     const rowVirtualizer = useVirtualizer({
         enabled: tileSize > 0,
-        count: rows ?? 0,
+        count: items.length,
+        lanes: columns,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
-        overscan: zoomLevel.overscan,
+        overscan: columns * zoomLevel.overscanRows,
         paddingEnd: 100,
         rangeExtractor: useCallback((range: Range) => {
             visibleRangeRef.current = {
@@ -97,7 +96,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     }, []);
     // END: Extract into useTileVirtualizer
 
-    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, rangeDateFormat);
+    let formattedRange = useFormattedRange(items, visibleRangeRef.current, rangeDateFormat);
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
@@ -176,49 +175,27 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             position: 'relative'
                         }}
                     >
-                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                            const rowIndex = virtualRow.index;
-
-                            const rowItems: Item[] = [];
-                            for (let i = 0; i < columns; i++) {
-                                const itemIndex = rowIndex * columns + i;
-                                if (items[itemIndex]) {
-                                    rowItems.push(items[itemIndex]);
-                                }
-                            }
-
+                        {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                            const item = items[virtualItem.index];
                             return (
                                 <div
-                                    key={virtualRow.key}
+                                    key={virtualItem.key}
                                     style={{
                                         position: 'absolute',
                                         top: 0,
                                         left: 0,
-                                        right: 0,
-                                        height: `${virtualRow.size}px`,
-                                        transform: `translateY(${virtualRow.start}px)`
+                                        height: `${virtualItem.size}px`,
+                                        width: `${virtualItem.size}px`,
+                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * virtualItem.size}px)`
                                     }}
                                 >
-                                    {rowItems.map((item, i) => (
-                                        <div
-                                            key={item.itemId}
-                                            style={{
-                                                position: 'absolute',
-                                                left: tileSize * i,
-                                                width: tileSize,
-                                                height: tileSize
-                                            }}
-                                        >
-                                            <ItemTile
-                                                item={item}
-                                                idealTileSize={zoomLevel.idealTileSize}
-                                                onClick={(isDoubleClick) => handleItemClick(item, isDoubleClick)}
-                                                isSelected={!!selectedItemsById[item.itemId]}
-                                            />
-                                        </div>
-                                    ))}
+                                    <ItemTile
+                                        item={item}
+                                        idealTileSize={zoomLevel.idealTileSize}
+                                        onClick={(isDoubleClick) => handleItemClick(item, isDoubleClick)}
+                                        isSelected={!!selectedItemsById[item.itemId]}
+                                    />
                                 </div>
-
                             );
                         })}
                     </div>
@@ -286,9 +263,9 @@ const ScrollContainer = styled.div`
 
 export default ItemGrid;
 
-function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, columns: number, rangeDateFormat: string) {
-    const rangeStartItem: Item | undefined = items[visibleRange.startIndex * columns];
-    const rangeEndItem: Item | undefined = items[visibleRange.endIndex * columns - 1];
+function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, rangeDateFormat: string) {
+    const rangeStartItem: Item | undefined = items[visibleRange.startIndex];
+    const rangeEndItem: Item | undefined = items[visibleRange.endIndex - 1];
 
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
