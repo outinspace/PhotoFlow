@@ -58,7 +58,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
 
     const rangeDateFormat = zoomLevel.idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
 
-    // TODO: Extract into useTileVirtualizer
     const columns = Math.floor(containerWidth / zoomLevel.idealTileSize);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
@@ -79,6 +78,56 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
             return defaultRangeExtractor(range);
         }, [])
     });
+
+    const saveScrollIndexToUrl = () => {
+        const range = visibleRangeRef.current;
+        const centerIndex = range.startIndex + Math.floor(range.endIndex - range.startIndex / 2);
+
+        // Update URL index
+        const url = new URL(window.location.toString());
+        url.searchParams.set('center', centerIndex.toString());
+        window.history.replaceState({}, '', url);
+    }
+
+    const scrollToUrlIndex = () => {
+        const url = new URL(window.location.toString());
+        const param = url.searchParams.get('center');
+        const centerIndex = parseInt(param ?? '', 10);
+
+        rowVirtualizer.scrollToIndex(centerIndex);
+    }
+
+    useEffect(() => {
+        scrollToUrlIndex();
+    }, [zoomLevelIndex]);
+
+
+    // useEffect(() => {
+    //     const url = new URL(window.location.toString());
+    //     const scrollOffset = url.searchParams.get('scroll');
+    //
+    //     if (scrollOffset && scrollContainerRef.current) {
+    //         scrollContainerRef.current.scrollTop = parseInt(scrollOffset, 10);
+    //     }
+    // }, []);
+    //
+    // useEffect(() => {
+    //     const handleScroll = () => {
+    //         if (scrollContainerRef.current) {
+    //             const scrollOffset = scrollContainerRef.current.scrollTop;
+    //             const url = new URL(window.location.toString());
+    //             url.searchParams.set('scroll', scrollOffset.toString());
+    //             window.history.replaceState({}, '', url);
+    //         }
+    //     };
+    //
+    //     const container = scrollContainerRef.current;
+    //     container?.addEventListener('scroll', handleScroll);
+    //
+    //     return () => {
+    //         container?.removeEventListener('scroll', handleScroll);
+    //     };
+    // }, []);
 
     // HACK:
     useLayoutEffect(() => {
@@ -178,7 +227,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                         </div>
                     )}
                 </div>
-                <ScrollContainer ref={scrollContainerRef}>
+                <ScrollContainer ref={scrollContainerRef} onScroll={saveScrollIndexToUrl}>
                     <div
                         style={{
                             height: `${rowVirtualizer.getTotalSize()}px`,
