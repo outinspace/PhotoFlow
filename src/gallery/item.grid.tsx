@@ -96,6 +96,17 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     }, []);
     // END: Extract into useTileVirtualizer
 
+
+    const zoomOut = () => {
+        setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1);
+        rowVirtualizer.measure();
+    }
+
+    const zoomIn = () => {
+        setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1);
+        rowVirtualizer.measure();
+    }
+
     let formattedRange = useFormattedRange(items, visibleRangeRef.current, rangeDateFormat);
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
@@ -184,9 +195,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                         position: 'absolute',
                                         top: 0,
                                         left: 0,
-                                        height: `${virtualItem.size}px`,
-                                        width: `${virtualItem.size}px`,
-                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * virtualItem.size}px)`
+                                        height: `${tileSize}px`,
+                                        width: `${tileSize}px`,
+                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * tileSize}px)`
                                     }}
                                 >
                                     <ItemTile
@@ -201,8 +212,8 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     </div>
                     <div className='flex absolute bottom-2 left-2'>
                         <ZoomButtons
-                            onZoomOut={() => setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1)}
-                            onZoomIn={() => setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1)}
+                            onZoomOut={zoomOut}
+                            onZoomIn={zoomIn}
                         />
                         {!filterBarVisible && (
                             <div
