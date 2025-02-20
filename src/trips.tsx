@@ -10,26 +10,34 @@ const Trips = () => {
     const { data: gallery } = useGallery();
     const items = gallery?.items ?? [];
 
+    // const trips = useMemo(() => {
+    //     const records = items
+    //         .filter(item => item.latitude && item.longitude)
+    //         .filter(item => item.captureTime !== '0001-01-01T00:00:00+00:00')
+    //         .map(item => [item.latitude!, item.longitude!]);
+    //
+    //     const epsilon = 0.1;
+    //     const minPoints = 50;
+    //
+    //     const alg = new clustering.OPTICS();
+    //
+    //     console.time('Run');
+    //     const clusters = alg.run(records, epsilon, minPoints);
+    //     console.timeEnd('Run');
+    //
+    //     const clusteredRecords = clusters.map(cluster => {
+    //         return cluster.map(index => items[index]);
+    //     });
+    //
+    //     return clusteredRecords;
+    // }, [items]);
+
     const trips = useMemo(() => {
-        const records = items
-            .filter(item => item.latitude && item.longitude)
-            .filter(item => item.captureTime !== '0001-01-01T00:00:00+00:00')
-            .map(item => [item.latitude!, item.longitude!]);
+        // 
 
-        const epsilon = 0.1;
-        const minPoints = 50;
 
-        const alg = new clustering.OPTICS();
 
-        console.time('Run');
-        const clusters = alg.run(records, epsilon, minPoints);
-        console.timeEnd('Run');
-
-        const clusteredRecords = clusters.map(cluster => {
-            return cluster.map(index => items[index]);
-        });
-
-        return clusteredRecords;
+        return [];
     }, [items]);
 
     console.log(trips);
