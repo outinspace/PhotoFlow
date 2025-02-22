@@ -32,16 +32,17 @@ export const UploadDropZone = ({ children, className }: Props) => {
             }}
             onDrop={async e => {
                 e.preventDefault();
-                console.log(e.dataTransfer.files[0]);
+
+                dragCounter.current--;
+                if (dragCounter.current === 0) {
+                    setIsActive(false);
+                }
+
                 await uploadFiles(e.dataTransfer.files);
             }}
             onDragOver={e => e.preventDefault()}
         >
             {children}
-            {isActive && (
-                <div>
-                </div>
-            )}
         </div>
     );
 }
