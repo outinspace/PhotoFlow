@@ -485,21 +485,41 @@ export const useShareAlbum = () => {
 export const uploadFiles = async (files: FileList) => {
     const tenantId = localStorage.getItem('tenantId') ?? '';
 
+    let fileNumber = 1;
+    let loadingToastId: string | undefined = undefined;
+    let failureCount = 0;
+
     for (const file of files) {
+        loadingToastId = toast.loading(`Uploading ${fileNumber++}/${files.length} files`, {
+            id: loadingToastId
+        });
+
         const res = await fetchAuthenticatedRoute(`/import/s3/${tenantId}/${file.name}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': file.type
             },
+            // @ts-ignore
             duplex: 'half',
             body: file.stream(),
         });
 
-        if (res.ok) {
-            toast.success('File Uploaded');
-        } else {
-            toast.error('Failed to upload');
+        if (!res.ok) {
+            toast.error(`Failed to upload ${file.name}`);
+            failureCount++;
         }
+    }
+
+    if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+    }
+
+    if (failureCount === 0) {
+        toast.success(`${files.length} files uploaded`);
+    } else {
+        toast.error(`${failureCount}/${files.length} files failed to upload`, {
+            duration: Infinity
+        });
     }
 
     queryClient.invalidateQueries({ queryKey: ['gallery'] });
