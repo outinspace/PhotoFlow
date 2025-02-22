@@ -209,7 +209,7 @@ const fetchAndCacheTileImage = async (file: File) => {
 
     await idb.set(`file/${file.fileId}`, tileImageData);
 
-    queryClient.invalidateQueries({ queryKey: ['tile-image-cache']});
+    queryClient.invalidateQueries({ queryKey: ['tile-image-cache'] });
     console.timeEnd('fetch' + file.fileId);
 }
 
