@@ -494,14 +494,15 @@ export const uploadFiles = async (files: FileList) => {
             id: loadingToastId
         });
 
+        const formData = new FormData();
+        formData.append('file', file);
+
         const res = await fetchAuthenticatedRoute(`/import/s3/${tenantId}/${file.name}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': file.type
             },
-            // @ts-ignore
-            duplex: 'half',
-            body: file.stream(),
+            body: formData
         });
 
         if (!res.ok) {
