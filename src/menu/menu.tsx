@@ -71,15 +71,15 @@ const Menu = () => {
                 {options
                     .filter(option => !option.debug || showDebugOptions)
                     .map(option => (
-                    <div
-                        key={option.name}
-                        className='flex first:rounded-t-lg last:rounded-b-lg bg-slate-100 p-2 border-b border-slate-200 last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300'
-                        onClick={option.onClick}
-                    >
-                        <option.icon className='mr-2' />
-                        {option.name}
-                    </div>
-                ))}
+                        <div
+                            key={option.name}
+                            className='flex first:rounded-t-lg last:rounded-b-lg bg-slate-100 p-2 border-b border-slate-200 last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300'
+                            onClick={option.onClick}
+                        >
+                            <option.icon className='mr-2' />
+                            {option.name}
+                        </div>
+                    ))}
             </div>
             <GalleryStats />
         </div>
