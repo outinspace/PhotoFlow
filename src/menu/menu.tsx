@@ -6,6 +6,7 @@ import { fetchAuthenticatedRoute, useGallery } from '../queries';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { queryClient } from '../app';
+import UploadButton from './upload.button';
 
 const options = [
     {
@@ -62,7 +63,10 @@ const Menu = () => {
 
     return (
         <div className='p-5'>
-            <PageHeader name='Menu' />
+            <div className='flex justify-between'>
+                <PageHeader name='Menu' />
+                <UploadButton />
+            </div>
             <div>
                 {options
                     .filter(option => !option.debug || showDebugOptions)
