@@ -502,7 +502,7 @@ export const uploadFiles = async (files: FileList) => {
             headers: {
                 'Content-Type': file.type
             },
-            body: formData
+            body: formData.get('file')
         });
 
         if (!res.ok) {
