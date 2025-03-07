@@ -18,9 +18,10 @@ interface Props {
     onDeleteCompletion?: Function;
     onActionCompleted?: Function;
     position: 'top' | 'bottom';
+    readonly: boolean;
 }
 
-export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position }: Props) => {
+export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
@@ -91,7 +92,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
-    const sharingSupported = !!navigator.share;
+    const sharingSupported = !!navigator.share && !!navigator.canShare;
 
     const options = [
         {
@@ -110,35 +111,35 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         },
         {
             title: `${sharingSupported ? 'Share' : 'Open'} Public Link`,
-            visible: items.length === 1,
+            visible: items.length === 1 && !readonly,
             icon: Link,
             className: '',
             onClick: () => sharePublicLink()
         },
         {
             title: 'Create New Album',
-            visible: !itemsAreDeleted,
+            visible: !itemsAreDeleted && !readonly,
             icon: Book,
             className: '',
             onClick: () => setShowCreateAlbumModal(true)
         },
         {
             title: 'Add To Album',
-            visible: !itemsAreDeleted,
+            visible: !itemsAreDeleted && !readonly,
             icon: Plus,
             className: '',
             onClick: () => setShowAddToAlbumModal(true)
         },
         {
             title: 'Remove From Album',
-            visible: albumId && !itemsAreDeleted,
+            visible: albumId && !itemsAreDeleted && !readonly,
             icon: Minus,
             className: '',
             onClick: () => removeItemsFromAlbum()
         },
         {
             title: 'Reprocess',
-            visible: items.length === 1,
+            visible: items.length === 1 && !readonly,
             icon: Refresh,
             className: '',
             onClick: () => {
@@ -148,14 +149,14 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         },
         {
             title: 'Delete',
-            visible: !itemsAreDeleted,
+            visible: !itemsAreDeleted && !readonly,
             icon: Trash,
             className: 'text-red-500',
             onClick: () => setShowDeleteModal(true)
         },
         {
             title: 'Restore',
-            visible: itemsAreDeleted,
+            visible: itemsAreDeleted && !readonly,
             icon: Reply,
             className: 'text-sky-500',
             onClick: () => restoreItems()

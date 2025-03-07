@@ -54,7 +54,11 @@ export const shareFiles = async (items: Item[]) => {
         success: 'Download Complete'
     });
 
-    await navigator.share({
-        files
-    });
+    const shareData = { files };
+
+    if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+    } else {
+        toast.error('Failed to share files.');
+    }
 }

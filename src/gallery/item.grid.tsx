@@ -134,7 +134,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         <div className='flex flex-auto flex-col overflow-hidden'>
             <div className='flex flex-auto overflow-hidden relative'>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
-                    {!readonly && !selectModeEnabled && (
+                    {!selectModeEnabled && (
                         <div
                             className={floatingButtonClasses}
                             onClick={() => setSelectModeEnabled(true)}
@@ -145,7 +145,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             />
                         </div>
                     )}
-                    {!readonly && selectModeEnabled && selectedItems.length > 0 && (
+                    {selectModeEnabled && selectedItems.length > 0 && (
                         <>
                             <div
                                 className={floatingButtonClasses}
@@ -163,6 +163,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                 onDismiss={() => setShowActionMenu(false)}
                                 onActionCompleted={() => closeSelectionMode()}
                                 position='top'
+                                readonly={readonly}
                             />
                         </>
                     )}
