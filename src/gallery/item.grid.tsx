@@ -163,7 +163,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                 onDismiss={() => setShowActionMenu(false)}
                                 onActionCompleted={() => closeSelectionMode()}
                                 position='top'
-                                readonly={readonly}
+                                readonly={!!readonly}
                             />
                         </>
                     )}
