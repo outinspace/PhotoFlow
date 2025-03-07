@@ -97,7 +97,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
     const options = [
         {
             title: `Download ${items.length === 1 ? 'File' : 'Files'}`,
-            visible: !sharingSupported,
+            visible: true,
             icon: Download,
             className: '',
             onClick: () => downloadFiles(items)
