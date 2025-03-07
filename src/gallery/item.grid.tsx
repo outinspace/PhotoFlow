@@ -10,6 +10,7 @@ import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
 import { Ellipsis } from '../common/ellipsis';
+import { formatBytes } from '../common/format.helpers';
 
 interface Props {
     items: Item[];
@@ -111,6 +112,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
+
+    const selectedBytes = useMemo(() => {
+        return selectedItems.reduce((sum, item) => sum + item.totalBytes, 0);
+    }, [selectedItems]);
 
     const handleItemClick = (item: Item, isDoubleClick: boolean) => {
         if (selectModeEnabled) {
@@ -245,7 +250,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
                         <div className='font-bold text-2xl'>{formattedRange}</div>
                         {selectModeEnabled && (
-                            <div className='font-bold text-xl'>{selectedItems.length} Items Selected</div>
+                            <div className='font-bold text-l'>
+                                {selectedItems.length} Items Selected • {formatBytes(selectedBytes)}
+                            </div>
                         )}
                     </div>
                 </ScrollContainer>
