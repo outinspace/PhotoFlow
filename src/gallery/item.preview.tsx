@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Star, StarSolid, Xmark } from 'iconoir-react';
@@ -32,27 +32,26 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const item: Item | undefined = items[itemIndex];
 
     const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
+    const currentGestureDirection = useRef<'vertical' | 'horizontal'>();
 
     const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
         event.stopPropagation();
 
         let [omx, omy] = movement;
 
-        // const axis = Math.abs(omx) > Math.abs(omy) ? 'x' : 'y';
-        // if (axis === 'x') {
-        //     omy = 0;
-        // } else {
-        //     omx = 0;
-        // }
+        if (!currentGestureDirection.current) {
+            if (Math.abs(omy) > 10) {
+                currentGestureDirection.current = 'vertical';
+            } else if (Math.abs(omx) > 10) {
+                currentGestureDirection.current = 'horizontal';
+            }
+        }
 
-        // if (Math.abs(omx) > 100) {
-        //     omy = 0;
-        // } else if (Math.abs(omy) > 100) {
-        //     omx = 0;
-        // }
+        if (currentGestureDirection.current === 'vertical') {
+            omx = 0;
+        }
 
-        // Don't start dismiss until threshold
-        if (Math.abs(omy) < 100) {
+        if (currentGestureDirection.current === 'horizontal') {
             omy = 0;
         }
 
@@ -118,6 +117,9 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 config: { tension: 300, clamp: true }
             });
         }
+
+        // Reset current gesture direction
+        currentGestureDirection.current = undefined;
     }, {
         filterTaps: true
     });
