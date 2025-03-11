@@ -1,15 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { act, useMemo, useState } from 'react';
 import { useAlbumsWithItems, useShareAlbum } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { EditPencil, Link, Trash } from 'iconoir-react';
+import { EditPencil, Link, ShareIos, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
 import { compactGUID } from '../common/format.helpers';
 import { Ellipsis } from '../common/ellipsis';
 import { router } from '../routes';
+import toast from 'react-hot-toast';
 
 interface SearchParams {
     albumId?: number;
@@ -38,7 +39,7 @@ export const AlbumLayout = () => {
         return;
     }
 
-    const sharePublicLink = async () => {
+    const getPublicLink = async () => {
         const tenantId = localStorage.getItem('tenantId');
         if (!tenantId) {
             return;
@@ -56,33 +57,55 @@ export const AlbumLayout = () => {
 
         const url = window.location.origin + link.href;
 
+        return url;
+    }
+
+    const sharePublicLink = async () => {
+        const url = await getPublicLink();
+
         if (!!navigator.share) {
             navigator.share({ url });
         } else {
-            window.open(url, '_blank');
+            toast.error('Your Web Browser does not support sharing.');
         }
+    }
+
+    const openPublicLink = async () => {
+        const url = await getPublicLink();
+        window.open(url, '_blank');
     }
 
     const sharingSupported = !!navigator.share;
 
-    const actionOptions = [
+    let actionOptions = [
         {
-            title: `${sharingSupported ? 'Share' : 'Open'} Public Link`,
-            onClick: () => sharePublicLink(),
+            title: 'Open Public Link',
+            onClick: () => openPublicLink(),
+            visible: true,
             icon: Link
+        },
+        {
+            title: 'Share Public Link',
+            onClick: () => sharePublicLink(),
+            visible: sharingSupported,
+            icon: ShareIos
         },
         {
             title: 'Edit',
             onClick: () => setShowEditModal(true),
+            visible: true,
             icon: EditPencil
         },
         {
             title: 'Delete',
             onClick: () => setShowDeleteModal(true),
             icon: Trash,
+            visible: true,
             className: 'text-red-500'
         },
     ];
+
+    actionOptions = actionOptions.filter(_ => _.visible);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
