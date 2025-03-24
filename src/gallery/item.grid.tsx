@@ -11,6 +11,9 @@ import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
 import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
+import { useDeleteItems } from '../queries';
+import { useKeyBindings } from '../hooks/use.key.bindings';
+import { Modal } from '../common/modal';
 
 interface Props {
     items: Item[];
@@ -21,6 +24,7 @@ interface Props {
 const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
     const items = filteredItems;
@@ -116,6 +120,19 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const selectedBytes = useMemo(() => {
         return selectedItems.reduce((sum, item) => sum + item.totalBytes, 0);
     }, [selectedItems]);
+
+    const deleteItems = useDeleteItems();
+
+    const handleDelete = async () => {
+        const itemIds = selectedItems.map(i => i.itemId);
+        await deleteItems.mutateAsync(itemIds);
+        setShowDeleteModal(false);
+        closeSelectionMode();
+    };
+
+    useKeyBindings([
+        { cmd: ['d'], callback: () => selectedItems.length > 0 && setShowDeleteModal(true) }
+    ], [selectedItems]);
 
     const handleItemClick = (item: Item, isDoubleClick: boolean) => {
         if (selectModeEnabled) {
@@ -269,6 +286,23 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     onClose={() => setPreviewItemIndex(null)}
                 />
             )}
+            <Modal
+                isOpen={showDeleteModal}
+                title='Mark For Deletion?'
+                description='These items will be accessible in Recently Deleted Items for 30 days.'
+                actions={[
+                    {
+                        text: 'Cancel',
+                        color: 'neutral',
+                        onClick: () => setShowDeleteModal(false)
+                    },
+                    {
+                        text: 'Delete',
+                        color: 'destructive',
+                        onClick: handleDelete
+                    }
+                ]}
+            />
         </div>
     );
 }
