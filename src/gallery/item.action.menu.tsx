@@ -2,13 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
-import { useDeleteItems, useRemoveItemsFromAlbum, useReprocessItem, useRestoreItems } from '../queries';
+import { useRemoveItemsFromAlbum, useReprocessItem, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { CreateAlbumModal } from './create.album.modal';
 import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
 import { router } from '../routes';
+import { DeleteItemsModal } from './delete.items.modal';
 
 interface Props {
     items: Item[];
@@ -26,7 +27,6 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
 
-    const deleteItems = useDeleteItems();
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
     const reprocessItemMutation = useReprocessItem();
@@ -59,14 +59,6 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         } else {
             window.open(url, '_blank');
         }
-    }
-
-    const handleDelete = async () => {
-        const itemIds = items.map(i => i.itemId);
-        await deleteItems.mutateAsync(itemIds);
-
-        onDeleteCompletion?.();
-        onActionCompleted?.();
     }
 
     const removeItemsFromAlbum = async () => {
@@ -172,25 +164,18 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
                 position={position}
                 options={options}
             />
-            <Modal
+            <DeleteItemsModal
                 isOpen={showDeleteModal}
-                title='Mark For Deletion?'
-                description='This item will be accessible in Recently Deleted Items for 30 days.'
-                actions={[
-                    {
-                        text: 'Cancel',
-                        color: 'neutral',
-                        onClick: () => {
-                            setShowDeleteModal(false);
-                            onDismiss();
-                        }
-                    },
-                    {
-                        text: 'Delete',
-                        color: 'destructive',
-                        onClick: handleDelete
-                    }
-                ]}
+                onCancel={() => {
+                    setShowDeleteModal(false);
+                    onDismiss();
+                }}
+                onDeleteComplete={() => {
+                    setShowDeleteModal(false);
+                    onDeleteCompletion?.();
+                    onActionCompleted?.();
+                }}
+                items={items}
             />
             <AddToAlbumModal
                 isOpen={showAddToAlbumModal}

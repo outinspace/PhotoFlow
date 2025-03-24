@@ -13,7 +13,7 @@ import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
 import { useDeleteItems } from '../queries';
 import { useKeyBindings } from '../hooks/use.key.bindings';
-import { Modal } from '../common/modal';
+import { DeleteItemsModal } from './delete.items.modal';
 
 interface Props {
     items: Item[];
@@ -120,15 +120,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const selectedBytes = useMemo(() => {
         return selectedItems.reduce((sum, item) => sum + item.totalBytes, 0);
     }, [selectedItems]);
-
-    const deleteItems = useDeleteItems();
-
-    const handleDelete = async () => {
-        const itemIds = selectedItems.map(i => i.itemId);
-        await deleteItems.mutateAsync(itemIds);
-        setShowDeleteModal(false);
-        closeSelectionMode();
-    };
 
     useKeyBindings([
         { cmd: ['d'], callback: () => selectedItems.length > 0 && setShowDeleteModal(true) },
@@ -293,22 +284,14 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     onClose={() => setPreviewItemIndex(null)}
                 />
             )}
-            <Modal
+            <DeleteItemsModal
                 isOpen={showDeleteModal}
-                title='Mark For Deletion?'
-                description='These items will be accessible in Recently Deleted Items for 30 days.'
-                actions={[
-                    {
-                        text: 'Cancel',
-                        color: 'neutral',
-                        onClick: () => setShowDeleteModal(false)
-                    },
-                    {
-                        text: 'Delete',
-                        color: 'destructive',
-                        onClick: handleDelete
-                    }
-                ]}
+                onCancel={() => setShowDeleteModal(false)}
+                onDeleteComplete={() => {
+                    setShowDeleteModal(false);
+                    closeSelectionMode();
+                }}
+                items={selectedItems}
             />
         </div>
     );
