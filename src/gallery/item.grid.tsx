@@ -131,8 +131,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     };
 
     useKeyBindings([
-        { cmd: ['d'], callback: () => selectedItems.length > 0 && setShowDeleteModal(true) }
-    ], [selectedItems]);
+        { cmd: ['d'], callback: () => selectedItems.length > 0 && setShowDeleteModal(true) },
+        { cmd: ['Escape'], callback: () => {
+            if (showDeleteModal) {
+                setShowDeleteModal(false);
+            } else if (selectModeEnabled) {
+                closeSelectionMode();
+            }
+        }}
+    ], [selectedItems, showDeleteModal, selectModeEnabled]);
 
     const handleItemClick = (item: Item, isDoubleClick: boolean) => {
         if (selectModeEnabled) {
