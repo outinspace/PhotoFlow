@@ -25,6 +25,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const clickTimerRef = useRef<number | null>(null);
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
     const items = filteredItems;
@@ -133,11 +134,22 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     ], [selectedItems, showDeleteModal, selectModeEnabled]);
 
     const handleItemClick = (item: Item, isDoubleClick: boolean) => {
-        if (selectModeEnabled) {
+        if (clickTimerRef.current) {
+            clearTimeout(clickTimerRef.current);
+            clickTimerRef.current = null;
+            // Handle double click - start selection mode
+            setSelectModeEnabled(true);
+            toggleItemSelection(item, false);
+        } else if (selectModeEnabled) {
+            // Already in selection mode, handle selection immediately
             toggleItemSelection(item, isDoubleClick);
         } else {
-            const itemIndex = items.findIndex(i => i === item);
-            setPreviewItemIndex(itemIndex);
+            // Set timer for single click to handle preview
+            clickTimerRef.current = setTimeout(() => {
+                clickTimerRef.current = null;
+                const itemIndex = items.findIndex(i => i === item);
+                setPreviewItemIndex(itemIndex);
+            }, 250); // 250ms delay to detect double click
         }
     }
 
@@ -149,6 +161,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
     }
 
     const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-3 drop-shadow ml-2';
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (clickTimerRef.current) {
+                clearTimeout(clickTimerRef.current);
+            }
+        };
+    }, []);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
