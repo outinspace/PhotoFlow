@@ -189,6 +189,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                     {selectModeEnabled && selectedItems.length > 0 && (
                         <>
                             <div
+                                data-testid="selection-mode-indicator"
                                 className={floatingButtonClasses}
                                 onClick={() => setShowActionMenu(!showActionMenu)}
                             >
@@ -243,10 +244,11 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                                     }}
                                 >
                                     <ItemTile
+                                        data-testid={`item-${item.itemId}`}
                                         item={item}
                                         idealTileSize={zoomLevel.idealTileSize}
                                         onClick={(isDoubleClick) => handleItemClick(item, isDoubleClick)}
-                                        isSelected={!!selectedItemsById[item.itemId]}
+                                        isSelected={item.itemId in selectedItemsById}
                                     />
                                 </div>
                             );
@@ -296,6 +298,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
             {filterBarVisible && <FilterBar {...filterProps} items={allItems} />}
             {previewItemIndex !== null && (
                 <ItemPreview
+                    data-testid="item-preview"
                     readonly={readonly}
                     items={items}
                     itemIndex={previewItemIndex}

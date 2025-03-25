@@ -169,7 +169,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container style={{ opacity: swipeSpring.opacity }}>
+        <Container role="dialog" data-testid="item-preview" style={{ opacity: swipeSpring.opacity }}>
             <SwipeArea {...dragBindings()}>
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length) // Only render relevant images

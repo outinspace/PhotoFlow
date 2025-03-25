@@ -9,6 +9,7 @@ interface Props {
     onClick: (isDoubleClick: boolean) => any;
     idealTileSize: number;
     isSelected: boolean;
+    'data-testid'?: string;
 }
 
 const placeholderColors: string[] = [];
@@ -18,7 +19,7 @@ for (let i = 0; i < 20; i++) {
 }
 
 // TODO: Maybe try fetching the image after timeout in a single tile hook
-export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
+export const ItemTile = ({ item, onClick, idealTileSize, isSelected, 'data-testid': dataTestId }: Props) => {
     // const cachedTileImage = useTileImageBuffer(item.primaryFile);
 
     // const tileImageObjectUrl = useMemo(() => {
@@ -35,6 +36,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
 
     return (
         <div
+            data-testid={dataTestId}
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
             style={{
                 backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
@@ -64,7 +66,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 </div>
             )}
             {isSelected && (
-                <div className='absolute top-0 bottom-0 left-0 right-0 bg-sky-500/50' />
+                <div data-testid="selection-overlay" className='absolute top-0 bottom-0 left-0 right-0 bg-sky-500/50' />
             )}
         </div>
     );

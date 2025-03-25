@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "start": "rm -rf .parcel-cache && parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "build": "parcel build src/index.html",
+    "test": "vitest"
   },
   "author": "",
   "license": "ISC",
@@ -36,12 +37,16 @@
     "@parcel/packager-raw-url": "^2.13.3",
     "@parcel/transformer-webmanifest": "^2.13.3",
     "@tailwindcss/postcss": "^4.0.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
     "@types/leaflet": "^1.9.14",
     "@types/leaflet.markercluster": "^1.5.5",
     "@types/react": "^18.3.12",
+    "jsdom": "^26.0.0",
     "parcel": "^2.13.3",
     "postcss": "^8.5.1",
     "process": "^0.11.10",
-    "tailwindcss": "^4.0.2"
+    "tailwindcss": "^4.0.2",
+    "vitest": "^3.0.9"
   }
 }
