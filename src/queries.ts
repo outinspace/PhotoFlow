@@ -497,7 +497,13 @@ export const uploadFiles = async (files: FileList) => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await fetchAuthenticatedRoute(`/import/s3/${tenantId}/${file.name}`, {
+        // iOS uses the same filename for multiple images when selecting from camera roll.
+        // Adding a timestamp ensures unique filenames and prevents conflicts with existing files.
+        const timestamp = new Date().getTime();
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
+        const fileNameWithTimestamp = `${file.name.replace(/\.[^/.]+$/, '')}_${timestamp}${fileExtension}`;
+
+        const res = await fetchAuthenticatedRoute(`/import/s3/${tenantId}/${fileNameWithTimestamp}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': file.type
