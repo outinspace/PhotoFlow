@@ -9,7 +9,12 @@ const Albums = () => {
     const albums = useAlbumsWithItems() ?? [];
 
     const sortedAlbums = useMemo(() => {
-        return albums.sort((a, b) => a.name.localeCompare(b.name));
+        return albums.sort((a, b) => {
+            // Sort by updatedTimeUtc first, falling back to createdTimeUtc if not available
+            const aTime = a.updatedTimeUtc || a.createdTimeUtc;
+            const bTime = b.updatedTimeUtc || b.createdTimeUtc;
+            return bTime.localeCompare(aTime); // Most recent first
+        });
     }, [albums]);
 
     const openAlbum = (albumId: number) => {
