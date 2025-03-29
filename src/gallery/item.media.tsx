@@ -32,7 +32,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
 
     return (
         <div
-            className='fixed top-0 bottom-0 left-0 right-0'
+            className={`fixed top-0 bottom-0 left-0 right-0 relative ${isLivePhoto && showLivePhoto && 'animate-[pulse_0.5s_ease-in-out_1]'}`}
             onDoubleClick={() => setShowLivePhoto(true)}
         >
             {imageFile && <>
