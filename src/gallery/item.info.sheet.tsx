@@ -1,6 +1,6 @@
 import React from 'react';
 import { Item } from '../types';
-import { Download, MediaImage, MediaVideo, Camera, MapPin, Clock, Calendar, Ruler, Star, StarSolid, Book } from 'iconoir-react';
+import { Download, MediaImage, MediaVideo, Camera, MapPin, Calendar, Cloud } from 'iconoir-react';
 import { Icon, LatLngExpression } from 'leaflet';
 import { formatBytes } from '../common/format.helpers';
 import 'leaflet/dist/leaflet.css';
@@ -47,10 +47,13 @@ const BasicInfo = ({ item }: { item: Item }) => {
 const CameraMetadata = ({ item }: { item: Item }) => {
     if (!item.cameraMake && !item.cameraModel) return null;
 
+console.log(item)
+
     const dataPoints = [
         item.widthPixels && item.heightPixels ? `${item.widthPixels} × ${item.heightPixels}` : null,
         item.megapixels ? `${item.megapixels.toFixed(1)} MP` : null,
-        item.exposureTime ? `f/${item.fNumber} ${item.exposureTime}s` : null,
+        item.fNumber ? `f/${item.fNumber}` : null,
+        // item.exposureTime ? `${item.exposureTime}s` : null, BUG: API is parsing "/"
         item.iso ? `ISO ${item.iso}` : null,
         item.videoLength ? `${item.videoLength}s` : null
     ].filter(Boolean);
@@ -122,7 +125,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
     return (
         <div>
             <div className='flex items-center gap-2 mb-2'>
-                <Book className='size-5' />
+                <Cloud className='size-5' />
                 <span className='font-medium'>Files</span>
             </div>
             <div className='space-y-2'>
