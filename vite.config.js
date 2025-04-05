@@ -18,6 +18,7 @@ export default defineConfig({
     }
   },
   server: {
-    allowedHosts: ['localhost.outin.space']
+    allowedHosts: ['localhost.outin.space'],
+    host: '0.0.0.0'
   }
 }); 
