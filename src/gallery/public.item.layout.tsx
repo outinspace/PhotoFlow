@@ -1,6 +1,6 @@
 import React from 'react';
 import { publicItemRoute } from '../routes';
-import ItemPreview from '../gallery/item.preview';
+import ItemPreview from './item.preview';
 import { expandGUID } from '../common/format.helpers';
 import { usePublicItem } from '../queries';
 

@@ -11,8 +11,8 @@ import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
-import { PublicItemLayout } from './public/public.item.layout';
-import { PublicAlbumLayout } from './public/public.album.layout';
+import { PublicItemLayout } from './gallery/public.item.layout';
+import { PublicAlbumLayout } from './albums/public.album.layout';
 
 const BottomBarLayout = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-auto flex-col">
