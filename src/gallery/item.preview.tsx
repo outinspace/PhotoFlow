@@ -9,7 +9,7 @@ import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
 import { animated, useSpring } from '@react-spring/web';
-import { useDrag } from '@use-gesture/react';
+import { useDrag, useGesture, usePinch } from '@use-gesture/react';
 import ItemMedia from './item.media';
 import { useFavoriteItem, useUnfavoriteItem } from '../queries';
 
@@ -31,11 +31,73 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const item: Item | undefined = items[itemIndex];
 
-    const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
+    const [spring, springApi] = useSpring(() => ({
+        x: 0,
+        y: 0,
+        opacity: 1,
+        scale: 1
+    }));
+
     const currentGestureDirection = useRef<'vertical' | 'horizontal'>();
+    const scaleRef = useRef(1);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useGesture({
+        onDrag: async ({ pinching, cancel, movement, event, touches }) => {   
+            // event.stopPropagation();
+
+            if (pinching) {
+                cancel();
+            }
+
+            
+        },
+        onPinch: async ({ first, origin: [ox, oy], movement: [ms], offset: [s, a], memo }) => {
+            // event.stopPropagation();
+
+            console.log({ms})
+            if (first) {
+                const { width, height, x, y } = ref.current!.getBoundingClientRect()
+                const tx = ox - (x + width / 2)
+                const ty = oy - (y + height / 2)
+                memo = [spring.x.get(), spring.y.get(), tx, ty]
+            }
+      
+            const x = memo[0] - (ms - 1) * memo[2]
+            const y = memo[1] - (ms - 1) * memo[3]
+            springApi.start({
+                scale: s,
+                x,
+                y
+            });
+            return memo;
+        }
+    },
+    {
+        target: ref,
+        drag: { from: () => [spring.x.get(), spring.y.get()] },
+        pinch: { scaleBounds: { min: 1, max: 2 }, rubberband: true },
+    });
 
     const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
         event.stopPropagation();
+
+        // // Handle pinch zoom
+        // if (touches === 2) {
+        //     const distance = Math.sqrt(movement[0] ** 2 + movement[1] ** 2);
+        //     const newScale = (1 + distance / window.innerWidth);
+        //     scaleRef.current = newScale;
+        //     swipeApi.start({
+        //         scale: newScale,
+        //         immediate: true
+        //     });
+        //     return;
+        // }
+
+        // Don't allow swiping if the scale is less than 1
+        if (scaleRef.current !== 1) {
+            return;
+        }
 
         let [omx, omy] = movement;
 
@@ -55,25 +117,22 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             omy = 0;
         }
 
-        // Ignore pinch zoom
         if (touches > 1) {
             return;
         }
 
-        // Smoothly transition between swipe and dismiss
         const dismissPercent = omy / (window.innerHeight / 2);
         const swipePercent = omx / (window.innerWidth / 2);
         const mx = omx * (1 - dismissPercent);
         const my = omy * (1 - swipePercent);
 
-        // Track user drag
         if (down) {
-            swipeApi.start({
+            springApi.start({
                 x: mx,
                 y: my,
                 opacity: 1 - Math.abs(my) / window.innerHeight,
-                scale: 1 - Math.abs(my) / window.innerHeight,
-                immediate: true
+                scale: scaleRef.current,
+                immediate: false
             });
             return;
         }
@@ -82,23 +141,27 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             // Snap to next/previous if swiped far enough
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
-                await Promise.all(swipeApi.start({
+                await Promise.all(springApi.start({
                     x: window.innerWidth,
+                    scale: 1,
                     config: { tension: 300, clamp: true }
                 }));
                 onMovePrevious?.();
             } else {
-                await Promise.all(swipeApi.start({
+                await Promise.all(springApi.start({
                     x: -window.innerWidth,
+                    scale: 1,
                     config: { tension: 300, clamp: true }
                 }));
                 onMoveNext?.();
             }
             // Reset position
-            swipeApi.start({ x: 0, immediate: true });
-        } if (Math.abs(my) > window.innerHeight / 4) {
-            // Animate closed
-            await Promise.all(swipeApi.start({
+            springApi.start({ x: 0, immediate: true });
+
+            // Reset scale
+            scaleRef.current = 1;
+        } else if (Math.abs(my) > window.innerHeight / 4) {
+            await Promise.all(springApi.start({
                 x: 0,
                 y: 0,
                 opacity: 0,
@@ -109,11 +172,11 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             onClose?.();
         } else {
             // Reset if swipe is canceled
-            swipeApi.start({
+            springApi.start({
                 x: 0,
                 y: 0,
                 opacity: 1,
-                scale: 1,
+                scale: scaleRef.current,
                 config: { tension: 300, clamp: true }
             });
         }
@@ -129,25 +192,39 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     if (onMoveNext) {
         animateMoveNext = async () => {
-            await Promise.all(swipeApi.start({
+            await Promise.all(springApi.start({
                 x: -window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
             onMoveNext();
-            swipeApi.start({ x: 0, immediate: true }); // Reset position
+            springApi.start({ x: 0, immediate: true }); // Reset position
         };
     }
 
     if (onMovePrevious) {
         animateMovePrev = async () => {
-            await Promise.all(swipeApi.start({
+            await Promise.all(springApi.start({
                 x: window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
             onMovePrevious();
-            swipeApi.start({ x: 0, immediate: true }); // Reset position
+            springApi.start({ x: 0, immediate: true }); // Reset position
         };
     }
+
+    // const pinchBindings = usePinch(async ({ movement, event, touches }) => {
+    //     event.stopPropagation();
+
+    //     if (touches === 2) {
+    //         const distance = Math.sqrt(movement[0] ** 2 + movement[1] ** 2);
+    //         const newScale = (1 + distance / window.innerWidth);
+    //         scaleRef.current = newScale;
+    //         springApi.start({
+    //             scale: newScale,
+    //             immediate: true
+    //         });
+    //     }
+    // });
 
     useKeyBindings([
         { cmd: ['ArrowLeft'], callback: () => animateMovePrev?.() },
@@ -169,8 +246,8 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container style={{ opacity: swipeSpring.opacity }}>
-            <SwipeArea {...dragBindings()}>
+        <Container style={{ opacity: spring.opacity }}>
+            <SwipeArea ref={ref}>
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length) // Only render relevant images
                     .map((i) => (
@@ -178,11 +255,11 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                             key={i}
                             className='absolute top-0 bottom-0 left-0 right-0'
                             style={{
-                                x: swipeSpring.x.to((val) => {
+                                x: spring.x.to((val) => {
                                     return (i - itemIndex) * window.innerWidth + val;
                                 }),
-                                y: swipeSpring.y,
-                                scale: swipeSpring.scale
+                                y: spring.y,
+                                scale: i === itemIndex ? spring.scale : 1
                             }}
                         >
                             <ItemMedia
@@ -290,7 +367,7 @@ const SwipeArea = styled.div`
     height: 100%;
     top: 0;
     left: 0;
-    touch-action: auto;
+    touch-action: none;
 `;
 
 export default ItemPreview;
