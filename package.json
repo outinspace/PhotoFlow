@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "rm -rf .parcel-cache && parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "start": "vite",
+    "build": "vite build"
   },
   "author": "",
   "license": "ISC",
@@ -33,15 +33,14 @@
     "react-use-measure": "^2.1.1"
   },
   "devDependencies": {
-    "@parcel/packager-raw-url": "^2.13.3",
-    "@parcel/transformer-webmanifest": "^2.13.3",
     "@tailwindcss/postcss": "^4.0.2",
     "@types/leaflet": "^1.9.14",
     "@types/leaflet.markercluster": "^1.5.5",
     "@types/react": "^18.3.12",
-    "parcel": "^2.13.3",
     "postcss": "^8.5.1",
     "process": "^0.11.10",
-    "tailwindcss": "^4.0.2"
+    "tailwindcss": "^4.0.2",
+    "vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
   }
 }
