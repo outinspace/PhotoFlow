@@ -171,9 +171,18 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
         };
     }, []);
 
+    const handleReturnToTopClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        const threshold = 50; // pixels from the top
+        const clickPosition = event.clientY - scrollContainerRef.current!.getBoundingClientRect().top;
+        if (clickPosition <= threshold) {
+            scrollContainerRef.current!.scrollTo({ top: 0, behavior: 'smooth' });
+            event.stopPropagation();
+        }
+    };
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <div className='flex flex-auto overflow-hidden relative'>
+            <div className='flex flex-auto overflow-hidden relative' onClickCapture={handleReturnToTopClick}>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
                     {!selectModeEnabled && (
                         <div
