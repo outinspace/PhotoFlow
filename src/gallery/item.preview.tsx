@@ -258,6 +258,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onDismiss={() => setShowActionMenu(false)}
                     onDeleteCompletion={() => onClose?.()}
                     position='bottom'
+                    readonly={!!readonly}
                 />
             </div>
             <ItemInfoSheet
