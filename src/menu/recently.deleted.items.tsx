@@ -17,7 +17,11 @@ export const RecentlyDeletedItems = () => {
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <TopBar title='Recently Deleted' />
-            <ItemGrid items={items} />
+            <ItemGrid
+                items={items}
+                albumId={null}
+                disableFilteringSorting
+            />
         </div>
     );
 }

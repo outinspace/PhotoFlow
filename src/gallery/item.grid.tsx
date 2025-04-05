@@ -19,16 +19,17 @@ interface Props {
     items: Item[];
     albumId: number | null;
     readonly?: boolean;
+    disableFilteringSorting?: boolean;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const clickTimerRef = useRef<number | null>(null);
 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
-    const items = filteredItems;
+    const items = disableFilteringSorting ? allItems : filteredItems;
 
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
 
@@ -266,7 +267,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                             onZoomOut={zoomOut}
                             onZoomIn={zoomIn}
                         />
-                        {!filterBarVisible && (
+                        {!disableFilteringSorting && !filterBarVisible && (
                             <div
                                 className={floatingButtonClasses}
                                 onClick={() => setFilterBarVisible(true)}
@@ -293,7 +294,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly }: Props) => {
                         )}
                     </div>
                     <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
-                        <div className='font-bold text-2xl'>{formattedRange}</div>
+                        {!disableFilteringSorting && <div className='font-bold text-2xl'>{formattedRange}</div>}
                         {selectModeEnabled && (
                             <div className='font-bold text-l'>
                                 {selectedItems.length} Items Selected • {formatBytes(selectedBytes)}
