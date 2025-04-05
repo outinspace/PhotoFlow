@@ -37,6 +37,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
         event.stopPropagation();
 
+        // Check if the page is zoomed in
+        const zoomLevel = window.innerWidth / document.documentElement.clientWidth;
+        if (zoomLevel !== 1) {
+            return; // Prevent dragging if zoomed in
+        }
+
         let [omx, omy] = movement;
 
         if (!currentGestureDirection.current) {
@@ -290,7 +296,7 @@ const SwipeArea = styled.div`
     height: 100%;
     top: 0;
     left: 0;
-    touch-action: auto;
+    touch-action: manipulation;
 `;
 
 export default ItemPreview;
