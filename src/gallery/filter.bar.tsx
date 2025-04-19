@@ -128,6 +128,7 @@ const monthNames = [
     "December"
 ];
 
+// Clean up this hook ai!
 export const useFilterBar = (items: Item[]) => {
     const [filters, setFilters] = useState<FilterState>(defaultFilterState);
 
