@@ -173,7 +173,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting 
     }, []);
 
     const handleReturnToTopClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        const threshold = 50; // pixels from the top
+        const threshold = 30; // pixels from the top
         const clickPosition = event.clientY - scrollContainerRef.current!.getBoundingClientRect().top;
         if (clickPosition <= threshold) {
             scrollContainerRef.current!.scrollTo({ top: 0, behavior: 'smooth' });
