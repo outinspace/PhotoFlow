@@ -481,6 +481,12 @@ export const useShareAlbum = () => {
     });
 }
 
+const isFileAlreadyImported = async (hash: string) => {
+    const res = await fetchAuthenticatedRoute(`/import/files/${hash}`);
+
+    return res.ok;
+}
+
 // TODO: Lock down upload endpoint
 export const uploadFiles = async (files: FileList) => {
     const tenantId = localStorage.getItem('tenantId') ?? '';
@@ -493,6 +499,18 @@ export const uploadFiles = async (files: FileList) => {
         loadingToastId = toast.loading(`Uploading ${fileNumber++}/${files.length} files`, {
             id: loadingToastId
         });
+
+        const fileBuffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const fileAlreadyImported = await isFileAlreadyImported(hashHex);
+
+        if (fileAlreadyImported) {
+            toast.success(`${file.name} already imported`);
+            continue;
+        }
 
         const formData = new FormData();
         formData.append('file', file);
