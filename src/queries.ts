@@ -509,7 +509,6 @@ export const uploadFiles = async (files: FileList) => {
         const fileAlreadyImported = await isFileAlreadyImported(hashHex);
 
         if (fileAlreadyImported) {
-            toast.success(`${file.name} already imported`);
             continue;
         }
 
