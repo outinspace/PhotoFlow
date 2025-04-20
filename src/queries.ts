@@ -501,15 +501,18 @@ export const uploadFiles = async (files: FileList) => {
             id: loadingToastId
         });
 
-        const fileBuffer = await file.arrayBuffer();
-        const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // Check the file hash before uploading, if the crypto API is available.
+        if (crypto.subtle) {
+            const fileBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-        const fileAlreadyImported = await isFileAlreadyImported(hashHex);
+            const fileAlreadyImported = await isFileAlreadyImported(hashHex);
 
-        if (fileAlreadyImported) {
-            continue;
+            if (fileAlreadyImported) {
+                continue;
+            }
         }
 
         const formData = new FormData();
