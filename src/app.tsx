@@ -9,6 +9,7 @@ import { get, set, del } from "idb-keyval";
 import { PersistedClient, Persister } from '@tanstack/query-persist-client-core';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Toaster } from 'react-hot-toast';
+import { GlobalLoadingBar } from './components/LoadingBar';
 
 export function createIDBPersister(idbValidKey: IDBValidKey) {
     return {
@@ -56,6 +57,7 @@ const App = () => {
                     buster: cacheVersion
                 }}
             >
+                <GlobalLoadingBar />
                 <FlexContainer>
                     <RouterProvider router={router} />
                 </FlexContainer>
