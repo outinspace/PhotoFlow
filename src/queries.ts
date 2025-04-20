@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import * as idb from 'idb-keyval';
 import { produce } from 'immer';
+import { addMinutes } from "date-fns";
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -40,32 +41,66 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
     return res;
 }
 
+
+interface UseGalleryData {
+    items: Item[];
+    deletedItems: Item[];
+    checkpointTimeUtc: string;
+}
+
 export const useGallery = () => useQuery({
     queryKey: ['gallery'],
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0,
     queryFn: async () => {
-        const res = await fetchAuthenticatedRoute('/items/gallery');
+        // Overlap checkpoints by 5 minutes to avoid clock skew between browser and server
+        const newCheckpointUtc = addMinutes(new Date(), -5).toISOString();
+
+        const cachedData = queryClient.getQueryData<UseGalleryData>(['gallery']);
+        const cachedCheckpointUtc = cachedData?.checkpointTimeUtc;
+
+        let queryParams = '';
+        if (cachedCheckpointUtc) {
+            queryParams = `?updatedSinceUtc=${cachedCheckpointUtc}`;
+        }
+
+        const res = await fetchAuthenticatedRoute('/items/gallery' + queryParams);
 
         const body = await res.json();
-        const gallery = body as GetGalleryResponse;
+        const updatedGallery = body as GetGalleryResponse;
+
+        // Merge cached and updated items
+        const cachedItems = cachedData?.items ?? [];
+        const mergedItemsMap: Record<number, Item> = {};
+
+        for (const item of cachedItems) {
+            mergedItemsMap[item.itemId] = item;
+        }
+        for (const item of updatedGallery.items) {
+            mergedItemsMap[item.itemId] = item;
+        }
+
+        const mergedItems = Object.values(mergedItemsMap);
 
         // Computed properties
-        for (const item of gallery.items) {
+        for (const item of mergedItems) {
             computeItemProperties(
                 item,
-                gallery.originalUrlPrefix,
-                gallery.tileImageUrlPrefix,
-                gallery.previewUrlPrefix
+                updatedGallery.originalUrlPrefix,
+                updatedGallery.tileImageUrlPrefix,
+                updatedGallery.previewUrlPrefix
             );
         }
 
         // Separate deleted items
-        const deletedItems = gallery.items.filter(item => item.deletedTimeUtc !== null);
-        gallery.deletedItems = deletedItems;
+        const deletedItems = mergedItems.filter(item => item.deletedTimeUtc !== null);
 
-        gallery.items = gallery.items.filter(item => item.deletedTimeUtc === null);
+        const items = mergedItems.filter(item => item.deletedTimeUtc === null);
 
-        return gallery;
+        return {
+            items,
+            deletedItems,
+            checkpointTimeUtc: newCheckpointUtc
+        };
     }
 });
 
@@ -254,13 +289,8 @@ export const useFavoriteItem = () => {
                 method: 'POST'
             });
         },
-        onSuccess: (_, itemId) => {
-            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
-                return produce(gallery, draft => {
-                    const item = draft.items.find(_ => _.itemId === itemId);
-                    item!.isFavorite = true;
-                });
-            });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
         }
     });
 }
@@ -272,13 +302,8 @@ export const useUnfavoriteItem = () => {
                 method: 'POST'
             });
         },
-        onSuccess: (_, itemId) => {
-            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
-                return produce(gallery, draft => {
-                    const item = draft.items.find(_ => _.itemId === itemId);
-                    item!.isFavorite = false;
-                });
-            });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
         }
     });
 }

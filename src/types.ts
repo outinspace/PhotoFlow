@@ -51,9 +51,6 @@ export interface GetGalleryResponse {
     originalUrlPrefix: string;
     tileImageUrlPrefix: string;
     previewUrlPrefix: string;
-
-    // Computed
-    deletedItems: Item[];
 }
 
 export interface GetPublicItemResponse {
