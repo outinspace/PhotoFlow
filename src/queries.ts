@@ -484,7 +484,8 @@ export const useShareAlbum = () => {
 const isFileAlreadyImported = async (hash: string) => {
     const res = await fetchAuthenticatedRoute(`/import/files/${hash}`);
 
-    return res.ok;
+    const body = await res.json();
+    return body.exists;
 }
 
 // TODO: Lock down upload endpoint
