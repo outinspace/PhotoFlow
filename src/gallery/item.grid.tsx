@@ -6,12 +6,11 @@ import { Item } from '../types';
 import ItemPreview from './item.preview';
 import { format } from 'date-fns';
 import { FilterBar, useFilterBar } from './filter.bar';
-import { Filter, Menu, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
+import { Filter, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
 import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
-import { useDeleteItems } from '../queries';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
 
