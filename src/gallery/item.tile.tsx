@@ -47,7 +47,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
         >
             <img
                 onLoad={() => setImageReady(true)}
-                className={'select-none transition-opacity duration-150'}
+                className={'select-none'}
                 style={{
                     position: 'relative',
                     width: '100%',
