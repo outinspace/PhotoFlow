@@ -521,6 +521,10 @@ export const uploadFiles = async (files: FileList) => {
     let loadingToastId: string | undefined = undefined;
     let failureCount = 0;
 
+    loadingToastId = toast.loading(`Checking ${files.length} files`, {
+        id: loadingToastId
+    });
+
     const fileCheckPromises = [...files].map(async file => {
         // Check the file hash before uploading, if the crypto API is available.
         if (crypto.subtle) {
