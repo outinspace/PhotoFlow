@@ -517,15 +517,11 @@ const isFileAlreadyImported = async (hash: string) => {
 export const uploadFiles = async (files: FileList) => {
     const tenantId = localStorage.getItem('tenantId') ?? '';
 
-    let fileNumber = 1;
+    let checkNumber = 1;
     let loadingToastId: string | undefined = undefined;
     let failureCount = 0;
 
     const fileCheckPromises = [...files].map(async file => {
-        loadingToastId = toast.loading(`Checking ${fileNumber++}/${files.length} files`, {
-            id: loadingToastId
-        });
-
         // Check the file hash before uploading, if the crypto API is available.
         if (crypto.subtle) {
             const fileBuffer = await file.arrayBuffer();
@@ -534,6 +530,11 @@ export const uploadFiles = async (files: FileList) => {
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
             const fileAlreadyImported = await isFileAlreadyImported(hashHex);
+
+            loadingToastId = toast.loading(`Checked ${checkNumber++}/${files.length} files`, {
+                id: loadingToastId
+            });
+
 
             if (fileAlreadyImported) {
                 return null;
@@ -546,8 +547,9 @@ export const uploadFiles = async (files: FileList) => {
     const checkFileResults = await Promise.all(fileCheckPromises);
     const newFiles = checkFileResults.filter(f => f !== null) as globalThis.File[];
 
+    let uploadNumber = 1;
     for (const file of newFiles) {
-        loadingToastId = toast.loading(`Uploading ${fileNumber++}/${newFiles.length} new files`, {
+        loadingToastId = toast.loading(`Uploading ${uploadNumber++}/${newFiles.length} new files`, {
             id: loadingToastId
         });
 
