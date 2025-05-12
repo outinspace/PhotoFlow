@@ -521,8 +521,8 @@ export const uploadFiles = async (files: FileList) => {
     let loadingToastId: string | undefined = undefined;
     let failureCount = 0;
 
-    for (const file of files) {
-        loadingToastId = toast.loading(`Uploading ${fileNumber++}/${files.length} files`, {
+    const fileCheckPromises = [...files].map(async file => {
+        loadingToastId = toast.loading(`Checking ${fileNumber++}/${files.length} files`, {
             id: loadingToastId
         });
 
@@ -536,9 +536,20 @@ export const uploadFiles = async (files: FileList) => {
             const fileAlreadyImported = await isFileAlreadyImported(hashHex);
 
             if (fileAlreadyImported) {
-                continue;
+                return null;
             }
+
+            return file;
         }
+    });
+
+    const checkFileResults = await Promise.all(fileCheckPromises);
+    const newFiles = checkFileResults.filter(f => f !== null) as globalThis.File[];
+
+    for (const file of newFiles) {
+        loadingToastId = toast.loading(`Uploading ${fileNumber++}/${newFiles.length} new files`, {
+            id: loadingToastId
+        });
 
         const formData = new FormData();
         formData.append('file', file);
