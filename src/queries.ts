@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import * as idb from 'idb-keyval';
 import { produce } from 'immer';
 import { addMinutes } from "date-fns";
+import pLimit from "p-limit";
 
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
@@ -513,7 +514,6 @@ const isFileAlreadyImported = async (hash: string) => {
     return body.exists;
 }
 
-// TODO: Lock down upload endpoint
 export const uploadFiles = async (files: FileList) => {
     const tenantId = localStorage.getItem('tenantId') ?? '';
 
@@ -525,7 +525,9 @@ export const uploadFiles = async (files: FileList) => {
         id: loadingToastId
     });
 
-    const fileCheckPromises = [...files].map(async file => {
+    const limit = pLimit(10);
+
+    const fileCheckPromises = [...files].map(file => limit(async () => {
         // Check the file hash before uploading, if the crypto API is available.
         if (crypto.subtle) {
             const fileBuffer = await file.arrayBuffer();
@@ -546,7 +548,7 @@ export const uploadFiles = async (files: FileList) => {
 
             return file;
         }
-    });
+    }));
 
     const checkFileResults = await Promise.all(fileCheckPromises);
     const newFiles = checkFileResults.filter(f => f !== null) as globalThis.File[];
