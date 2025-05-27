@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Item } from '../types';
 import { get, set } from 'idb-keyval';
-import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
+import { useTileImageBuffer } from '../queries';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -19,17 +19,17 @@ for (let i = 0; i < 20; i++) {
 
 // TODO: Maybe try fetching the image after timeout in a single tile hook
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
-    // const cachedTileImage = useTileImageBuffer(item.primaryFile);
+    const cachedTileImage = useTileImageBuffer(item.primaryFile);
 
-    // const tileImageObjectUrl = useMemo(() => {
-    //     if (cachedTileImage) {
-    //         const { buffer, contentType } = cachedTileImage;
-    //         const blob = new Blob([buffer], { type: contentType });
-    //         return URL.createObjectURL(blob);
-    //     }
-    // }, [cachedTileImage]);
+    const tileImageObjectUrl = useMemo(() => {
+        if (cachedTileImage) {
+            const { buffer, contentType } = cachedTileImage;
+            const blob = new Blob([buffer], { type: contentType });
+            return URL.createObjectURL(blob);
+        }
+    }, [cachedTileImage]);
 
-    // const tileImageUrl = tileImageObjectUrl ?? undefined;
+    const tileImageUrl = tileImageObjectUrl ?? undefined;
 
     const [imageReady, setImageReady] = useState(false);
 
@@ -55,7 +55,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     objectFit: 'cover',
                     opacity: imageReady ? 1 : 0
                 }}
-                src={item.primaryFile.tileImageUrl ?? undefined}
+                src={tileImageUrl}
                 loading='lazy'
             />
             {item.type === 'video' && (

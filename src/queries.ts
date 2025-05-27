@@ -210,8 +210,6 @@ export const useTileImageBuffer = (file: File) => {
     const { data: cache } = useTileImageCache();
     const [tileImage, setTileImage] = useState<TileImageBlob | null>(null);
 
-    console.log(cache)
-
     useEffect(() => {
         if (!file.tileImageUrl || !cache) {
             return;
@@ -231,7 +229,8 @@ export const useTileImageBuffer = (file: File) => {
 const fetchAndCacheTileImage = async (file: File) => {
     console.time('fetch' + file.fileId)
     const res = await fetch(file.tileImageUrl ?? '', {
-        mode: 'cors'
+        mode: 'cors',
+          credentials: 'omit', // just to be extra safe
     });
 
     const blob = await res.blob();
