@@ -545,9 +545,9 @@ export const uploadFiles = async (files: FileList) => {
             if (fileAlreadyImported) {
                 return null;
             }
-
-            return file;
         }
+
+        return file;
     }));
 
     const checkFileResults = await Promise.all(fileCheckPromises);
