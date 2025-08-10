@@ -17,21 +17,19 @@ for (let i = 0; i < 20; i++) {
     placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
-// TODO: Maybe try fetching the image after timeout in a single tile hook
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
-    // const cachedTileImage = useTileImageBuffer(item.primaryFile);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [showImage, setShowImage] = useState(false);
 
-    // const tileImageObjectUrl = useMemo(() => {
-    //     if (cachedTileImage) {
-    //         const { buffer, contentType } = cachedTileImage;
-    //         const blob = new Blob([buffer], { type: contentType });
-    //         return URL.createObjectURL(blob);
-    //     }
-    // }, [cachedTileImage]);
+    // Prevent mass loading of tile images when scrolling fast
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setShowImage(true);
+        }, 100);
 
-    // const tileImageUrl = tileImageObjectUrl ?? undefined;
+        return () => clearTimeout(timeoutId);
+    });
 
-    const [imageReady, setImageReady] = useState(false);
 
     return (
         <div
@@ -46,16 +44,17 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             }}
         >
             <img
-                onLoad={() => setImageReady(true)}
+                onLoad={() => setImageLoaded(true)}
                 className={'select-none'}
                 style={{
                     position: 'relative',
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    opacity: imageReady ? 1 : 0
+                    // Without this, half of the image loads vertically first
+                    opacity: imageLoaded ? 1 : 0
                 }}
-                src={item.primaryFile.tileImageUrl ?? undefined}
+                src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 loading='lazy'
             />
             {item.type === 'video' && (
