@@ -517,17 +517,15 @@ const isFileAlreadyImported = async (hash: string) => {
 export const uploadFiles = async (files: FileList) => {
     const tenantId = localStorage.getItem('tenantId') ?? '';
 
-    let checkNumber = 1;
     let loadingToastId: string | undefined = undefined;
     let failureCount = 0;
 
-    loadingToastId = toast.loading(`Checking ${files.length} files`, {
-        id: loadingToastId
-    });
+    let uploadNumber = 1;
+    for (const file of files) {
+        loadingToastId = toast.loading(`Uploading ${uploadNumber++}/${files.length} files`, {
+            id: loadingToastId
+        });
 
-    const limit = pLimit(10);
-
-    const fileCheckPromises = [...files].map(file => limit(async () => {
         // Check the file hash before uploading, if the crypto API is available.
         if (crypto.subtle) {
             const fileBuffer = await file.arrayBuffer();
@@ -537,27 +535,10 @@ export const uploadFiles = async (files: FileList) => {
 
             const fileAlreadyImported = await isFileAlreadyImported(hashHex);
 
-            loadingToastId = toast.loading(`Checked ${checkNumber++}/${files.length} files`, {
-                id: loadingToastId
-            });
-
-
             if (fileAlreadyImported) {
-                return null;
+                continue;
             }
-
-            return file;
         }
-    }));
-
-    const checkFileResults = await Promise.all(fileCheckPromises);
-    const newFiles = checkFileResults.filter(f => f !== null) as globalThis.File[];
-
-    let uploadNumber = 1;
-    for (const file of newFiles) {
-        loadingToastId = toast.loading(`Uploading ${uploadNumber++}/${newFiles.length} new files`, {
-            id: loadingToastId
-        });
 
         const formData = new FormData();
         formData.append('file', file);
@@ -587,7 +568,9 @@ export const uploadFiles = async (files: FileList) => {
     }
 
     if (failureCount === 0) {
-        toast.success(`${files.length} files uploaded`);
+        toast.success(`${files.length} files uploaded`, {
+            duration: Infinity
+        });
     } else {
         toast.error(`${failureCount}/${files.length} files failed to upload`, {
             duration: Infinity
