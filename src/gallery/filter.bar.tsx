@@ -77,6 +77,7 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                     <option value='capture-date'>Sort by Capture Date</option>
                     <option value='upload-date'>Sort by Upload Date</option>
                     <option value='file-size'>Sort by Size</option>
+                    <option value='random'>Sort Randomly</option>
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ city: e.target.value })}>
                     <option value=''>City</option>
@@ -143,6 +144,16 @@ export const useFilterBar = (items: Item[]) => {
     const filteredItems = useMemo(() => {
         let tempItems = [...items];
 
+        const today = new Date().toDateString();
+        const seedHash = today.split('').reduce((hash, char) => {
+            return ((hash << 5) - hash + char.charCodeAt(0)) & 0xffffffff;
+        }, 0);
+        
+        const seededRandom = (seed: number) => {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        };
+
         tempItems.sort((a, b) => {
             if (filters.sort === 'capture-date') {
                 return b.captureTime.localeCompare(a.captureTime);
@@ -150,12 +161,15 @@ export const useFilterBar = (items: Item[]) => {
                 return b.primaryFile.uploadTimeUtc.localeCompare(a.primaryFile.uploadTimeUtc);
             } else if (filters.sort === 'file-size') {
                 return b.totalBytes - a.totalBytes;
+            } else if (filters.sort === 'random') {
+                const seedA = seedHash + a.itemId;
+                const seedB = seedHash + b.itemId;
+                return seededRandom(seedA) - seededRandom(seedB);
             } else {
                 throw new Error('Unknown sort');
             }
         });
 
-        // TODO: Filter favorites
         tempItems = tempItems
             .filter(item => !filters.city || filters.city === item.city)
             .filter(item => !filters.region || filters.region === item.region)
