@@ -16,7 +16,7 @@ export const ItemsInProcess = () => {
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <TopBar title='Items In-Process' />
-            <ItemGrid items={items} />
+            <ItemGrid items={items} albumId={null} />
         </div>
     );
 }

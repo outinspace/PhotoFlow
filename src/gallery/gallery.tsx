@@ -10,7 +10,7 @@ const Gallery = () => {
 
     return (
         <UploadDropZone className='flex flex-auto flex-col overflow-hidden'>
-            <ItemGrid items={items} albumId={null} />
+            <ItemGrid items={items} albumId={null} enableUrlPersistence />
         </UploadDropZone>
     )
 };

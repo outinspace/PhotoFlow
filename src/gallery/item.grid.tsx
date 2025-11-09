@@ -19,9 +19,10 @@ interface Props {
     albumId: number | null;
     readonly?: boolean;
     disableFilteringSorting?: boolean;
+    enableUrlPersistence?: boolean;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -30,7 +31,52 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting 
     const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
     const items = disableFilteringSorting ? allItems : filteredItems;
 
-    const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
+    // Unified preview state management
+    const [localPreviewItemId, setLocalPreviewItemId] = useState<number | null>(() => {
+        if (!enableUrlPersistence) return null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const previewItemId = urlParams.get('previewItemId');
+        return previewItemId ? parseInt(previewItemId, 10) : null;
+    });
+
+    const setPreviewItemId = useCallback((itemId: number | null, replace: boolean = false) => {
+        setLocalPreviewItemId(itemId);
+        
+        if (enableUrlPersistence) {
+            const url = new URL(window.location.href);
+            if (itemId === null) {
+                url.searchParams.delete('previewItemId');
+            } else {
+                url.searchParams.set('previewItemId', itemId.toString());
+            }
+            
+            if (replace) {
+                window.history.replaceState({}, '', url.toString());
+            } else {
+                window.history.pushState({}, '', url.toString());
+            }
+        }
+    }, [enableUrlPersistence]);
+    
+    const previewItemIndex = useMemo(() => {
+        if (localPreviewItemId === null) return null;
+        const index = items.findIndex(item => item.itemId === localPreviewItemId);
+        return index >= 0 ? index : null;
+    }, [localPreviewItemId, items]);
+
+    // Listen for URL changes (back/forward navigation) only when URL persistence is enabled
+    useEffect(() => {
+        if (!enableUrlPersistence) return;
+        
+        const handlePopState = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const previewItemId = urlParams.get('previewItemId');
+            setLocalPreviewItemId(previewItemId ? parseInt(previewItemId, 10) : null);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [enableUrlPersistence]);
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -147,8 +193,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting 
             // Set timer for single click to handle preview
             clickTimerRef.current = setTimeout(() => {
                 clickTimerRef.current = null;
-                const itemIndex = items.findIndex(i => i === item);
-                setPreviewItemIndex(itemIndex);
+                setPreviewItemId(item.itemId, false);
             }, 250); // 250ms delay to detect double click
         }
     }
@@ -309,9 +354,23 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting 
                     items={items}
                     itemIndex={previewItemIndex}
                     albumId={albumId}
-                    onMovePrevious={() => setPreviewItemIndex(previewItemIndex === 0 ? 0 : previewItemIndex! - 1)}
-                    onMoveNext={() => setPreviewItemIndex(previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex! + 1)}
-                    onClose={() => setPreviewItemIndex(null)}
+                    onMovePrevious={() => {
+                        const newIndex = previewItemIndex === 0 ? 0 : previewItemIndex - 1;
+                        const newItem = items[newIndex];
+                        if (newItem) {
+                            setPreviewItemId(newItem.itemId, true);
+                        }
+                    }}
+                    onMoveNext={() => {
+                        const newIndex = previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex + 1;
+                        const newItem = items[newIndex];
+                        if (newItem) {
+                            setPreviewItemId(newItem.itemId, true);
+                        }
+                    }}
+                    onClose={() => {
+                        setPreviewItemId(null, true);
+                    }}
                 />
             )}
             <DeleteItemsModal

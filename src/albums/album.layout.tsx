@@ -129,7 +129,7 @@ export const AlbumLayout = () => {
                 ]}
                 onTitleClick={() => setShowEditModal(true)}
             />
-            <ItemGrid items={album.items} albumId={params.albumId} />
+            <ItemGrid items={album.items} albumId={params.albumId} enableUrlPersistence />
             <DeleteAlbumModal
                 album={album}
                 isOpen={showDeleteModal}
