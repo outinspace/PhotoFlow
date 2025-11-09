@@ -8,6 +8,7 @@ import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { useNavigate } from '@tanstack/react-router';
 import { BottomSheet } from '../common/bottom.sheet';
 import { format } from 'date-fns';
+import { downloadFile } from '../common/share.helpers';
 
 interface Props {
     item: Item;
@@ -46,8 +47,6 @@ const BasicInfo = ({ item }: { item: Item }) => {
 
 const CameraMetadata = ({ item }: { item: Item }) => {
     if (!item.cameraMake && !item.cameraModel) return null;
-
-console.log(item)
 
     const dataPoints = [
         item.widthPixels && item.heightPixels ? `${item.widthPixels} × ${item.heightPixels}` : null,
@@ -145,7 +144,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
                             {formatBytes(file.sizeBytes)}
                         </div>
                         <div className='border-l border-slate-200 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => downloadfile(file.originalUrl, file.originalFileName)} />
+                            <Download onClick={() => downloadFile(file.fileId)} />
                         </div>
                     </div>
                 ))}
@@ -154,13 +153,5 @@ const FileMetadata = ({ item }: { item: Item }) => {
     );
 };
 
-async function downloadfile(uri: string, name: string) {
-    var link = document.createElement("a");
-    link.download = name;
-    link.href = uri;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 
 export default ItemInfoSheet;
