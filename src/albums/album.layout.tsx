@@ -2,7 +2,7 @@ import React, { act, useMemo, useState } from 'react';
 import { useAlbumsWithItems, useShareAlbum } from "../queries";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { EditPencil, Link, ShareIos, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
@@ -12,28 +12,24 @@ import { Ellipsis } from '../common/ellipsis';
 import { router } from '../routes';
 import toast from 'react-hot-toast';
 
-interface SearchParams {
-    albumId?: number;
-}
-
 export const AlbumLayout = () => {
     const navigate = useNavigate();
     const shareAlbumMutation = useShareAlbum();
+    const { albumId } = useParams({ from: '/album/$albumId' });
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [actionMenuActive, setActionMenuActive] = useState(false);
-    const params: SearchParams = useSearch({ strict: false });
 
-    // TODO: Use params instead of search
-    if (!params.albumId) {
-        throw new Error('AlbumId must be set');
+    const albumIdNumber = parseInt(albumId);
+    if (isNaN(albumIdNumber)) {
+        throw new Error('Invalid album ID');
     }
 
     const albums = useAlbumsWithItems() ?? [];
     const album = useMemo(() => {
-        return albums.find(_ => _.albumId === params.albumId)
-    }, [albums, params.albumId])
+        return albums.find(_ => _.albumId === albumIdNumber)
+    }, [albums, albumIdNumber])
 
     if (!album) {
         return;
@@ -129,7 +125,7 @@ export const AlbumLayout = () => {
                 ]}
                 onTitleClick={() => setShowEditModal(true)}
             />
-            <ItemGrid items={album.items} albumId={params.albumId} enableUrlPersistence />
+            <ItemGrid items={album.items} albumId={albumIdNumber} enableUrlPersistence />
             <DeleteAlbumModal
                 album={album}
                 isOpen={showDeleteModal}

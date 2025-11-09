@@ -18,7 +18,7 @@ const Albums = () => {
     }, [albums]);
 
     const openAlbum = (albumId: number) => {
-        navigate({ to: '/album', search: { albumId } });
+        navigate({ to: '/album/$albumId', params: { albumId: albumId.toString() } });
     }
 
     return (
