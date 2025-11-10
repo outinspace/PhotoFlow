@@ -26,6 +26,7 @@ interface Props {
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
 
@@ -37,9 +38,19 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
         event.stopPropagation();
 
-        // Check if the page is zoomed in
-        const zoomLevel = window.innerWidth / document.documentElement.clientWidth;
-        if (zoomLevel !== 1) {
+        // Prevent new gestures during animations
+        if (isAnimating) {
+            return;
+        }
+
+        // Check if the page is zoomed in or if it's a pinch gesture
+        if (touches > 1) {
+            return; // Prevent dragging during pinch gestures
+        }
+        
+        // More reliable zoom detection
+        const visualViewport = window.visualViewport;
+        if (visualViewport && visualViewport.scale > 1) {
             return; // Prevent dragging if zoomed in
         }
 
@@ -61,10 +72,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             omy = 0;
         }
 
-        // Ignore pinch zoom
-        if (touches > 1) {
-            return;
-        }
 
         // Smoothly transition between swipe and dismiss
         const dismissPercent = omy / (window.innerHeight / 2);
@@ -86,6 +93,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
         if (Math.abs(mx) > window.innerWidth / 6) {
             // Snap to next/previous if swiped far enough
+            setIsAnimating(true);
             const direction = mx > 0 ? -1 : 1;
             if (direction === -1) {
                 await Promise.all(swipeApi.start({
@@ -102,8 +110,10 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             }
             // Reset position
             swipeApi.start({ x: 0, immediate: true });
-        } if (Math.abs(my) > window.innerHeight / 4) {
+            setIsAnimating(false);
+        } else if (Math.abs(my) > window.innerHeight / 4) {
             // Animate closed
+            setIsAnimating(true);
             await Promise.all(swipeApi.start({
                 x: 0,
                 y: 0,
@@ -113,6 +123,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             }));
 
             onClose?.();
+            setIsAnimating(false);
         } else {
             // Reset if swipe is canceled
             swipeApi.start({
@@ -124,8 +135,10 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             });
         }
 
-        // Reset current gesture direction
-        currentGestureDirection.current = undefined;
+        // Reset current gesture direction only when gesture ends
+        if (!down) {
+            currentGestureDirection.current = undefined;
+        }
     }, {
         filterTaps: true
     });
@@ -135,23 +148,29 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     if (onMoveNext) {
         animateMoveNext = async () => {
+            if (isAnimating) return;
+            setIsAnimating(true);
             await Promise.all(swipeApi.start({
                 x: -window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
             onMoveNext();
             swipeApi.start({ x: 0, immediate: true }); // Reset position
+            setIsAnimating(false);
         };
     }
 
     if (onMovePrevious) {
         animateMovePrev = async () => {
+            if (isAnimating) return;
+            setIsAnimating(true);
             await Promise.all(swipeApi.start({
                 x: window.innerWidth,
                 config: { tension: 500, clamp: true }
             }));
             onMovePrevious();
             swipeApi.start({ x: 0, immediate: true }); // Reset position
+            setIsAnimating(false);
         };
     }
 
