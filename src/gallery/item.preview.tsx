@@ -262,14 +262,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                         className='ml-3 text-shadow'
                     />
                 )}
-                {!readonly && (
-                    <Ellipsis
-                        height={30}
-                        width={30}
-                        onClick={() => setShowActionMenu(!showActionMenu)}
-                        className='ml-3 text-shadow'
-                    />
-                )}
+                <Ellipsis
+                    height={30}
+                    width={30}
+                    onClick={() => setShowActionMenu(!showActionMenu)}
+                    className='ml-3 text-shadow'
+                />
                 <ItemActionMenu
                     items={[item]}
                     albumId={albumId}
