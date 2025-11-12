@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Item } from '../types';
-import { get, set } from 'idb-keyval';
-import { useTileImageBuffer as useTileImageBinaryData } from '../queries';
-import toast from 'react-hot-toast';
 
 interface Props {
     item: Item;
