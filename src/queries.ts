@@ -322,18 +322,31 @@ export const useReprocessItem = () => {
                 error: 'Failed to reprocess item'
             });
         },
-        onSuccess: (_, itemId) => {
-            queryClient.setQueryData(['gallery'], (gallery: GetGalleryResponse) => {
-                return produce(gallery, draft => {
-                    const item = draft.items.find(_ => _.itemId === itemId);
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        }
+    });
+}
 
-                    // Update item file urls to trigger <img> update
-                    item!.files.forEach(file => {
-                        file.previewUrl = file.previewUrl?.split('?')[0] + '?t=' + new Date().toISOString();
-                        file.tileImageUrl = file.tileImageUrl?.split('?')[0] + '?t=' + new Date().toISOString();
-                    });
-                });
+export const useReprocessItems = () => {
+    return useMutation({
+        mutationFn: async (itemIds: number[]) => {
+            const promise = fetchAuthenticatedRoute('/items/reprocess', {
+                method: 'POST',
+                body: JSON.stringify(itemIds),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+
+            await toast.promise(promise, {
+                loading: `Queueing ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} for reprocessing`,
+                success: `${itemIds.length} item${itemIds.length > 1 ? 's' : ''} queued for reprocessing`,
+                error: 'Failed to queue items for reprocessing'
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
         }
     });
 }

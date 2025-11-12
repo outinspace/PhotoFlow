@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { Modal } from '../common/modal';
-import { useRemoveItemsFromAlbum, useReprocessItem, useRestoreItems } from '../queries';
+import { useRemoveItemsFromAlbum, useReprocessItem, useReprocessItems, useRestoreItems } from '../queries';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { CreateAlbumModal } from './create.album.modal';
 import { compactGUID } from '../common/format.helpers';
@@ -33,6 +33,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
     const reprocessItemMutation = useReprocessItem();
+    const reprocessItemsMutation = useReprocessItems();
 
     const getPublicUrl = () => {
         const tenantId = localStorage.getItem('tenantId');
@@ -146,11 +147,16 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         },
         {
             title: 'Reprocess',
-            visible: items.length === 1 && !readonly,
+            visible: !readonly,
             icon: Refresh,
             className: '',
             onClick: () => {
-                reprocessItemMutation.mutate(items[0].itemId);
+                if (items.length === 1) {
+                    reprocessItemMutation.mutate(items[0].itemId);
+                } else {
+                    const itemIds = items.map(item => item.itemId);
+                    reprocessItemsMutation.mutate(itemIds);
+                }
                 onDismiss();
             }
         },
