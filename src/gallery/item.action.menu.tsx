@@ -10,6 +10,7 @@ import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
 import { router } from '../routes';
 import { DeleteItemsModal } from './delete.items.modal';
+import { isStandalone } from '../common/browser.utils';
 
 interface Props {
     items: Item[];
@@ -22,6 +23,8 @@ interface Props {
     readonly: boolean;
 }
 
+const IS_STANDALONE = isStandalone();
+
 export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
@@ -31,7 +34,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
     const restoreItemsMutation = useRestoreItems();
     const reprocessItemMutation = useReprocessItem();
 
-    const sharePublicLink = () => {
+    const getPublicUrl = () => {
         const tenantId = localStorage.getItem('tenantId');
         const fileId = items[0]?.primaryFile?.fileId;
 
@@ -51,14 +54,19 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         });
 
         const url = window.location.origin + link.href;
+        return url;
+    }
 
-        if (!!navigator.share) {
-            navigator.share({
-                url: url
-            });
-        } else {
-            window.open(url, '_blank');
-        }
+    const sharePublicLink = () => {
+        const url = getPublicUrl();
+        navigator.share({
+            url: url
+        });
+    }
+
+    const openPublicLink = () => {
+        const url = getPublicUrl();
+        window.open(url, '_blank');
     }
 
     const removeItemsFromAlbum = async () => {
@@ -84,29 +92,36 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
 
     const itemsAreDeleted = useMemo(() => items.every(item => item.deletedTimeUtc !== null), [items]);
 
-    const sharingSupported = !!navigator.share && !!navigator.canShare;
+    const showSharingOptions = !!navigator.share && !!navigator.canShare && IS_STANDALONE;
 
     const options = [
         {
             title: `Download ${items.length === 1 ? 'File' : 'Files'}`,
-            visible: true,
+            visible: !showSharingOptions,
             icon: Download,
             className: '',
             onClick: () => downloadFiles(items)
         },
         {
             title: `Share ${items.length === 1 ? 'File' : 'Files'}`,
-            visible: sharingSupported,
+            visible: showSharingOptions,
             icon: ShareIos,
             className: '',
             onClick: () => shareFiles(items)
         },
         {
-            title: `${sharingSupported ? 'Share' : 'Open'} Public Link`,
-            visible: items.length === 1 && !readonly,
+            title: `Share Public Link`,
+            visible: items.length === 1 && !readonly && showSharingOptions,
             icon: Link,
             className: '',
             onClick: () => sharePublicLink()
+        },
+        {
+            title: `Open Public Link`,
+            visible: items.length === 1 && !readonly && !showSharingOptions,
+            icon: Link,
+            className: '',
+            onClick: () => openPublicLink()
         },
         {
             title: 'Create New Album',
