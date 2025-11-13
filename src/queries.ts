@@ -13,7 +13,7 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
 
     request.headers = {
         ...request.headers,
-        'Authorization': 'Session ' + localStorage.getItem('sessionId') ?? '',
+        'Authorization': 'Session ' + (localStorage.getItem('sessionId') ?? ''),
         'x-tenant-id': localStorage.getItem('tenantId') ?? ''
     };
 
