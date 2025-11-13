@@ -68,13 +68,38 @@ export const useGallery = () => useQuery({
 
         // Merge cached and updated items
         const cachedItems = cachedData?.items ?? [];
-        const mergedItemsMap: Record<number, Item> = {};
+        const cachedItemsMap: Record<number, Item> = {};
+        for (const item of cachedItems) {
+            cachedItemsMap[item.itemId] = item;
+        }
 
+        const mergedItemsMap: Record<number, Item> = {};
         for (const item of cachedItems) {
             mergedItemsMap[item.itemId] = item;
         }
         for (const item of updatedGallery.items) {
             mergedItemsMap[item.itemId] = item;
+        }
+
+        // Invalidate service worker cache for updated items
+        if ('caches' in window) {
+            const cache = await caches.open('photoflow-images');
+
+            for (const updatedItem of updatedGallery.items) {
+                const cachedItem = cachedItemsMap[updatedItem.itemId];
+                if (!cachedItem) {
+                    continue;
+                }
+
+                for (const file of cachedItem.files) {
+                    if (file.tileImageUrl) {
+                        await cache.delete(file.tileImageUrl);
+                    }
+                    if (file.previewUrl) {
+                        await cache.delete(file.previewUrl);
+                    }
+                }
+            }
         }
 
         const mergedItems = Object.values(mergedItemsMap);
