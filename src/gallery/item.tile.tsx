@@ -41,7 +41,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     opacity: imageLoaded ? 1 : 0
                 }}
                 src={item.primaryFile.tileImageUrl ?? undefined}
-                loading='lazy'
+                loading='eager'
             />
             {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
