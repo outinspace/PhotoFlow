@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Item } from '../types';
 
 interface Props {
@@ -16,17 +16,6 @@ for (let i = 0; i < 20; i++) {
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
     const [imageLoaded, setImageLoaded] = useState(false);
-    const [showImage, setShowImage] = useState(false);
-
-    // Prevent mass loading of tile images when scrolling fast
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setShowImage(true);
-        }, 100);
-
-        return () => clearTimeout(timeoutId);
-    });
-
 
     return (
         <div
@@ -51,7 +40,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     // Without this, half of the image loads vertically first
                     opacity: imageLoaded ? 1 : 0
                 }}
-                src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
+                src={item.primaryFile.tileImageUrl ?? undefined}
                 loading='lazy'
             />
             {item.type === 'video' && (
