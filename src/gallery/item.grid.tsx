@@ -87,19 +87,19 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const zoomLevels = [
         {
             idealTileSize: 40,
-            overscanRows: 20
+            overscanRows: 5
         },
         {
             idealTileSize: 50,
-            overscanRows: 20
+            overscanRows: 10
         },
         {
             idealTileSize: 70,
-            overscanRows: 30
+            overscanRows: 20
         },
         {
             idealTileSize: 110,
-            overscanRows: 40
+            overscanRows: 30
         },
         {
             idealTileSize: Math.min(containerWidth, 300),
