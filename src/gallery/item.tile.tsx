@@ -15,8 +15,6 @@ for (let i = 0; i < 20; i++) {
 }
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
     return (
         <div
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
@@ -30,15 +28,12 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             }}
         >
             <img
-                onLoad={() => setImageLoaded(true)}
                 className={'select-none'}
                 style={{
                     position: 'relative',
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    // Without this, half of the image loads vertically first
-                    opacity: imageLoaded ? 1 : 0
                 }}
                 src={item.primaryFile.tileImageUrl ?? undefined}
                 loading='eager'
