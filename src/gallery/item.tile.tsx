@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
+import { useEffect } from 'react';
 
 interface Props {
     item: Item;
@@ -15,6 +16,17 @@ for (let i = 0; i < 20; i++) {
 }
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
+    const [showImage, setShowImage] = useState(false);
+
+    // Prevent mass loading of tile images when scrolling fast
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setShowImage(true);
+        }, 50);
+
+        return () => clearTimeout(timeoutId);
+    });
+
     return (
         <div
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
@@ -35,8 +47,8 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     height: '100%',
                     objectFit: 'cover',
                 }}
-                src={item.primaryFile.tileImageUrl ?? undefined}
-                loading='eager'
+                src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
+                loading='lazy'
             />
             {item.type === 'video' && (
                 <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
