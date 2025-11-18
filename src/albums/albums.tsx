@@ -16,12 +16,12 @@ const STORAGE_KEYS = {
 const Albums = () => {
     const navigate = useNavigate();
     const albums = useAlbumsWithItems() ?? [];
-    
+
     const [sortOption, setSortOption] = useState<SortOption>(() => {
         const stored = localStorage.getItem(STORAGE_KEYS.SORT_OPTION);
         return (stored === 'modified-recent' || stored === 'name-asc') ? stored : 'modified-recent';
     });
-    
+
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         const stored = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
         return (stored === 'thumbnail' || stored === 'list') ? stored : 'thumbnail';
@@ -58,37 +58,35 @@ const Albums = () => {
 
     return (
         <div className='p-5'>
-            <div className='flex justify-between'>
-                <PageHeader name='Albums' />
-                <div className='mb-4 flex items-center gap-4'>
-                    <select
-                        className='bg-slate-100 p-2 rounded-lg'
-                        value={sortOption}
-                        onChange={e => setSortOption(e.target.value as SortOption)}
+            <PageHeader name='Albums' />
+            <div className='mb-4 flex items-center gap-4 justify-between'>
+                <select
+                    className='bg-slate-100 p-2 rounded-lg'
+                    value={sortOption}
+                    onChange={e => setSortOption(e.target.value as SortOption)}
+                >
+                    <option value='modified-recent'>Sort by Modified Date</option>
+                    <option value='name-asc'>Sort by Name</option>
+                </select>
+                <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
+                    <button
+                        className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
+                            ? 'bg-slate-200 text-sky-500'
+                            : 'bg-slate-100 hover:bg-slate-200'
+                            }`}
+                        onClick={() => setViewMode('thumbnail')}
                     >
-                        <option value='modified-recent'>Modified Date</option>
-                        <option value='name-asc'>Alphabetical</option>
-                    </select>
-                    <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
-                        <button
-                            className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
-                                    ? 'bg-slate-200 text-sky-500'
-                                    : 'bg-slate-100 hover:bg-slate-200'
-                                }`}
-                            onClick={() => setViewMode('thumbnail')}
-                        >
-                            <ViewGrid className='size-5' />
-                        </button>
-                        <button
-                            className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
-                                    ? 'bg-slate-200 text-sky-500'
-                                    : 'bg-slate-100 hover:bg-slate-200'
-                                }`}
-                            onClick={() => setViewMode('list')}
-                        >
-                            <List className='size-5' />
-                        </button>
-                    </div>
+                        <ViewGrid className='size-5' />
+                    </button>
+                    <button
+                        className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
+                            ? 'bg-slate-200 text-sky-500'
+                            : 'bg-slate-100 hover:bg-slate-200'
+                            }`}
+                        onClick={() => setViewMode('list')}
+                    >
+                        <List className='size-5' />
+                    </button>
                 </div>
             </div>
             {viewMode === 'thumbnail' ? (
