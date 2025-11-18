@@ -116,6 +116,9 @@ const GalleryStats = () => {
         items.filter(i => i.files.some(f => f.lastProcessedTimeUtc === null)).length,
         [items]);
 
+    // @ts-ignore
+    const commitHash = import.meta.env.VITE_COMMIT_HASH || 'unknown';
+
     return (
         <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light text-xs'>
             <div>{`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}</div>
@@ -124,6 +127,8 @@ const GalleryStats = () => {
                     {`${processingItemsCount} items processing`}
                 </div>
             )}
+            <br />
+            <div>Version: {commitHash}</div>
         </div>
     );
 };

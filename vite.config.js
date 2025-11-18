@@ -1,6 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { execSync } from 'child_process';
+
+const getCommitHash = () => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+};
 
 export default defineConfig({
   plugins: [
@@ -70,6 +79,9 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  define: {
+    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(getCommitHash())
   },
   server: {
     allowedHosts: ['localhost.outin.space'],
