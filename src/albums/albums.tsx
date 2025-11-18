@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import PageHeader from '../common/page.header';
 import { useAlbumsWithItems } from '../queries';
 import { AlbumWithItems } from '../types';
@@ -8,11 +8,32 @@ import { ViewGrid, List } from 'iconoir-react';
 type SortOption = 'modified-recent' | 'name-asc';
 type ViewMode = 'thumbnail' | 'list';
 
+const STORAGE_KEYS = {
+    SORT_OPTION: 'albums_sort_option',
+    VIEW_MODE: 'albums_view_mode'
+};
+
 const Albums = () => {
     const navigate = useNavigate();
     const albums = useAlbumsWithItems() ?? [];
-    const [sortOption, setSortOption] = useState<SortOption>('modified-recent');
-    const [viewMode, setViewMode] = useState<ViewMode>('thumbnail');
+    
+    const [sortOption, setSortOption] = useState<SortOption>(() => {
+        const stored = localStorage.getItem(STORAGE_KEYS.SORT_OPTION);
+        return (stored === 'modified-recent' || stored === 'name-asc') ? stored : 'modified-recent';
+    });
+    
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        const stored = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+        return (stored === 'thumbnail' || stored === 'list') ? stored : 'thumbnail';
+    });
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.SORT_OPTION, sortOption);
+    }, [sortOption]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+    }, [viewMode]);
 
     const sortedAlbums = useMemo(() => {
         const albumsCopy = [...albums];
