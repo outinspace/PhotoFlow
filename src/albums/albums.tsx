@@ -1,21 +1,35 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import PageHeader from '../common/page.header';
 import { useAlbumsWithItems } from '../queries';
 import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
+import { ViewGrid, List } from 'iconoir-react';
+
+type SortOption = 'modified-recent' | 'name-asc';
+type ViewMode = 'thumbnail' | 'list';
 
 const Albums = () => {
     const navigate = useNavigate();
     const albums = useAlbumsWithItems() ?? [];
+    const [sortOption, setSortOption] = useState<SortOption>('modified-recent');
+    const [viewMode, setViewMode] = useState<ViewMode>('thumbnail');
 
     const sortedAlbums = useMemo(() => {
-        return albums.sort((a, b) => {
-            // Sort by updatedTimeUtc first, falling back to createdTimeUtc if not available
-            const aTime = a.updatedTimeUtc || a.createdTimeUtc;
-            const bTime = b.updatedTimeUtc || b.createdTimeUtc;
-            return bTime.localeCompare(aTime); // Most recent first
+        const albumsCopy = [...albums];
+        return albumsCopy.sort((a, b) => {
+            switch (sortOption) {
+                case 'modified-recent': {
+                    const aTime = a.updatedTimeUtc || a.createdTimeUtc;
+                    const bTime = b.updatedTimeUtc || b.createdTimeUtc;
+                    return bTime.localeCompare(aTime);
+                }
+                case 'name-asc':
+                    return a.name.localeCompare(b.name);
+                default:
+                    return 0;
+            }
         });
-    }, [albums]);
+    }, [albums, sortOption]);
 
     const openAlbum = (albumId: number) => {
         navigate({ to: '/album/$albumId', params: { albumId: albumId.toString() } });
@@ -23,17 +37,57 @@ const Albums = () => {
 
     return (
         <div className='p-5'>
-            <PageHeader name='Albums' />
-            <div
-                className='w-full grid justify-items-center justify-around md:justify-normal'
-                style={{
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min-content, 150px))'
-                }}
-            >
-                {sortedAlbums.map(album => (
-                    <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
-                ))}
+            <div className='flex justify-between'>
+                <PageHeader name='Albums' />
+                <div className='mb-4 flex items-center gap-4'>
+                    <select
+                        className='bg-slate-100 p-2 rounded'
+                        value={sortOption}
+                        onChange={e => setSortOption(e.target.value as SortOption)}
+                    >
+                        <option value='modified-recent'>Sort by Modified Date</option>
+                        <option value='name-asc'>Sort by Name</option>
+                    </select>
+                    <div className='flex border border-slate-100 rounded overflow-hidden'>
+                        <button
+                            className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
+                                    ? 'bg-slate-200 text-sky-500'
+                                    : 'bg-slate-100 hover:bg-slate-200'
+                                }`}
+                            onClick={() => setViewMode('thumbnail')}
+                        >
+                            <ViewGrid className='size-5' />
+                        </button>
+                        <button
+                            className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
+                                    ? 'bg-slate-200 text-sky-500'
+                                    : 'bg-slate-100 hover:bg-slate-200'
+                                }`}
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className='size-5' />
+                        </button>
+                    </div>
+                </div>
             </div>
+            {viewMode === 'thumbnail' ? (
+                <div
+                    className='w-full grid justify-items-center justify-around md:justify-normal'
+                    style={{
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min-content, 150px))'
+                    }}
+                >
+                    {sortedAlbums.map(album => (
+                        <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
+                    ))}
+                </div>
+            ) : (
+                <div className='w-full'>
+                    {sortedAlbums.map(album => (
+                        <AlbumListItem key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -57,7 +111,7 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
     const coverItems = album.items.slice(0, gridCols * gridCols);
 
     return (
-        <div className='flex-col m-2 justify-items-center' onClick={() => onClick()}>
+        <div className='flex-col m-1 p-2 rounded justify-items-center hover:bg-slate-100 active:bg-slate-200' onClick={() => onClick()}>
             <div className={'rounded border border-slate-200 size-36 overflow-hidden grid'}
                 style={{
                     gridTemplateColumns: gridTemplate,
@@ -73,6 +127,37 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
                 ))}
             </div>
             <div className='mt-1 truncate text-ellipsis w-36 text-sm text-center'>{album.name}</div>
+        </div>
+    )
+}
+
+interface AlbumListItemProps {
+    album: AlbumWithItems;
+    onClick: Function;
+}
+
+const AlbumListItem = ({ album, onClick }: AlbumListItemProps) => {
+    const firstItem = album.items[0];
+    const thumbnailUrl = firstItem?.primaryFile.tileImageUrl ?? '';
+
+    return (
+        <div
+            className='flex items-center justify-between p-3 border-b border-slate-200 last:border-0 hover:bg-slate-100 active:bg-slate-200'
+            onClick={() => onClick()}
+        >
+            <div className='flex items-center gap-3 flex-1 min-w-0'>
+                {thumbnailUrl && (
+                    <img
+                        src={thumbnailUrl}
+                        className='w-12 h-12 rounded border border-slate-200 object-cover flex-shrink-0'
+                        alt=''
+                    />
+                )}
+                <div className='truncate text-ellipsis text-base'>{album.name}</div>
+            </div>
+            <div className='text-sm text-slate-600 ml-4 flex-shrink-0'>
+                {album.items.length} {album.items.length === 1 ? 'item' : 'items'}
+            </div>
         </div>
     )
 }
