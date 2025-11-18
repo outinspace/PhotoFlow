@@ -66,8 +66,8 @@ const Albums = () => {
                         value={sortOption}
                         onChange={e => setSortOption(e.target.value as SortOption)}
                     >
-                        <option value='modified-recent'>Sort by Modified Date</option>
-                        <option value='name-asc'>Sort by Name</option>
+                        <option value='modified-recent'>Modified Date</option>
+                        <option value='name-asc'>Alphabetical</option>
                     </select>
                     <div className='flex border border-slate-100 rounded overflow-hidden'>
                         <button
