@@ -18,6 +18,7 @@ interface Props {
 const ItemMedia = ({ item, isPrimary }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+    const [previewImageFailed, setPreviewImageFailed] = useState(false);
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
@@ -59,9 +60,11 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        zIndex: zIndex.previewImage
+                        zIndex: zIndex.previewImage,
+                        opacity: previewImageFailed ? 0 : 1
                     }}
                     src={imageFile.previewUrl ?? undefined}
+                    onError={() => setPreviewImageFailed(true)}
                 />
             </>}
             {isLivePhoto && showLivePhoto && isPrimary && (
