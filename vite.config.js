@@ -14,10 +14,10 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/cdn-prod-01\.outin\.space\/(tile-image|preview)\//,
+            urlPattern: /^https:\/\/cdn-prod-01\.outin\.space\/tile-image\//,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'photoflow-images',
+              cacheName: 'photoflow-tile-images',
               expiration: {
                 maxEntries: 100000,
                 purgeOnQuotaError: true,
