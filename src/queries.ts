@@ -61,8 +61,9 @@ export const useGallery = () => useQuery({
             queryParams = `?updatedSinceUtc=${cachedCheckpointUtc}`;
         }
 
+        let res: Response
         try {
-            const res = await fetchAuthenticatedRoute('/items/gallery' + queryParams);
+            res = await fetchAuthenticatedRoute('/items/gallery' + queryParams);
         } catch (e) {
             // HACK: If the device is offline, return cached data
             return cachedData;
