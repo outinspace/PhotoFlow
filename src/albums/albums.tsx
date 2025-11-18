@@ -62,14 +62,14 @@ const Albums = () => {
                 <PageHeader name='Albums' />
                 <div className='mb-4 flex items-center gap-4'>
                     <select
-                        className='bg-slate-100 p-2 rounded'
+                        className='bg-slate-100 p-2 rounded-lg'
                         value={sortOption}
                         onChange={e => setSortOption(e.target.value as SortOption)}
                     >
                         <option value='modified-recent'>Modified Date</option>
                         <option value='name-asc'>Alphabetical</option>
                     </select>
-                    <div className='flex border border-slate-100 rounded overflow-hidden'>
+                    <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
                         <button
                             className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
                                     ? 'bg-slate-200 text-sky-500'
