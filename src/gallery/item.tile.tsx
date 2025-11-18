@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../types';
 import { useEffect } from 'react';
+import { HeartSolid } from 'iconoir-react';
 
 interface Props {
     item: Item;
@@ -50,8 +51,16 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 loading='lazy'
             />
+            {item.isFavorite && (
+                <div className='absolute bottom-1 left-1 text-slate-100 shadow'>
+                    <HeartSolid
+                        height={idealTileSize / 6}
+                        width={idealTileSize / 6}
+                    />
+                </div>
+            )}
             {item.type === 'video' && (
-                <div className='absolute bottom-1 right-1 text-slate-100/75 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
+                <div className='absolute bottom-1 right-1 text-slate-100 shadow leading-none font-bold' style={{ fontSize: idealTileSize / 8 }}>
                     {formatVideoSeconds(item.videoLength)}
                 </div>
             )}
