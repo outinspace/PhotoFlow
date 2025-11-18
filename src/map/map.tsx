@@ -92,11 +92,13 @@ const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProp
             .forEach((item) =>
                 Leaflet
                     .marker([item.latitude ?? 0, item.longitude ?? 0], {
-                        icon: new Icon({
-                            iconUrl: item.primaryFile.tileImageUrl ?? '',
-                            iconSize: [40, 40],
-                            className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
-                        }),
+                        icon: item.primaryFile.tileImageUrl ? (
+                            new Icon({
+                                iconUrl: item.primaryFile.tileImageUrl ?? '',
+                                iconSize: [40, 40],
+                                className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
+                            })
+                        ) : undefined,
                         // @ts-ignore
                         item
                     })

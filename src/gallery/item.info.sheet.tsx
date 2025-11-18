@@ -83,12 +83,6 @@ const LocationMetadata = ({ item }: { item: Item }) => {
 
     const position: LatLngExpression = [item.latitude ?? 0, item.longitude ?? 0];
 
-    const markerIcon = new Icon({
-        iconUrl: item.primaryFile.tileImageUrl ?? '',
-        iconSize: [40, 40],
-        className: 'rounded-lg border-slate-900 border drop-shadow-2xl'
-    });
-
     const navigateToMap = () => navigate({
         to: '/map',
         search: {
@@ -113,7 +107,7 @@ const LocationMetadata = ({ item }: { item: Item }) => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <Marker position={position} icon={markerIcon} />
+                    <Marker position={position} />
                 </MapContainer>
             </div>
         </div>
