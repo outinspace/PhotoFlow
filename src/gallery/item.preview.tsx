@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Star, StarSolid, Xmark } from 'iconoir-react';
+import { InfoCircle, Heart, HeartSolid, Xmark } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import ItemInfoSheet from './item.info.sheet';
@@ -247,7 +247,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     className='ml-3 text-shadow'
                 />
                 {!readonly && !item.isFavorite && (
-                    <Star
+                    <Heart
                         height={30}
                         width={30}
                         onClick={() => favoriteItem.mutateAsync(item.itemId)}
@@ -255,7 +255,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     />
                 )}
                 {!readonly && item.isFavorite && (
-                    <StarSolid
+                    <HeartSolid
                         height={30}
                         width={30}
                         onClick={() => unfavoriteItem.mutateAsync(item.itemId)}
