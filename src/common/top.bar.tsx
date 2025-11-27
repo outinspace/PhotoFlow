@@ -20,9 +20,9 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
     const { history } = useRouter();
 
     return (
-        <div className='flex justify-center items-center p-3 border-b border-slate-200'>
+        <div className='flex justify-between items-center p-3 border-b border-slate-200'>
             {!hideBack && (
-                <div className='absolute left-3 hover:bg-slate-200 rounded p-1'>
+                <div className='hover:bg-slate-200 rounded p-1'>
                     <ArrowLeft
                         className='size-6 text-sky-500'
                         onClick={() => history.go(-1)}
@@ -36,7 +36,7 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
             >
                 {title}
             </div>
-            <div className='flex absolute right-3'>
+            <div className='flex'>
                 {rightButtons?.map((btn, i) => (
                     <div key={i} className='ml-2 p-1 hover:bg-slate-200 rounded text-slate-500'>
                         <btn.icon

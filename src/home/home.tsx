@@ -3,7 +3,7 @@ import { Years } from './years';
 
 const Home = () => {
     return (
-        <div className="flex flex-auto flex-col">
+        <div className="flex flex-auto flex-col py-4">
             <OneYearAgo />
             <Years />
         </div>
