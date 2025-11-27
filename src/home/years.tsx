@@ -70,9 +70,9 @@ export const Years = () => {
     return (
         <>
             <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-4 px-8">Years</h2>
+                <h2 className="text-2xl font-bold mb-4 px-6">Years</h2>
                 <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-                    <div className="flex shrink-1 gap-4 pl-8" style={{ width: 'max-content' }}>
+                    <div className="flex shrink-1 gap-4 pl-6" style={{ width: 'max-content' }}>
                         {years.map((year) => {
                             const yearItems = itemsByYear[year];
                             return (
