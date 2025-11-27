@@ -15,7 +15,7 @@ const Login = () => {
         const sessionId = localStorage.getItem('sessionId');
 
         if (tenantId && sessionId) {
-            navigate({ to: '/gallery' });
+            navigate({ to: '/' });
         }
     }, []);
 

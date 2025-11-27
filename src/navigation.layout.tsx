@@ -1,9 +1,14 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
-import { Book, Map, Menu, ViewGrid } from 'iconoir-react';
+import { Book, Map, Menu, ViewGrid, Home as HomeIcon } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
 import { ReactNode } from 'react';
 
 const options = [
+    {
+        name: 'Home',
+        route: '/',
+        icon: HomeIcon
+    },
     {
         name: 'Gallery',
         route: '/gallery',
@@ -33,7 +38,7 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
     const safeAreaPadding = IS_STANDALONE ? 'pb-10 md:pb-2' : '';
 
     return (
-        <div className="flex flex-auto flex-col md:flex-row">
+        <div className="flex flex-auto flex-col md:flex-row max-w-full">
             {/* Desktop: Vertical sidebar */}
             <div className='hidden md:flex flex-none flex-col bg-slate-50 border-r border-slate-200 p-2 w-24 transition-all'>
                 {options.map(option => (

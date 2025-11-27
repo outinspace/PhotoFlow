@@ -1,0 +1,100 @@
+import { useMemo, useState, useCallback } from 'react';
+import { useGallery } from '../api/useGallery';
+import { subYears, subDays, addDays, subMonths, addMonths, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
+import ItemPreview from '../gallery/item.preview';
+import { ItemStack } from './item.stack';
+
+export const OneYearAgoToday = () => {
+    const { data: gallery } = useGallery();
+    const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
+
+    const matchingItems = useMemo(() => {
+        if (!gallery?.items) return [];
+
+        const today = new Date();
+        const oneYearAgo = subYears(today, 1);
+        const oneYearAgoStart = startOfDay(oneYearAgo);
+        const oneYearAgoEnd = endOfDay(oneYearAgo);
+
+        // First try: exact date (one year ago today)
+        let items = gallery.items.filter(item => {
+            const captureDate = parseISO(item.captureTime);
+            return isWithinInterval(captureDate, { start: oneYearAgoStart, end: oneYearAgoEnd });
+        });
+
+        // Second try: ±7 days if no matches
+        if (items.length === 0) {
+            const sevenDaysBefore = startOfDay(subDays(oneYearAgo, 7));
+            const sevenDaysAfter = endOfDay(addDays(oneYearAgo, 7));
+            items = gallery.items.filter(item => {
+                const captureDate = parseISO(item.captureTime);
+                return isWithinInterval(captureDate, { start: sevenDaysBefore, end: sevenDaysAfter });
+            });
+        }
+
+        // Third try: ±1 month if still no matches
+        if (items.length === 0) {
+            const oneMonthBefore = startOfDay(subMonths(oneYearAgo, 1));
+            const oneMonthAfter = endOfDay(addMonths(oneYearAgo, 1));
+            items = gallery.items.filter(item => {
+                const captureDate = parseISO(item.captureTime);
+                return isWithinInterval(captureDate, { start: oneMonthBefore, end: oneMonthAfter });
+            });
+        }
+
+        // Sort by capture time (newest first)
+        return items.sort((a, b) => {
+            const dateA = parseISO(a.captureTime).getTime();
+            const dateB = parseISO(b.captureTime).getTime();
+            return dateB - dateA;
+        });
+    }, [gallery?.items]);
+
+    const handleClick = useCallback(() => {
+        if (matchingItems.length > 0) {
+            setPreviewItemIndex(0);
+        }
+    }, [matchingItems.length]);
+
+    const handleClosePreview = useCallback(() => {
+        setPreviewItemIndex(null);
+    }, []);
+
+    const handleMoveNext = useCallback(() => {
+        if (previewItemIndex === null) return;
+        const newIndex = previewItemIndex >= matchingItems.length - 1 ? matchingItems.length - 1 : previewItemIndex + 1;
+        setPreviewItemIndex(newIndex);
+    }, [previewItemIndex, matchingItems.length]);
+
+    const handleMovePrevious = useCallback(() => {
+        if (previewItemIndex === null) return;
+        const newIndex = previewItemIndex === 0 ? 0 : previewItemIndex - 1;
+        setPreviewItemIndex(newIndex);
+    }, [previewItemIndex]);
+
+    if (matchingItems.length === 0) {
+        return null;
+    }
+
+    return (
+        <>
+            <div className="p-4 mb-6">
+                <h2 className="text-2xl font-bold mb-4 px-4">One Year Ago</h2>
+                <div className="px-4">
+                    <ItemStack items={matchingItems} onClick={handleClick} fullWidth />
+                </div>
+            </div>
+            {previewItemIndex !== null && (
+                <ItemPreview
+                    items={matchingItems}
+                    itemIndex={previewItemIndex}
+                    albumId={null}
+                    onMoveNext={handleMoveNext}
+                    onMovePrevious={handleMovePrevious}
+                    onClose={handleClosePreview}
+                />
+            )}
+        </>
+    );
+};
+

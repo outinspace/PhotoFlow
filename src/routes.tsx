@@ -5,6 +5,7 @@ import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
 import Map from './map/map';
+import Home from './home/home';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import { AlbumLayout } from './albums/album.layout';
@@ -14,6 +15,16 @@ import { PublicAlbumLayout } from './albums/public.album.layout';
 import { NavigationLayout } from "./navigation.layout";
 
 export const rootRoute = createRootRoute();
+
+export const homeRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/',
+    component: () => (
+        <NavigationLayout>
+            <Home />
+        </NavigationLayout>
+    )
+});
 
 export const galleryRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -128,6 +139,7 @@ export const publicAlbumRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+    homeRoute,
     galleryRoute,
     loginRoute,
     mapRoute,
