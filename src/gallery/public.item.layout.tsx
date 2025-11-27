@@ -2,7 +2,7 @@ import React from 'react';
 import { publicItemRoute } from '../routes';
 import ItemPreview from './item.preview';
 import { expandGUID } from '../common/format.helpers';
-import { usePublicItem } from '../queries';
+import { usePublicItem } from '../api/usePublicItem';
 
 export const PublicItemLayout = () => {
     const { shortTenantId, shortPrimaryFileId } = publicItemRoute.useParams();

@@ -1,5 +1,6 @@
 import React, { act, useMemo, useState } from 'react';
-import { useAlbumsWithItems, useShareAlbum } from "../queries";
+import { useAlbumsWithItems } from "../api/useAlbumsWithItems";
+import { useShareAlbum } from "../api/useShareAlbum";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 import { useNavigate, useParams } from '@tanstack/react-router';

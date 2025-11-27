@@ -2,7 +2,8 @@ import { CreditCard, LogOut, ProfileCircle, Refresh, RefreshDouble, Restart, Tra
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
-import { fetchAuthenticatedRoute, useGallery } from '../queries';
+import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
+import { useGallery } from '../api/useGallery';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { queryClient } from '../app';

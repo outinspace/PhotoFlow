@@ -1,6 +1,6 @@
 import { ReactNode } from '@tanstack/react-router';
 import React, { useRef, useState } from 'react';
-import { uploadFiles } from '../queries';
+import { uploadFiles } from '../api/uploadFiles';
 
 interface Props {
     children: ReactNode;

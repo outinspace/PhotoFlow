@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Modal } from "../common/modal";
-import { useAddItemsToAlbum, useAlbums, useCreateAlbum } from '../queries';
+import { useAddItemsToAlbum } from '../api/useAddItemsToAlbum';
+import { useAlbums } from '../api/useAlbums';
+import { useCreateAlbum } from '../api/useCreateAlbum';
 import { Item } from '../types';
 
 interface Props {

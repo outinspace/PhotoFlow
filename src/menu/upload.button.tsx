@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { uploadFiles } from '../queries';
+import { uploadFiles } from '../api/uploadFiles';
 import { CloudUpload, Upload } from 'iconoir-react';
 
 const UploadButton = () => {

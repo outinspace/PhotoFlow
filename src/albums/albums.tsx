@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import PageHeader from '../common/page.header';
-import { useAlbumsWithItems } from '../queries';
+import { useAlbumsWithItems } from '../api/useAlbumsWithItems';
 import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 import { ViewGrid, List } from 'iconoir-react';

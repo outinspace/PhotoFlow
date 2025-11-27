@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGallery } from "../queries";
+import { useGallery } from "../api/useGallery";
 import { TopBar } from '../common/top.bar';
 import { formatBytes } from '../common/format.helpers';
 

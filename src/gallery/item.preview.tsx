@@ -11,7 +11,8 @@ import { Ellipsis } from '../common/ellipsis';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
-import { useFavoriteItem, useUnfavoriteItem } from '../queries';
+import { useFavoriteItem } from '../api/useFavoriteItem';
+import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
 
 interface Props {
     items: Item[];

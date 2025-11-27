@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '../common/modal';
-import { useDeleteItems } from '../queries';
+import { useDeleteItems } from '../api/useDeleteItems';
 import { Item } from '../types';
 
 interface Props {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { publicAlbumRoute } from '../routes';
 import { expandGUID } from '../common/format.helpers';
-import { usePublicAlbum } from '../queries';
+import { usePublicAlbum } from '../api/usePublicAlbum';
 import { TopBar } from '../common/top.bar';
 import ItemGrid from '../gallery/item.grid';
 

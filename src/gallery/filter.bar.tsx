@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
-import { useAlbums } from '../queries';
+import { useAlbums } from '../api/useAlbums';
 
 interface FilterState {
     sort: string;

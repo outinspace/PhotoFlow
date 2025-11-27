@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useGallery } from "../queries";
+import { useGallery } from "../api/useGallery";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 
