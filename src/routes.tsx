@@ -1,7 +1,6 @@
-import { ReactNode, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import Gallery from "./gallery/gallery";
 import Login from "./login/login";
-import BottomBar from './bottom.bar';
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
@@ -12,15 +11,7 @@ import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
-
-const BottomBarLayout = ({ children }: { children: ReactNode }) => (
-    <div className="flex flex-auto flex-col">
-        <div className='flex flex-auto flex-col' style={{ overflow: 'auto' }}>
-            {children}
-        </div>
-        <BottomBar />
-    </div>
-);
+import { NavigationLayout } from "./navigation.layout";
 
 export const rootRoute = createRootRoute();
 
@@ -28,9 +19,9 @@ export const galleryRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/gallery',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Gallery />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -44,9 +35,9 @@ export const mapRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/map',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Map />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -54,9 +45,9 @@ export const albumsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/albums',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Albums />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -64,9 +55,9 @@ export const albumRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/album/$albumId',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <AlbumLayout />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -74,9 +65,9 @@ export const searchRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/search',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Search />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -84,9 +75,9 @@ export const menuRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/menu',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Menu />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -94,9 +85,9 @@ export const recentlyDeletedRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/recently-deleted',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <RecentlyDeletedItems />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -104,9 +95,9 @@ export const billingRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/billing',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <Billing />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 
@@ -114,9 +105,9 @@ export const itemsInProcessRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/items-in-process',
     component: () => (
-        <BottomBarLayout>
+        <NavigationLayout>
             <ItemsInProcess />
-        </BottomBarLayout>
+        </NavigationLayout>
     )
 });
 

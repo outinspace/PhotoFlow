@@ -12,7 +12,7 @@ import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
 import { router } from '../routes';
 import { DeleteItemsModal } from './delete.items.modal';
-import { isStandalone } from '../common/browser.utils';
+import { IS_STANDALONE } from '../common/browser.utils';
 
 interface Props {
     items: Item[];
@@ -24,8 +24,6 @@ interface Props {
     position: 'top' | 'bottom';
     readonly: boolean;
 }
-
-const IS_STANDALONE = isStandalone();
 
 export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
