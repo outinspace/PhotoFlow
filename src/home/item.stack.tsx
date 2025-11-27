@@ -60,17 +60,18 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
 
     return (
         <div 
-            className={`relative cursor-pointer ${fullWidth ? '' : 'flex-shrink-0'}`}
+            className={`relative hover:opacity-90 ${fullWidth ? '' : 'flex-shrink-0'}`}
             onClick={() => onClick?.(currentImageIndex)}
         >
             <div className="relative w-full max-w-200 rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '16/9', width: fullWidth ? '100%' : width }}>
                 {indicesToRender.map((index) => {
                     const item = items[index];
                     const isActive = index === currentImageIndex;
+                    const isVideo = item.type === 'video';
                     return (
                         <img
                             key={item.itemId}
-                            src={item.primaryFile.previewUrl ?? item.primaryFile.tileImageUrl ?? undefined}
+                            src={(isVideo ? item.primaryFile.tileImageUrl : item.primaryFile.previewUrl) ?? undefined}
                             alt=""
                             className="absolute inset-0 w-full h-full object-cover"
                             style={{

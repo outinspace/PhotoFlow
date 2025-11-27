@@ -12,6 +12,7 @@ import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
+import { YearLayout } from './home/year.layout';
 import { NavigationLayout } from "./navigation.layout";
 
 export const rootRoute = createRootRoute();
@@ -68,6 +69,16 @@ export const albumRoute = createRoute({
     component: () => (
         <NavigationLayout>
             <AlbumLayout />
+        </NavigationLayout>
+    )
+});
+
+export const yearRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/year/$year',
+    component: () => (
+        <NavigationLayout>
+            <YearLayout />
         </NavigationLayout>
     )
 });
@@ -145,6 +156,7 @@ const routeTree = rootRoute.addChildren([
     mapRoute,
     albumsRoute,
     albumRoute,
+    yearRoute,
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,
