@@ -3,7 +3,7 @@ import { Item } from '../types';
 
 interface Props {
     items: Item[];
-    onClick?: () => void;
+    onClick?: (currentIndex: number) => void;
     width?: string | number;
     fullWidth?: boolean;
     staticMode?: boolean;
@@ -45,19 +45,26 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
         return null;
     }
 
-    // Only render the current image and the next one for smooth transitions (unless in static mode)
-    const nextImageIndex = (currentImageIndex + 1) % items.length;
-    const imagesToRender = staticMode || items.length === 1
+    // Render three images: previous, current, and next (for smooth transitions)
+    // Use stable React keys (itemId) so React reuses DOM elements
+    const getIndex = (offset: number) => {
+        if (items.length === 1) return 0;
+        return (currentImageIndex + offset + items.length) % items.length;
+    };
+
+    const prevIndex = getIndex(-1);
+    const nextIndex = getIndex(1);
+    const indicesToRender = staticMode || items.length === 1
         ? [currentImageIndex]
-        : [currentImageIndex, nextImageIndex];
+        : [prevIndex, currentImageIndex, nextIndex];
 
     return (
         <div 
             className={`relative cursor-pointer ${fullWidth ? '' : 'flex-shrink-0'}`}
-            onClick={onClick}
+            onClick={() => onClick?.(currentImageIndex)}
         >
-            <div className="relative w-full max-w-200 rounded-2xl overflow-hidden" style={{ aspectRatio: '16/9', width: fullWidth ? '100%' : width }}>
-                {imagesToRender.map((index) => {
+            <div className="relative w-full max-w-200 rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '16/9', width: fullWidth ? '100%' : width }}>
+                {indicesToRender.map((index) => {
                     const item = items[index];
                     const isActive = index === currentImageIndex;
                     return (

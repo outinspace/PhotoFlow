@@ -42,17 +42,18 @@ export const OneYearAgoToday = () => {
             });
         }
 
-        // Sort by capture time (newest first)
-        return items.sort((a, b) => {
-            const dateA = parseISO(a.captureTime).getTime();
-            const dateB = parseISO(b.captureTime).getTime();
-            return dateB - dateA;
-        });
+        // Randomize order
+        const shuffled = [...items];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
     }, [gallery?.items]);
 
-    const handleClick = useCallback(() => {
+    const handleClick = useCallback((currentIndex: number) => {
         if (matchingItems.length > 0) {
-            setPreviewItemIndex(0);
+            setPreviewItemIndex(currentIndex);
         }
     }, [matchingItems.length]);
 
@@ -81,7 +82,11 @@ export const OneYearAgoToday = () => {
             <div className="p-4 mb-6">
                 <h2 className="text-2xl font-bold mb-4 px-4">One Year Ago</h2>
                 <div className="px-4">
-                    <ItemStack items={matchingItems} onClick={handleClick} fullWidth />
+                    <ItemStack 
+                        items={matchingItems} 
+                        onClick={handleClick} 
+                        fullWidth
+                    />
                 </div>
             </div>
             {previewItemIndex !== null && (
