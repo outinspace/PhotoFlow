@@ -1,6 +1,5 @@
-import React from 'react';
 import { Modal } from "../common/modal";
-import { Album, Item } from '../types';
+import { Album } from '../types';
 import { useDeleteAlbum } from '../api/useDeleteAlbum';
 
 interface Props {

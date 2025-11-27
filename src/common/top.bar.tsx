@@ -1,6 +1,6 @@
 import { useRouter } from '@tanstack/react-router';
 import { ArrowLeft } from 'iconoir-react';
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 interface TopBarButton {
     icon: any;

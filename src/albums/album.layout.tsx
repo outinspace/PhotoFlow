@@ -1,4 +1,4 @@
-import React, { act, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAlbumsWithItems } from "../api/useAlbumsWithItems";
 import { useShareAlbum } from "../api/useShareAlbum";
 import ItemGrid from '../gallery/item.grid';

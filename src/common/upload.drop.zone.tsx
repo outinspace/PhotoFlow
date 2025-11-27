@@ -1,5 +1,5 @@
 import { ReactNode } from '@tanstack/react-router';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { uploadFiles } from '../api/uploadFiles';
 
 interface Props {

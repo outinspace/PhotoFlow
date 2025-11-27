@@ -2,7 +2,7 @@ import {
     QueryClient,
 } from '@tanstack/react-query'
 import styled from '@emotion/styled';
-import React, { StrictMode, useEffect } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './routes';
 import { get, set, del } from "idb-keyval";

@@ -1,5 +1,5 @@
-import { CreditCard, LogOut, ProfileCircle, Refresh, RefreshDouble, Restart, Trash } from 'iconoir-react';
-import React, { useMemo } from 'react';
+import { CreditCard, LogOut, Refresh, RefreshDouble, Trash } from 'iconoir-react';
+import { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';

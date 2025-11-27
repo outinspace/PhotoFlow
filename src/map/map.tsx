@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Leaflet, { Icon, LatLngExpression } from 'leaflet';
@@ -112,14 +112,14 @@ const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProp
         // add the marker cluster group to the map
         map.addLayer(markerClusterGroup);
 
-        markerClusterGroup.on('click', e => {
+        markerClusterGroup.on('click', (e: any) => {
             const marker = e.sourceTarget;
 
             onSelectItems([marker.options.item]);
         });
 
-        markerClusterGroup.on('clusterclick', e => {
-            const items = e.sourceTarget.getAllChildMarkers().map(marker => marker.options.item);
+        markerClusterGroup.on('clusterclick', (e: any) => {
+            const items = e.sourceTarget.getAllChildMarkers().map((marker: any) => marker.options.item);
 
             onSelectItems(items);
         });

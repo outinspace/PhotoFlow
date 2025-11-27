@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGallery } from "../api/useGallery";
 import { TopBar } from '../common/top.bar';
 import { formatBytes } from '../common/format.helpers';
@@ -10,22 +9,10 @@ export const Billing = () => {
     const totalBytes = items.reduce((bytes, item) => bytes + item.totalBytes, 0);
 
     const itemCount = items.length;
-    const averageItemSize = itemCount > 0 ? totalBytes / itemCount : 0;
 
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-    const bytesLastMonth = items
-        .flatMap(item => item.files)
-        .filter(file => {
-            const uploadDate = new Date(file.uploadTimeUtc);
-            return uploadDate.getMonth() === lastMonth && uploadDate.getFullYear() === lastMonthYear;
-        })
-        .reduce((bytes, file) => bytes + file.sizeBytes, 0);
 
     const bytesThisMonth = items
         .flatMap(item => item.files)

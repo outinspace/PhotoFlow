@@ -1,4 +1,3 @@
-import React from 'react';
 import { publicItemRoute } from '../routes';
 import ItemPreview from './item.preview';
 import { expandGUID } from '../common/format.helpers';

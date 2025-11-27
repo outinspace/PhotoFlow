@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { animated, useTransition } from '@react-spring/web';
 
@@ -100,7 +100,7 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
 
                 ))}
             </>,
-            document.getElementById('modal-root')
+            document.getElementById('modal-root')!
         )}
     </>;
 }

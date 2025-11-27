@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal } from "../common/modal";
 import { useCreateAlbum } from '../api/useCreateAlbum';
 import { Item } from '../types';

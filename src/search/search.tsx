@@ -1,4 +1,3 @@
-import React from 'react';
 import PageHeader from '../common/page.header';
 
 const Search = () => {

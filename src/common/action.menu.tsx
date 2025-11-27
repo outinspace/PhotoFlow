@@ -1,5 +1,4 @@
 import { animated, useTransition } from '@react-spring/web';
-import React from 'react';
 
 interface Option {
     title: string;

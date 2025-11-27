@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
 import { useAlbums } from '../api/useAlbums';
@@ -29,10 +29,11 @@ interface FilterBarProps {
 
 export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
     const distinctValues = (selector: (i: Item) => string | number | null, isNumeric: boolean = false) => {
-        const valueMap = items.reduce((distinctValues, item) => {
-            distinctValues[selector(item) ?? ''] = true;
+        const valueMap: Record<string | number, boolean> = items.reduce((distinctValues, item) => {
+            const key = selector(item) ?? '';
+            distinctValues[key] = true;
             return distinctValues;
-        }, {});
+        }, {} as Record<string | number, boolean>);
 
         return Object.keys(valueMap)
             .filter(value => !!value)
@@ -100,7 +101,7 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
                 <select className={selectClasses} onChange={e => handleSelect({ month: e.target.value })}>
                     <option value=''>Month</option>
                     {months.map(month => (
-                        <option key={month} value={month}>{monthNames[month] ?? 'Unknown'}</option>
+                        <option key={month} value={month}>{monthNames[month as number] ?? 'Unknown'}</option>
                     ))}
                 </select>
                 <select className={selectClasses} onChange={e => handleSelect({ device: e.target.value })}>

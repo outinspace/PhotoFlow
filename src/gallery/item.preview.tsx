@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
 import { InfoCircle, Heart, HeartSolid, Xmark } from 'iconoir-react';

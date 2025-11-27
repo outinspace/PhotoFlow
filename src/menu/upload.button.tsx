@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { uploadFiles } from '../api/uploadFiles';
-import { CloudUpload, Upload } from 'iconoir-react';
+import { CloudUpload } from 'iconoir-react';
 
 const UploadButton = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);

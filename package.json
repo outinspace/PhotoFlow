@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "vite",
-    "build": "vite build"
+    "build": "tsc --noEmit && vite build"
   },
   "author": "",
   "license": "ISC",
@@ -39,10 +39,12 @@
     "@types/leaflet": "^1.9.14",
     "@types/leaflet.markercluster": "^1.5.5",
     "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.0.0",
     "postcss": "^8.5.1",
     "process": "^0.11.10",
     "tailwindcss": "^4.0.2",
+    "typescript": "^5.0.0",
     "vite": "^4.0.0",
     "vite-plugin-pwa": "^1.1.0"
   }

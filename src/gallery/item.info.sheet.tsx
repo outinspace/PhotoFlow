@@ -1,7 +1,6 @@
-import React from 'react';
 import { Item } from '../types';
 import { Download, MediaImage, MediaVideo, Camera, MapPin, Calendar, Cloud } from 'iconoir-react';
-import { Icon, LatLngExpression } from 'leaflet';
+import { LatLngExpression } from 'leaflet';
 import { formatBytes } from '../common/format.helpers';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';

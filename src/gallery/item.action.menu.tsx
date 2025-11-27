@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
-import { Modal } from '../common/modal';
 import { useRemoveItemsFromAlbum } from '../api/useRemoveItemsFromAlbum';
 import { useReprocessItem } from '../api/useReprocessItem';
 import { useReprocessItems } from '../api/useReprocessItems';

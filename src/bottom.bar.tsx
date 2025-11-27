@@ -1,6 +1,5 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
-import React from 'react';
-import { Book, Map, Menu, Search, ViewGrid } from 'iconoir-react';
+import { Book, Map, Menu, ViewGrid } from 'iconoir-react';
 
 const options = [
     {

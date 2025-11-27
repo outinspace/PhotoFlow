@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useGallery } from "../api/useGallery";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';

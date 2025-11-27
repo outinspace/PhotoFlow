@@ -1,6 +1,6 @@
 import { animated, useSpring, useTransition } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
-import React, { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import useMeasure from 'react-use-measure';
 
 interface Props {

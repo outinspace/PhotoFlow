@@ -1,16 +1,21 @@
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
+
+interface UseLongPressOptions {
+    shouldPreventDefault?: boolean;
+    delay?: number;
+}
 
 const useLongPress = (
-    onLongPress,
-    onClick,
-    { shouldPreventDefault = true, delay = 300 } = {}
+    onLongPress: (event: MouseEvent | TouchEvent) => void,
+    onClick: () => void,
+    { shouldPreventDefault = true, delay = 300 }: UseLongPressOptions = {}
     ) => {
     const [longPressTriggered, setLongPressTriggered] = useState(false);
     const timeout = useRef<number>();
     const target = useRef<EventTarget>();
 
     const start = useCallback(
-        event => {
+        (event: MouseEvent | TouchEvent) => {
             if (shouldPreventDefault && event.target) {
                     event.target.addEventListener("touchend", preventDefault, {
                     passive: false
@@ -26,7 +31,7 @@ const useLongPress = (
     );
 
     const clear = useCallback(
-        (event, shouldTriggerClick = true) => {
+        (_event: MouseEvent | TouchEvent, shouldTriggerClick = true) => {
             timeout.current && clearTimeout(timeout.current);
             shouldTriggerClick && !longPressTriggered && onClick();
             setLongPressTriggered(false);
@@ -38,19 +43,19 @@ const useLongPress = (
     );
 
     return {
-        onMouseDown: e => start(e),
-        onTouchStart: e => start(e),
-        onMouseUp: e => clear(e),
-        onMouseLeave: e => clear(e, false),
-        onTouchEnd: e => clear(e)
+        onMouseDown: (e: React.MouseEvent) => start(e.nativeEvent),
+        onTouchStart: (e: React.TouchEvent) => start(e.nativeEvent),
+        onMouseUp: (e: React.MouseEvent) => clear(e.nativeEvent),
+        onMouseLeave: (e: React.MouseEvent) => clear(e.nativeEvent, false),
+        onTouchEnd: (e: React.TouchEvent) => clear(e.nativeEvent)
     };
 };
 
-const isTouchEvent = event => {
+const isTouchEvent = (event: Event): event is TouchEvent => {
 return "touches" in event;
 };
 
-const preventDefault = event => {
+const preventDefault = (event: Event) => {
 if (!isTouchEvent(event)) return;
 
 if (event.touches.length < 2 && event.preventDefault) {

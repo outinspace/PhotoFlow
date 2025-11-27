@@ -1,4 +1,3 @@
-import React from 'react';
 import ItemGrid from "./item.grid";
 import { useGallery } from '../api/useGallery';
 import { UploadDropZone } from '../common/upload.drop.zone';

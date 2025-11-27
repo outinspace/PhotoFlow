@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Item } from '../types';
-import { useEffect } from 'react';
 import { HeartSolid } from 'iconoir-react';
 
 interface Props {

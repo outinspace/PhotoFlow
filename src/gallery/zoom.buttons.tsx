@@ -1,4 +1,3 @@
-import React from 'react';
 import { ZoomIn, ZoomOut } from 'iconoir-react';
 
 interface Props {

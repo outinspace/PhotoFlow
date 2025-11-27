@@ -3,12 +3,12 @@ import L from "leaflet";
 import "leaflet.markercluster";
 
 L.MarkerClusterGroup.include({
-  _flushLayerBuffer() {
+  _flushLayerBuffer(this: any) {
     this.addLayers(this._layerBuffer);
     this._layerBuffer = [];
   },
 
-  addLayer(layer) {
+  addLayer(this: any, layer: any) {
     if (this._layerBuffer.length === 0) {
       setTimeout(this._flushLayerBuffer.bind(this), 50);
     }
@@ -16,14 +16,14 @@ L.MarkerClusterGroup.include({
   },
 });
 
-L.MarkerClusterGroup.addInitHook(function () {
+L.MarkerClusterGroup.addInitHook(function (this: any) {
   this._layerBuffer = [];
 });
 
 // eslint-disable-next-line no-unused-vars
-function createMarkerCluster({ children: _c, ...props }, context) {
-  const clusterProps = {};
-  const clusterEvents = {};
+function createMarkerCluster({ children: _c, ...props }: any, context: any) {
+  const clusterProps: Record<string, any> = {};
+  const clusterEvents: Record<string, any> = {};
 
   // Splitting props and events to different objects
   Object.entries(props).forEach(([propName, prop]) =>
@@ -36,7 +36,7 @@ function createMarkerCluster({ children: _c, ...props }, context) {
   // Initializing event listeners
   Object.entries(clusterEvents).forEach(([eventAsProp, callback]) => {
     const clusterEvent = `cluster${eventAsProp.substring(2).toLowerCase()}`;
-    instance.on(clusterEvent, callback);
+    instance.on(clusterEvent, callback as any);
   });
   return {
     instance,

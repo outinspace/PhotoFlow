@@ -1,4 +1,3 @@
-import React from 'react';
 import { ReactNode, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import Gallery from "./gallery/gallery";
 import Login from "./login/login";

@@ -1,4 +1,3 @@
-import React from 'react';
 import { publicAlbumRoute } from '../routes';
 import { expandGUID } from '../common/format.helpers';
 import { usePublicAlbum } from '../api/usePublicAlbum';
