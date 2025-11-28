@@ -91,9 +91,9 @@ const Albums = () => {
             </div>
             {viewMode === 'thumbnail' ? (
                 <div
-                    className='w-full grid justify-items-center justify-around md:justify-normal'
+                    className='w-full grid justify-items-center justify-around'
                     style={{
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min-content, 150px))'
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'
                     }}
                 >
                     {sortedAlbums.map(album => (
