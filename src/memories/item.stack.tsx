@@ -18,8 +18,8 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
         const favoritedItems = items.filter(item => item.isFavorite);
 
         if (favoritedItems.length > 0) {
-            const randomFavorite = favoritedItems[Math.floor(Math.random() * favoritedItems.length)];
-            return items.findIndex(item => item.itemId === randomFavorite.itemId);
+            const firstFavorite = favoritedItems[0];
+            return items.findIndex(item => item.itemId === firstFavorite.itemId);
         }
 
         return Math.floor(Math.random() * items.length);
@@ -34,8 +34,8 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
 
             let newRandomIndex: number;
             if (favoritedItems.length > 0) {
-                const randomFavorite = favoritedItems[Math.floor(Math.random() * favoritedItems.length)];
-                newRandomIndex = items.findIndex(item => item.itemId === randomFavorite.itemId);
+                const firstFavorite = favoritedItems[0];
+                newRandomIndex = items.findIndex(item => item.itemId === firstFavorite.itemId);
             } else {
                 newRandomIndex = Math.floor(Math.random() * items.length);
             }
