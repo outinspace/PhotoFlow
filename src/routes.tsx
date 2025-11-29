@@ -1,29 +1,39 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import Gallery from "./gallery/gallery";
 import Login from "./login/login";
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
 import Map from './map/map';
-import Home from './home/home';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
-import { YearLayout } from './home/year.layout';
-import { TripLayout } from './home/trip.layout';
 import { NavigationLayout } from "./navigation.layout";
+import MemoriesLayout from "./memories/memories.layout";
+import { TripLayout } from "./memories/trip.layout";
+import { YearLayout } from "./memories/year.layout";
 
 export const rootRoute = createRootRoute();
 
-export const homeRoute = createRoute({
+export const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
+    beforeLoad: () => {
+        throw redirect({
+            to: '/gallery',
+        });
+    }
+});
+
+export const homeRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/memories',
     component: () => (
         <NavigationLayout>
-            <Home />
+            <MemoriesLayout />
         </NavigationLayout>
     )
 });
@@ -161,6 +171,7 @@ export const publicAlbumRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+    indexRoute,
     homeRoute,
     galleryRoute,
     loginRoute,

@@ -3,7 +3,7 @@ import { Years } from './years';
 import { Trips } from './trips';
 import { Albums } from './albums';
 
-const Home = () => {
+const MemoriesLayout = () => {
     return (
         <div className="flex flex-auto flex-col py-4">
             <OneYearAgo />
@@ -14,5 +14,5 @@ const Home = () => {
     );
 };
 
-export default Home;
+export default MemoriesLayout;
 
