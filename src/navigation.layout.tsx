@@ -1,11 +1,11 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
-import { Book, Map, Menu, ViewGrid, Home as HomeIcon } from 'iconoir-react';
+import { Map, Menu, ViewGrid, Home as HomeIcon } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
 import { ReactNode } from 'react';
 
 const options = [
     {
-        name: 'Home',
+        name: 'Memories',
         route: '/',
         icon: HomeIcon
     },
@@ -18,11 +18,6 @@ const options = [
         name: 'Map',
         route: '/map',
         icon: Map
-    },
-    {
-        name: 'Albums',
-        route: '/albums',
-        icon: Book
     },
     {
         name: 'Menu',
