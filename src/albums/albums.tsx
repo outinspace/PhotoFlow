@@ -4,6 +4,7 @@ import { useAlbumsWithItems } from '../api/useAlbumsWithItems';
 import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 import { ViewGrid, List } from 'iconoir-react';
+import { parseISO } from 'date-fns';
 
 type SortOption = 'modified-recent' | 'name-asc';
 type ViewMode = 'thumbnail' | 'list';
@@ -40,9 +41,17 @@ const Albums = () => {
         return albumsCopy.sort((a, b) => {
             switch (sortOption) {
                 case 'modified-recent': {
-                    const aTime = a.updatedTimeUtc || a.createdTimeUtc;
-                    const bTime = b.updatedTimeUtc || b.createdTimeUtc;
-                    return bTime.localeCompare(aTime);
+                    // Get the most recent photo from each album
+                    const getMostRecentPhotoTime = (album: AlbumWithItems) => {
+                        if (album.items.length === 0) return 0;
+                        return Math.max(...album.items.map(item => parseISO(item.captureTime).getTime()));
+                    };
+                    
+                    const aTime = getMostRecentPhotoTime(a);
+                    const bTime = getMostRecentPhotoTime(b);
+                    
+                    // Sort by most recent photo (descending)
+                    return bTime - aTime;
                 }
                 case 'name-asc':
                     return a.name.localeCompare(b.name);
