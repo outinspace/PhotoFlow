@@ -5,6 +5,7 @@ import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 import { ViewGrid, List } from 'iconoir-react';
 import { parseISO } from 'date-fns';
+import { TopBar } from '../common/top.bar';
 
 type SortOption = 'modified-recent' | 'name-asc';
 type ViewMode = 'thumbnail' | 'list';
@@ -46,10 +47,10 @@ const Albums = () => {
                         if (album.items.length === 0) return 0;
                         return Math.max(...album.items.map(item => parseISO(item.captureTime).getTime()));
                     };
-                    
+
                     const aTime = getMostRecentPhotoTime(a);
                     const bTime = getMostRecentPhotoTime(b);
-                    
+
                     // Sort by most recent photo (descending)
                     return bTime - aTime;
                 }
@@ -66,56 +67,60 @@ const Albums = () => {
     }
 
     return (
-        <div className='p-5'>
-            <PageHeader name='Albums' />
-            <div className='mb-4 flex items-center gap-4 justify-between'>
-                <select
-                    className='bg-slate-100 p-2 rounded-lg'
-                    value={sortOption}
-                    onChange={e => setSortOption(e.target.value as SortOption)}
-                >
-                    <option value='modified-recent'>Sort by Modified Date</option>
-                    <option value='name-asc'>Sort by Name</option>
-                </select>
-                <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
-                    <button
-                        className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
-                            ? 'bg-slate-200 text-sky-500'
-                            : 'bg-slate-100 hover:bg-slate-200'
-                            }`}
-                        onClick={() => setViewMode('thumbnail')}
+        <div className='flex flex-auto flex-col overflow-hidden'>
+            <TopBar
+                title='Albums'
+            />
+            <div className='flex flex-col overflow-auto'>
+                <div className='m-4 flex items-center gap-4 justify-between'>
+                    <select
+                        className='bg-slate-100 p-2 rounded-lg'
+                        value={sortOption}
+                        onChange={e => setSortOption(e.target.value as SortOption)}
                     >
-                        <ViewGrid className='size-5' />
-                    </button>
-                    <button
-                        className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
-                            ? 'bg-slate-200 text-sky-500'
-                            : 'bg-slate-100 hover:bg-slate-200'
-                            }`}
-                        onClick={() => setViewMode('list')}
-                    >
-                        <List className='size-5' />
-                    </button>
+                        <option value='modified-recent'>Sort by Modified Date</option>
+                        <option value='name-asc'>Sort by Name</option>
+                    </select>
+                    <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
+                        <button
+                            className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
+                                ? 'bg-slate-200 text-sky-500'
+                                : 'bg-slate-100 hover:bg-slate-200'
+                                }`}
+                            onClick={() => setViewMode('thumbnail')}
+                        >
+                            <ViewGrid className='size-5' />
+                        </button>
+                        <button
+                            className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
+                                ? 'bg-slate-200 text-sky-500'
+                                : 'bg-slate-100 hover:bg-slate-200'
+                                }`}
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className='size-5' />
+                        </button>
+                    </div>
                 </div>
+                {viewMode === 'thumbnail' ? (
+                    <div
+                        className='w-full p-4 grid justify-items-center justify-around'
+                        style={{
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'
+                        }}
+                    >
+                        {sortedAlbums.map(album => (
+                            <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className='w-full p-4'>
+                        {sortedAlbums.map(album => (
+                            <AlbumListItem key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
+                        ))}
+                    </div>
+                )}
             </div>
-            {viewMode === 'thumbnail' ? (
-                <div
-                    className='w-full grid justify-items-center justify-around'
-                    style={{
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'
-                    }}
-                >
-                    {sortedAlbums.map(album => (
-                        <AlbumCover key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
-                    ))}
-                </div>
-            ) : (
-                <div className='w-full'>
-                    {sortedAlbums.map(album => (
-                        <AlbumListItem key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
