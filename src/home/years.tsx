@@ -52,7 +52,6 @@ export const Years = () => {
                                     <ItemStack
                                         items={yearItems}
                                         onClick={() => handleYearClick(year)}
-                                        staticMode
                                     />
                                     <div className="mt-2 text-sm font-medium">{year}</div>
                                 </div>

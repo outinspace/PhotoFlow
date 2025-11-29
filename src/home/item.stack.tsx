@@ -6,31 +6,31 @@ interface Props {
     onClick?: (currentIndex: number) => void;
     width?: string | number;
     fullWidth?: boolean;
-    staticMode?: boolean;
+    animate?: boolean;
 }
 
-export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, staticMode = false }: Props) => {
-    // In static mode, pick a random index once
+export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, animate = false }: Props) => {
+    // In static mode (animate=false), pick a random index once
     const randomIndex = useMemo(() => {
-        if (staticMode && items.length > 0) {
+        if (!animate && items.length > 0) {
             return Math.floor(Math.random() * items.length);
         }
         return 0;
-    }, [staticMode, items.length]);
+    }, [animate, items.length]);
 
-    const [currentImageIndex, setCurrentImageIndex] = useState(staticMode ? randomIndex : 0);
+    const [currentImageIndex, setCurrentImageIndex] = useState(!animate ? randomIndex : 0);
 
     // Update random index when items change in static mode
     useEffect(() => {
-        if (staticMode && items.length > 0) {
+        if (!animate && items.length > 0) {
             const newRandomIndex = Math.floor(Math.random() * items.length);
             setCurrentImageIndex(newRandomIndex);
         }
-    }, [staticMode, items.length]);
+    }, [animate, items.length]);
 
-    // Auto-rotate images every second (only if not in static mode)
+    // Auto-rotate images every second (only if animate is true)
     useEffect(() => {
-        if (staticMode || items.length <= 1) return;
+        if (!animate || items.length <= 1) return;
 
         const interval = setInterval(() => {
             setCurrentImageIndex((prevIndex) => 
@@ -39,7 +39,7 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
         }, 2000);
 
         return () => clearInterval(interval);
-    }, [staticMode, items.length]);
+    }, [animate, items.length]);
 
     if (items.length === 0) {
         return null;
@@ -54,7 +54,7 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
 
     const prevIndex = getIndex(-1);
     const nextIndex = getIndex(1);
-    const indicesToRender = staticMode || items.length === 1
+    const indicesToRender = !animate || items.length === 1
         ? [currentImageIndex]
         : [prevIndex, currentImageIndex, nextIndex];
 
@@ -76,7 +76,7 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
                             className="absolute inset-0 w-full h-full object-cover"
                             style={{
                                 opacity: isActive ? 1 : 0,
-                                transition: staticMode ? 'none' : 'opacity 0.5s ease-in-out',
+                                transition: !animate ? 'none' : 'opacity 0.5s ease-in-out',
                             }}
                         />
                     );

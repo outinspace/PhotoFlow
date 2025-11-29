@@ -32,7 +32,6 @@ export const Trips = () => {
                                     <ItemStack
                                         items={trip.items}
                                         onClick={() => handleTripClick(trip.tripId)}
-                                        staticMode
                                     />
                                     <div className="mt-2 text-sm font-medium text-center max-w-[300px]">
                                         {trip.name}

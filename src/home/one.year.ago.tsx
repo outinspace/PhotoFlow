@@ -86,6 +86,7 @@ export const OneYearAgoToday = () => {
                         items={matchingItems} 
                         onClick={handleClick} 
                         fullWidth
+                        animate
                     />
                 </div>
             </div>
