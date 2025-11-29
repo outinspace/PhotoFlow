@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useGallery } from "./useGallery";
 import { Item } from "../types";
-import { parseISO, format, differenceInHours } from "date-fns";
+import { parseISO, format } from "date-fns";
 
 export interface Trip {
     tripId: string;
@@ -13,9 +13,9 @@ export interface Trip {
     region: string | null;
 }
 
-const STALE_TIME_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CLUSTERING_TIME_WINDOW_HOURS = 7 * 24; // 1 week - photos within this window can be clustered
-const MAX_TRIP_DURATION_HOURS = 3 * 30 * 24; // 3 months (≈ 2160 hours) - filter out trips longer than this
+const STALE_TIME_MS = 1 * 24 * 60 * 60 * 1000; // 1 days
+const CLUSTERING_TIME_WINDOW_HOURS = 7 * 24; // 1 week
+const MAX_TRIP_DURATION_HOURS = 3 * 30 * 24; // 3 months
 const MIN_TRIP_PHOTOS = 20;
 const MAX_TRIP_PHOTOS = 1000;
 const GRID_CELL_SIZE = 0.5; // degrees (≈ 55km at equator)
@@ -37,10 +37,6 @@ const getLocationKey = (item: Item): LocationKey => ({
     city: item.city,
     region: item.region
 });
-
-const locationKeyEquals = (a: LocationKey, b: LocationKey): boolean => {
-    return a.city === b.city && a.region === b.region;
-};
 
 const getGridCell = (lat: number, lon: number): { lat: number; lon: number } => {
     return {
@@ -301,7 +297,7 @@ export const useTrips = () => {
     
     return useQuery({
         queryKey: ['trips', gallery?.items.length ?? 0],
-        // staleTime: STALE_TIME_MS,
+        staleTime: STALE_TIME_MS,
         queryFn: () => {
             if (!gallery?.items) {
                 return [];
