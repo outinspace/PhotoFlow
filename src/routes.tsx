@@ -13,6 +13,7 @@ import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
 import { YearLayout } from './home/year.layout';
+import { TripLayout } from './home/trip.layout';
 import { NavigationLayout } from "./navigation.layout";
 
 export const rootRoute = createRootRoute();
@@ -79,6 +80,16 @@ export const yearRoute = createRoute({
     component: () => (
         <NavigationLayout>
             <YearLayout />
+        </NavigationLayout>
+    )
+});
+
+export const tripRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/trip/$tripId',
+    component: () => (
+        <NavigationLayout>
+            <TripLayout />
         </NavigationLayout>
     )
 });
@@ -157,6 +168,7 @@ const routeTree = rootRoute.addChildren([
     albumsRoute,
     albumRoute,
     yearRoute,
+    tripRoute,
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,
