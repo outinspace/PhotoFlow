@@ -83,18 +83,37 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
                 {indicesToRender.map((index) => {
                     const item = items[index];
                     const isActive = index === currentImageIndex;
-                    const isVideo = item.type === 'video';
+                    const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
+                    const tileImageUrl = item.primaryFile.tileImageUrl ?? undefined;
+                    const previewImageUrl = imageFile?.previewUrl ?? undefined;
+
                     return (
-                        <img
-                            key={item.itemId}
-                            src={(isVideo ? item.primaryFile.tileImageUrl : item.primaryFile.previewUrl) ?? undefined}
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{
-                                opacity: isActive ? 1 : 0,
-                                transition: !animate ? 'none' : 'opacity 0.5s ease-in-out',
-                            }}
-                        />
+                        <div key={item.itemId} className="absolute inset-0 w-full h-full">
+                            <img
+                                src={tileImageUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    zIndex: 1,
+                                    opacity: isActive ? 1 : 0,
+                                    transition: !animate ? 'none' : 'opacity 0.5s ease-in-out',
+                                }}
+                            />
+                            <img
+                                src={previewImageUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    zIndex: 2,
+                                    opacity: isActive ? 1 : 0,
+                                    transition: !animate ? 'none' : 'opacity 0.5s ease-in-out',
+                                }}
+                            />
+                        </div>
                     );
                 })}
                 <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium">
