@@ -10,23 +10,39 @@ interface Props {
 }
 
 export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, animate = false }: Props) => {
-    // In static mode (animate=false), pick a random index once
-    const randomIndex = useMemo(() => {
-        if (!animate && items.length > 0) {
-            return Math.floor(Math.random() * items.length);
+    const randomItemIndex = useMemo(() => {
+        if (items.length === 0) {
+            return 0;
         }
-        return 0;
-    }, [animate, items.length]);
 
-    const [currentImageIndex, setCurrentImageIndex] = useState(!animate ? randomIndex : 0);
+        const favoritedItems = items.filter(item => item.isFavorite);
+
+        if (favoritedItems.length > 0) {
+            const randomFavorite = favoritedItems[Math.floor(Math.random() * favoritedItems.length)];
+            return items.findIndex(item => item.itemId === randomFavorite.itemId);
+        }
+
+        return Math.floor(Math.random() * items.length);
+    }, [items]);
+
+    const [currentImageIndex, setCurrentImageIndex] = useState(!animate ? randomItemIndex : 0);
 
     // Update random index when items change in static mode
     useEffect(() => {
         if (!animate && items.length > 0) {
-            const newRandomIndex = Math.floor(Math.random() * items.length);
+            const favoritedItems = items.filter(item => item.isFavorite);
+
+            let newRandomIndex: number;
+            if (favoritedItems.length > 0) {
+                const randomFavorite = favoritedItems[Math.floor(Math.random() * favoritedItems.length)];
+                newRandomIndex = items.findIndex(item => item.itemId === randomFavorite.itemId);
+            } else {
+                newRandomIndex = Math.floor(Math.random() * items.length);
+            }
+
             setCurrentImageIndex(newRandomIndex);
         }
-    }, [animate, items.length]);
+    }, [animate, items]);
 
     // Auto-rotate images every second (only if animate is true)
     useEffect(() => {
