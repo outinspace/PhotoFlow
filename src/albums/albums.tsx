@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from 'react';
-import PageHeader from '../common/page.header';
 import { useAlbumsWithItems } from '../api/useAlbumsWithItems';
 import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
