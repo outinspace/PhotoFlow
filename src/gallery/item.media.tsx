@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import { nonSelectable } from '../styles';
 import { useLongPress } from 'use-long-press';
+import { useAutoplayLivePhotos } from '../hooks/use.autoplay.live.photos';
 
 const zIndex = {
     controls: 10,
@@ -18,6 +19,7 @@ interface Props {
 const ItemMedia = ({ item, isPrimary }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+    const { enabled: autoplayLivePhotos } = useAutoplayLivePhotos();
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
@@ -64,7 +66,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                     src={imageFile.previewUrl ?? undefined}
                 />
             </>}
-            {isLivePhoto && showLivePhoto && isPrimary && (
+            {isLivePhoto && showLivePhoto && isPrimary && !autoplayLivePhotos && (
                 <video
                     autoPlay
                     controls={false}
@@ -82,7 +84,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>
             )}
-            {videoFile && !isLivePhoto && (
+            {videoFile && (!isLivePhoto || autoplayLivePhotos) && (
                 <video
                     ref={videoRef}
                     controls

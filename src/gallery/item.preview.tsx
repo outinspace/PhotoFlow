@@ -13,6 +13,7 @@ import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
+import { usePhotoAnimations } from '../hooks/use.photo.animations';
 
 interface Props {
     items: Item[];
@@ -30,6 +31,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const [isAnimating, setIsAnimating] = useState(false);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
+    const { enabled: photoAnimationsEnabled } = usePhotoAnimations();
 
     const item: Item | undefined = items[itemIndex];
 
@@ -150,28 +152,40 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     if (onMoveNext) {
         animateMoveNext = async () => {
             if (isAnimating) return;
-            setIsAnimating(true);
-            await Promise.all(swipeApi.start({
-                x: -window.innerWidth,
-                config: { tension: 500, clamp: true }
-            }));
-            onMoveNext();
-            swipeApi.start({ x: 0, immediate: true }); // Reset position
-            setIsAnimating(false);
+            
+            if (photoAnimationsEnabled) {
+                setIsAnimating(true);
+                await Promise.all(swipeApi.start({
+                    x: -window.innerWidth,
+                    config: { tension: 500, clamp: true }
+                }));
+                onMoveNext();
+                swipeApi.start({ x: 0, immediate: true }); // Reset position
+                setIsAnimating(false);
+            } else {
+                // No animation, just move immediately
+                onMoveNext();
+            }
         };
     }
 
     if (onMovePrevious) {
         animateMovePrev = async () => {
             if (isAnimating) return;
-            setIsAnimating(true);
-            await Promise.all(swipeApi.start({
-                x: window.innerWidth,
-                config: { tension: 500, clamp: true }
-            }));
-            onMovePrevious();
-            swipeApi.start({ x: 0, immediate: true }); // Reset position
-            setIsAnimating(false);
+            
+            if (photoAnimationsEnabled) {
+                setIsAnimating(true);
+                await Promise.all(swipeApi.start({
+                    x: window.innerWidth,
+                    config: { tension: 500, clamp: true }
+                }));
+                onMovePrevious();
+                swipeApi.start({ x: 0, immediate: true }); // Reset position
+                setIsAnimating(false);
+            } else {
+                // No animation, just move immediately
+                onMovePrevious();
+            }
         };
     }
 

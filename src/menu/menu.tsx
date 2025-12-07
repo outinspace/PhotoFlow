@@ -1,4 +1,4 @@
-import { CreditCard, LogOut, Refresh, RefreshDouble, Trash } from 'iconoir-react';
+import { CreditCard, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
 import { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -10,6 +10,14 @@ import { queryClient } from '../app';
 import UploadButton from './upload.button';
 
 const options = [
+    {
+        name: 'Settings',
+        icon: Settings,
+        debug: false,
+        onClick: () => {
+            router.navigate({ to: '/settings' });
+        }
+    },
     {
         name: 'Recently Deleted Items',
         icon: Trash,

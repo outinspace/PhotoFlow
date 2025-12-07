@@ -7,6 +7,7 @@ import Menu from './menu/menu';
 import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
+import Settings from './menu/settings';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
@@ -154,6 +155,16 @@ export const itemsInProcessRoute = createRoute({
     )
 });
 
+export const settingsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/settings',
+    component: () => (
+        <NavigationLayout>
+            <Settings />
+        </NavigationLayout>
+    )
+});
+
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
@@ -185,6 +196,7 @@ const routeTree = rootRoute.addChildren([
     recentlyDeletedRoute,
     billingRoute,
     itemsInProcessRoute,
+    settingsRoute,
     publicItemRoute,
     publicAlbumRoute
 ]);
