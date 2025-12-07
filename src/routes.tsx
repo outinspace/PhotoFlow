@@ -16,6 +16,7 @@ import { NavigationLayout } from "./navigation.layout";
 import MemoriesLayout from "./memories/memories.layout";
 import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
+import { getDefaultToMemories } from "./hooks/use.default.to.memories";
 
 export const rootRoute = createRootRoute();
 
@@ -23,8 +24,9 @@ export const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     beforeLoad: () => {
+        const defaultToMemories = getDefaultToMemories();
         throw redirect({
-            to: '/gallery',
+            to: defaultToMemories ? '/memories' : '/gallery',
         });
     }
 });

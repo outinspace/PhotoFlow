@@ -3,6 +3,7 @@ import { Item } from '../types';
 import { nonSelectable } from '../styles';
 import { useLongPress } from 'use-long-press';
 import { useAutoplayLivePhotos } from '../hooks/use.autoplay.live.photos';
+import { useAutoplayVideos } from '../hooks/use.autoplay.videos';
 
 const zIndex = {
     controls: 10,
@@ -20,18 +21,19 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const { enabled: autoplayLivePhotos } = useAutoplayLivePhotos();
+    const { enabled: autoplayVideos } = useAutoplayVideos();
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
 
     useEffect(() => {
-        if (isPrimary) {
+        if (isPrimary && autoplayVideos) {
             videoRef.current?.play();
         } else {
             videoRef.current?.pause();
         }
-    }, [isPrimary, videoRef]);
+    }, [isPrimary, autoplayVideos, videoRef]);
 
     const longPressHandlers = useLongPress(() => {
         setShowLivePhoto(true);
