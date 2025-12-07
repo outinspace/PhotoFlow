@@ -19,7 +19,10 @@ interface Props {
 
 const ItemMedia = ({ item, isPrimary }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const livePhotoVideoRef = useRef<HTMLVideoElement>(null);
     const [showLivePhoto, setShowLivePhoto] = useState(false);
+    const [showSmoothAnimation, setShowSmoothAnimation] = useState(false);
+    const [isFadingOut, setIsFadingOut] = useState(false);
     const { enabled: autoplayLivePhotos } = useAutoplayLivePhotos();
     const { enabled: autoplayVideos } = useAutoplayVideos();
 
@@ -34,6 +37,82 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
             videoRef.current?.pause();
         }
     }, [isPrimary, autoplayVideos, videoRef]);
+
+    useEffect(() => {
+        if (isPrimary && autoplayLivePhotos && isLivePhoto) {
+            setShowSmoothAnimation(true);
+        } else {
+            setShowSmoothAnimation(false);
+        }
+    }, [isPrimary, autoplayLivePhotos, isLivePhoto]);
+
+    useEffect(() => {
+        if (!livePhotoVideoRef.current || !isLivePhoto) return;
+
+        const video = livePhotoVideoRef.current;
+
+        if (showLivePhoto && isPrimary) {
+            video.currentTime = 0;
+            video.play().catch(() => {
+                setShowLivePhoto(false);
+            });
+        } else if (showSmoothAnimation) {
+            setIsFadingOut(false);
+            
+            let timeoutId: ReturnType<typeof setTimeout> | null = null;
+            let fadeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+            
+            const handleCanPlay = () => {
+                timeoutId = setTimeout(() => {
+                    setIsFadingOut(true);
+                    fadeTimeoutId = setTimeout(() => {
+                        video.pause();
+                        setShowSmoothAnimation(false);
+                        setIsFadingOut(false);
+                    }, 300);
+                }, 300);
+            };
+
+            const handleLoadedMetadata = () => {
+                const duration = video.duration;
+                if (duration > 0) {
+                    const halfwayPoint = duration / 2;
+                    const startTime = Math.max(0, halfwayPoint - 0.3);
+                    video.currentTime = startTime;
+                    
+                    const playPromise = video.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(() => {
+                            setShowSmoothAnimation(false);
+                        });
+                    }
+                    
+                    if (video.readyState >= 3) {
+                        handleCanPlay();
+                    } else {
+                        video.addEventListener('canplay', handleCanPlay, { once: true });
+                    }
+                }
+            };
+
+            if (video.readyState >= 2) {
+                handleLoadedMetadata();
+            } else {
+                video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+            }
+
+            return () => {
+                if (timeoutId) clearTimeout(timeoutId);
+                if (fadeTimeoutId) clearTimeout(fadeTimeoutId);
+                video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                video.removeEventListener('canplay', handleCanPlay);
+                video.pause();
+            };
+        } else {
+            video.pause();
+        }
+    }, [showLivePhoto, showSmoothAnimation, isPrimary, isLivePhoto]);
 
     const longPressHandlers = useLongPress(() => {
         setShowLivePhoto(true);
@@ -68,28 +147,33 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                     src={imageFile.previewUrl ?? undefined}
                 />
             </>}
-            {isLivePhoto && showLivePhoto && isPrimary && !autoplayLivePhotos && (
+            {isLivePhoto && (
                 <video
-                    autoPlay
+                    ref={livePhotoVideoRef}
                     controls={false}
                     playsInline
-                    className={nonSelectable}
+                    preload={autoplayLivePhotos ? "auto" : "none"}
+                    className={`${nonSelectable} transition-opacity duration-300 ${(showLivePhoto || (showSmoothAnimation && !isFadingOut)) ? 'opacity-100' : 'opacity-0'}`}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
                         height: '100%',
                         width: '100%',
-                        zIndex: zIndex.previewVideo
+                        zIndex: zIndex.previewVideo,
+                        pointerEvents: (showLivePhoto || showSmoothAnimation) ? 'auto' : 'none'
                     }}
-                    onEnded={() => setShowLivePhoto(false)}
+                    onEnded={() => {
+                        if (showLivePhoto) {
+                            setShowLivePhoto(false);
+                        }
+                    }}
                 >
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>
             )}
-            {videoFile && (!isLivePhoto || autoplayLivePhotos) && (
+            {videoFile && !isLivePhoto && (
                 <video
                     ref={videoRef}
-                    controls={!isLivePhoto}
                     playsInline
                     style={{
                         position: 'absolute',
@@ -98,7 +182,6 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         width: '100%',
                         zIndex: zIndex.previewVideo
                     }}
-                    onEnded={() => setShowLivePhoto(false)}
                 >
                     <source src={videoFile.previewUrl ?? undefined} />
                 </video>

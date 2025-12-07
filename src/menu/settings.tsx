@@ -41,9 +41,9 @@ const Settings = () => {
                 <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
                     <div className='flex items-center justify-between mb-2'>
                         <div>
-                            <div className='font-medium text-slate-900'>Autoplay Live Photos</div>
+                            <div className='font-medium text-slate-900'>Smooth Live Photo Animations</div>
                             <div className='text-sm text-slate-600 mt-1'>
-                                Automatically play live photo videos when viewing photos in preview
+                                Play a brief animation when viewing live photos in preview
                             </div>
                         </div>
                         <button
