@@ -89,7 +89,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
             {videoFile && (!isLivePhoto || autoplayLivePhotos) && (
                 <video
                     ref={videoRef}
-                    controls
+                    controls={!isLivePhoto}
                     playsInline
                     style={{
                         position: 'absolute',
