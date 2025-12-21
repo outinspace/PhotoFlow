@@ -21,6 +21,7 @@ export const PublicItemLayout = () => {
             itemIndex={0}
             items={[item]}
             albumId={null}
+            tenantId={tenantId}
         />
     );
 }

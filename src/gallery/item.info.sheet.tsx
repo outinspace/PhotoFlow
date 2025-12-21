@@ -13,9 +13,10 @@ interface Props {
     item: Item;
     isOpen: boolean;
     onDismiss: () => any;
+    tenantId?: string;
 }
 
-const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
+const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
     return (
         <BottomSheet
             isOpen={isOpen}
@@ -137,7 +138,7 @@ const FileMetadata = ({ item }: { item: Item }) => {
                             {formatBytes(file.sizeBytes)}
                         </div>
                         <div className='border-l border-slate-200 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => downloadFile(file.fileId)} />
+                            <Download onClick={() => downloadFile(file.fileId, tenantId)} />
                         </div>
                     </div>
                 ))}

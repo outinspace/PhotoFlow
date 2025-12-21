@@ -23,9 +23,10 @@ interface Props {
     onActionCompleted?: Function;
     position: 'top' | 'bottom';
     readonly: boolean;
+    tenantId?: string;
 }
 
-export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly }: Props) => {
+export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly, tenantId }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
@@ -101,7 +102,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
             visible: !showSharingOptions,
             icon: Download,
             className: '',
-            onClick: () => downloadFiles(items)
+            onClick: () => downloadFiles(items, tenantId)
         },
         {
             title: `Share ${items.length === 1 ? 'File' : 'Files'}`,

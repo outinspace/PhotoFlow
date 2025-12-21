@@ -2,17 +2,16 @@ import toast from "react-hot-toast";
 import { Item } from "../types";
 import constants from "../constants";
 
-export const downloadFile = (fileId: string) => {
-    const sessionId = localStorage.getItem('sessionId');
-    const tenantId = localStorage.getItem('tenantId');
+export const downloadFile = (fileId: string, tenantId?: string) => {
+    const resolvedTenantId = tenantId || localStorage.getItem('tenantId');
     
-    if (!sessionId || !tenantId) {
-        console.error('No valid session found');
+    if (!resolvedTenantId) {
+        toast.error('Tenant ID not found');
         return;
     }
 
-    const downloadUrl = `${constants.apiUrl}/files/${fileId}/download?sessionId=${sessionId}&tenantId=${tenantId}`;
-    
+    const downloadUrl = `${constants.apiUrl}/files/${fileId}/download?tenantId=${resolvedTenantId}`;
+
     const link = document.createElement("a");
     link.href = downloadUrl;
     link.target = "_blank";
@@ -21,12 +20,11 @@ export const downloadFile = (fileId: string) => {
     document.body.removeChild(link);
 };
 
-export const downloadFiles = async (items: Item[]) => {
-    const sessionId = localStorage.getItem('sessionId');
-    const tenantId = localStorage.getItem('tenantId');
+export const downloadFiles = async (items: Item[], tenantId?: string) => {
+    const resolvedTenantId = tenantId || localStorage.getItem('tenantId');
     
-    if (!sessionId || !tenantId) {
-        toast.error('No valid session found');
+    if (!resolvedTenantId) {
+        toast.error('Tenant ID not found');
         return;
     }
 
@@ -42,7 +40,7 @@ export const downloadFiles = async (items: Item[]) => {
         await new Promise(resolve => setTimeout(resolve, index * 100));
         
         try {
-            downloadFile(item.primaryFile.fileId);
+            downloadFile(item.primaryFile.fileId, resolvedTenantId);
             successCount++;
         } catch (error) {
             console.error(`Failed to download ${item.primaryFile.originalFileName}:`, error);

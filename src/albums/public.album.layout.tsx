@@ -26,6 +26,7 @@ export const PublicAlbumLayout = () => {
                 readonly
                 items={album.items}
                 albumId={null}
+                tenantId={tenantId}
             />
         </div>
     );
