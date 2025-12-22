@@ -26,7 +26,7 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
                 <BasicInfo item={item} />
                 <CameraMetadata item={item} />
                 <LocationMetadata item={item} />
-                <FileMetadata item={item} />
+                <FileMetadata item={item} tenantId={tenantId} />
             </div>
         </BottomSheet>
     );
@@ -114,7 +114,7 @@ const LocationMetadata = ({ item }: { item: Item }) => {
     );
 };
 
-const FileMetadata = ({ item }: { item: Item }) => {
+const FileMetadata = ({ item, tenantId }: { item: Item, tenantId?: string }) => {
     return (
         <div>
             <div className='flex items-center gap-2 mb-2'>
