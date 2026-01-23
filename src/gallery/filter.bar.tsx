@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
 import { useAlbums } from '../api/useAlbums';
+import { BottomSheet } from '../common/bottom.sheet';
 
 interface FilterState {
     sort: string;
@@ -20,6 +21,18 @@ const defaultFilterState: FilterState = {
     city: '',
     region: '',
     device: ''
+};
+
+export const countActiveFilters = (filters: FilterState): number => {
+    let count = 0;
+    if (filters.type !== '') count++;
+    if (filters.sort !== 'capture-date') count++;
+    if (filters.year !== '') count++;
+    if (filters.month !== '') count++;
+    if (filters.city !== '') count++;
+    if (filters.region !== '') count++;
+    if (filters.device !== '') count++;
+    return count;
 };
 interface FilterBarProps {
     items: Item[];
@@ -61,56 +74,80 @@ export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
         setFilters(newFilters);
     };
 
-    const selectClasses = 'bg-slate-100 mr-2 p-1 rounded';
-
     return (
-        <div className='flex max-w-[100dvw] bg-white text-slate-900 items-center border-t border-slate-200'>
-            <div className='pl-3 py-2 overflow-x-auto flex flex-shrink'>
-                <select className={selectClasses} onChange={e => handleSelect({ type: e.target.value })}>
-                    <option value=''>All Items</option>
-                    <option value='favorites'>Favorites</option>
-                    <option value='photos'>Photos</option>
-                    <option value='videos'>Videos</option>
-                    <option value='live-photos'>Live Photos</option>
-                    <option value='unsorted'>Unsorted</option>
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ sort: e.target.value })}>
-                    <option value='capture-date'>Sort by Capture Date</option>
-                    <option value='upload-date'>Sort by Upload Date</option>
-                    <option value='file-size'>Sort by Size</option>
-                    <option value='random'>Sort Randomly</option>
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ city: e.target.value })}>
-                    <option value=''>City</option>
-                    {cities.map(city => (
-                        <option key={city} value={city}>{city.toString().substring(0, 20)}</option>
-                    ))}
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ region: e.target.value })}>
-                    <option value=''>Region</option>
-                    {regions.map(region => (
-                        <option key={region} value={region}>{region}</option>
-                    ))}
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ year: e.target.value })}>
-                    <option value=''>Year</option>
-                    {years.map(year => (
-                        <option key={year} value={year}>{year ?? 'Unknown'}</option>
-                    ))}
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ month: e.target.value })}>
-                    <option value=''>Month</option>
-                    {months.map(month => (
-                        <option key={month} value={month}>{monthNames[month as number] ?? 'Unknown'}</option>
-                    ))}
-                </select>
-                <select className={selectClasses} onChange={e => handleSelect({ device: e.target.value })}>
-                    <option value=''>Device</option>
-                    {devices.map(device => (
-                        <option key={device} value={device}>{device.toString().substr(0, 20)}</option>
-                    ))}
-                </select>
-            </div>
+        <div className='flex flex-col gap-2'>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.type}
+                onChange={e => handleSelect({ type: e.target.value })}
+            >
+                <option value=''>All Items</option>
+                <option value='favorites'>Favorites</option>
+                <option value='photos'>Photos</option>
+                <option value='videos'>Videos</option>
+                <option value='live-photos'>Live Photos</option>
+                <option value='unsorted'>Unsorted</option>
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.sort}
+                onChange={e => handleSelect({ sort: e.target.value })}
+            >
+                <option value='capture-date'>Sort by Capture Date</option>
+                <option value='upload-date'>Sort by Upload Date</option>
+                <option value='file-size'>Sort by File Size</option>
+                <option value='random'>Sort by Random</option>
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.year}
+                onChange={e => handleSelect({ year: e.target.value })}
+            >
+                <option value=''>All Years</option>
+                {years.map(year => (
+                    <option key={year} value={year}>{year ?? 'Unknown'}</option>
+                ))}
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.month}
+                onChange={e => handleSelect({ month: e.target.value })}
+            >
+                <option value=''>All Months</option>
+                {months.map(month => (
+                    <option key={month} value={month}>{monthNames[month as number] ?? 'Unknown'}</option>
+                ))}
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.city}
+                onChange={e => handleSelect({ city: e.target.value })}
+            >
+                <option value=''>All Cities</option>
+                {cities.map(city => (
+                    <option key={city} value={city}>{city.toString().substring(0, 20)}</option>
+                ))}
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.region}
+                onChange={e => handleSelect({ region: e.target.value })}
+            >
+                <option value=''>All Regions</option>
+                {regions.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                ))}
+            </select>
+            <select 
+                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
+                value={filters.device}
+                onChange={e => handleSelect({ device: e.target.value })}
+            >
+                <option value=''>All Devices</option>
+                {devices.map(device => (
+                    <option key={device} value={device}>{device.toString().substr(0, 20)}</option>
+                ))}
+            </select>
         </div>
     );
 };
@@ -129,6 +166,38 @@ const monthNames = [
     "November",
     "December"
 ];
+
+interface FilterSheetProps {
+    items: Item[];
+    filters: FilterState;
+    setFilters: (value: FilterState) => any;
+    isOpen: boolean;
+    onDismiss: () => any;
+}
+
+export const FilterSheet = ({ items, filters, setFilters, isOpen, onDismiss }: FilterSheetProps) => {
+    const activeFilterCount = countActiveFilters(filters);
+    const handleReset = () => {
+        setFilters(defaultFilterState);
+    };
+
+    return (
+        <BottomSheet isOpen={isOpen} onDismiss={onDismiss}>
+            <div className='flex flex-col'>
+                <h2 className='text-xl font-bold text-slate-900 mb-3'>Filters</h2>
+                <FilterBar items={items} filters={filters} setFilters={setFilters} />
+                {activeFilterCount > 0 && (
+                    <button
+                        onClick={handleReset}
+                        className='mt-4 py-2 px-4 bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-900 font-medium rounded-lg transition-colors'
+                    >
+                        Reset Filters
+                    </button>
+                )}
+            </div>
+        </BottomSheet>
+    );
+};
 
 // Clean up this hook ai!
 export const useFilterBar = (items: Item[]) => {

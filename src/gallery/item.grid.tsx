@@ -5,7 +5,7 @@ import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
 import { format } from 'date-fns';
-import { FilterBar, useFilterBar } from './filter.bar';
+import { FilterSheet, useFilterBar, countActiveFilters } from './filter.bar';
 import { Filter, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
@@ -313,29 +313,19 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onZoomOut={zoomOut}
                             onZoomIn={zoomIn}
                         />
-                        {!disableFilteringSorting && !filterBarVisible && (
+                        {!disableFilteringSorting && (
                             <div
-                                className={floatingButtonClasses}
+                                className={`${floatingButtonClasses} relative`}
                                 onClick={() => setFilterBarVisible(true)}
                             >
                                 <Filter
                                     className='size-6'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
-                            </div>
-                        )}
-                        {filterBarVisible && (
-                            <div
-                                className={floatingButtonClasses}
-                                onClick={() => {
-                                    resetFilters();
-                                    setFilterBarVisible(false);
-                                }}
-                            >
-                                <Xmark
-                                    className='size-6'
-                                    style={{ marginTop: 2, marginBottom: -2 }}
-                                />
+                                {countActiveFilters(filterProps.filters) > 0 && (
+                                    <div className='absolute -top-1 -right-1 bg-sky-500 text-white text-xs font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1'>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -349,7 +339,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     </div>
                 </ScrollContainer>
             </div>
-            {filterBarVisible && <FilterBar {...filterProps} items={allItems} />}
+            {!disableFilteringSorting && (
+                <FilterSheet
+                    items={allItems}
+                    filters={filterProps.filters}
+                    setFilters={filterProps.setFilters}
+                    isOpen={filterBarVisible}
+                    onDismiss={() => setFilterBarVisible(false)}
+                />
+            )}
             {previewItemIndex !== null && (
                 <ItemPreview
                     readonly={readonly}
