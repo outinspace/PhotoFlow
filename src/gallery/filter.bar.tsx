@@ -34,13 +34,13 @@ export const countActiveFilters = (filters: FilterState): number => {
     if (filters.device !== '') count++;
     return count;
 };
-interface FilterBarProps {
+interface FilterControlsProps {
     items: Item[];
     filters: FilterState;
     setFilters: (value: FilterState) => any;
 }
 
-export const FilterBar = ({ items, filters, setFilters }: FilterBarProps) => {
+export const FilterControls = ({ items, filters, setFilters }: FilterControlsProps) => {
     const distinctValues = (selector: (i: Item) => string | number | null, isNumeric: boolean = false) => {
         const valueMap: Record<string | number, boolean> = items.reduce((distinctValues, item) => {
             const key = selector(item) ?? '';
@@ -185,7 +185,7 @@ export const FilterSheet = ({ items, filters, setFilters, isOpen, onDismiss }: F
         <BottomSheet isOpen={isOpen} onDismiss={onDismiss}>
             <div className='flex flex-col'>
                 <h2 className='text-xl font-bold text-slate-900 mb-3'>Filters</h2>
-                <FilterBar items={items} filters={filters} setFilters={setFilters} />
+                <FilterControls items={items} filters={filters} setFilters={setFilters} />
                 {activeFilterCount > 0 && (
                     <button
                         onClick={handleReset}
