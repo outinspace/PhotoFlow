@@ -150,7 +150,6 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
             {isLivePhoto && (
                 <video
                     ref={livePhotoVideoRef}
-                    controls={false}
                     playsInline
                     preload={autoplayLivePhotos ? "auto" : "none"}
                     className={`${nonSelectable} transition-opacity duration-300 ${(showLivePhoto || (showSmoothAnimation && !isFadingOut)) ? 'opacity-100' : 'opacity-0'}`}
@@ -175,6 +174,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                 <video
                     ref={videoRef}
                     playsInline
+                    controls
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
