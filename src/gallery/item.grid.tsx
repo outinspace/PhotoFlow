@@ -291,30 +291,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     )}
                 </div>
                 <ScrollContainer ref={scrollContainerRef}>
-                    {scrollTop > 20 && (
-                        <div 
-                            className='absolute top-0 left-0 right-0 h-48 z-20 pointer-events-none'
-                            style={{
-                                opacity: Math.min(1, (scrollTop - 20) / 40),
-                                transition: 'opacity 0.2s ease-out'
-                            }}
-                        >
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backdropFilter: 'blur(5px)',
-                                    WebkitBackdropFilter: 'blur(5px)',
-                                    background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, transparent 100%)',
-                                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
-                                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
-                                }}
-                            />
-                        </div>
-                    )}
                     <div
                         style={{
                             height: `${rowVirtualizer.getTotalSize()}px`,
@@ -367,7 +343,31 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             </div>
                         )}
                     </div>
-                    <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none z-30'>
+                    {scrollTop > 20 && (
+                        <div 
+                            className='absolute top-0 left-0 right-0 h-48 pointer-events-none'
+                            style={{
+                                opacity: Math.min(1, (scrollTop - 20) / 40),
+                                transition: 'opacity 0.2s ease-out'
+                            }}
+                        >
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backdropFilter: 'blur(5px)',
+                                    WebkitBackdropFilter: 'blur(5px)',
+                                    background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, transparent 100%)',
+                                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+                                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
+                                }}
+                            />
+                        </div>
+                    )}
+                    <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none'>
                         {!disableFilteringSorting && <div className='font-bold text-2xl'>{formattedRange}</div>}
                         {selectModeEnabled && (
                             <div className='font-bold text-l'>
