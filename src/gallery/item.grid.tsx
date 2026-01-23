@@ -81,6 +81,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [scrollTop, setScrollTop] = useState(0);
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
@@ -206,7 +207,20 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         setSelectModeEnabled(false);
     }
 
-    const floatingButtonClasses = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-full p-3 drop-shadow ml-2';
+    const floatingButtonClasses = 'backdrop-blur-2xl bg-white/10 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/20 active:bg-white/30 transition-all duration-200 ml-2 cursor-pointer';
+
+    // Track scroll position for top blur gradient
+    useEffect(() => {
+        const scrollContainer = scrollContainerRef.current;
+        if (!scrollContainer) return;
+
+        const handleScroll = () => {
+            setScrollTop(scrollContainer.scrollTop);
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }, []);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -236,7 +250,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onClick={() => setSelectModeEnabled(true)}
                         >
                             <OneFingerSelectHandGesture
-                                className='size-6'
+                                className='size-6 text-white drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
                         </div>
@@ -248,7 +262,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onClick={() => setShowActionMenu(!showActionMenu)}
                             >
                                 <Ellipsis
-                                    className='size-6'
+                                    className='size-6 text-white drop-shadow-sm'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
                             </div>
@@ -270,13 +284,37 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onClick={() => closeSelectionMode()}
                         >
                             <Xmark
-                                className='size-6'
+                                className='size-6 text-white drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
                         </div>
                     )}
                 </div>
                 <ScrollContainer ref={scrollContainerRef}>
+                    {scrollTop > 20 && (
+                        <div 
+                            className='absolute top-0 left-0 right-0 h-48 z-20 pointer-events-none'
+                            style={{
+                                opacity: Math.min(1, (scrollTop - 20) / 40),
+                                transition: 'opacity 0.2s ease-out'
+                            }}
+                        >
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backdropFilter: 'blur(5px)',
+                                    WebkitBackdropFilter: 'blur(5px)',
+                                    background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, transparent 100%)',
+                                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+                                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
+                                }}
+                            />
+                        </div>
+                    )}
                     <div
                         style={{
                             height: `${rowVirtualizer.getTotalSize()}px`,
@@ -319,7 +357,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onClick={() => setFilterBarVisible(true)}
                             >
                                 <Filter
-                                    className='size-6'
+                                    className='size-6 text-white drop-shadow-sm'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
                                 {countActiveFilters(filterProps.filters) > 0 && (
@@ -329,7 +367,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             </div>
                         )}
                     </div>
-                    <div className='absolute top-4 left-4 text-shadow text-slate-50  drop-shadow select-none pointer-events-none'>
+                    <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none z-30'>
                         {!disableFilteringSorting && <div className='font-bold text-2xl'>{formattedRange}</div>}
                         {selectModeEnabled && (
                             <div className='font-bold text-l'>
