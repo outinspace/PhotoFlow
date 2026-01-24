@@ -29,7 +29,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const clickTimerRef = useRef<number | null>(null);
 
-    const { filterProps, filteredItems, resetFilters } = useFilterBar(allItems);
+    const { filterProps, filteredItems } = useFilterBar(allItems);
     const items = disableFilteringSorting ? allItems : filteredItems;
 
     // Unified preview state management
