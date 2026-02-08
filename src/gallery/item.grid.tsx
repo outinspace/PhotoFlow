@@ -207,7 +207,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         setSelectModeEnabled(false);
     }
 
-    const floatingButtonClasses = 'backdrop-blur-2xl bg-white/10 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/20 active:bg-white/30 transition-all duration-200 ml-2 cursor-pointer';
+    const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
 
     // Track scroll position for top blur gradient
     useEffect(() => {
@@ -250,7 +250,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onClick={() => setSelectModeEnabled(true)}
                         >
                             <OneFingerSelectHandGesture
-                                className='size-6 text-white drop-shadow-sm'
+                                className='size-6 drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
                         </div>
@@ -262,7 +262,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onClick={() => setShowActionMenu(!showActionMenu)}
                             >
                                 <Ellipsis
-                                    className='size-6 text-white drop-shadow-sm'
+                                    className='size-6 drop-shadow-sm'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
                             </div>
@@ -284,7 +284,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onClick={() => closeSelectionMode()}
                         >
                             <Xmark
-                                className='size-6 text-white drop-shadow-sm'
+                                className='size-6 drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
                         </div>
@@ -333,7 +333,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onClick={() => setFilterBarVisible(true)}
                             >
                                 <Filter
-                                    className='size-6 text-white drop-shadow-sm'
+                                    className='size-6 drop-shadow-sm'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
                                 {countActiveFilters(filterProps.filters) > 0 && (
