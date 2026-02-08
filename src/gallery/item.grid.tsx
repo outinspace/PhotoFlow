@@ -345,7 +345,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     </div>
                     {scrollTop > 20 && (
                         <div 
-                            className='absolute top-0 left-0 right-0 h-48 pointer-events-none'
+                            className='absolute top-0 left-0 right-0 h-24 pointer-events-none'
                             style={{
                                 opacity: Math.min(1, (scrollTop - 20) / 40),
                                 transition: 'opacity 0.2s ease-out'
