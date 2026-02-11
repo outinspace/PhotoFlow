@@ -1,18 +1,18 @@
-import { useMemo } from 'react';
-import { useGallery } from "../api/useGallery";
-import ItemGrid from '../gallery/item.grid';
-import { TopBar } from '../common/top.bar';
-
+import { useMemo } from "react";
+import { useRecentlyDeleted } from "../api/useRecentlyDeleted";
+import ItemGrid from "../gallery/item.grid";
+import { TopBar } from "../common/top.bar";
 
 export const RecentlyDeletedItems = () => {
-    const { data: gallery } = useGallery();
+    const { data } = useRecentlyDeleted();
 
-    // BUG: I don't think this is doing anything now that sorting is in grid.
-    const items = useMemo(() => {
-        const input = gallery?.deletedItems ?? [];
-
-        return input.sort((a, b) => a.deletedTimeUtc!.localeCompare(b.deletedTimeUtc!));
-    }, [gallery?.deletedItems]);
+    const items = useMemo(
+        () =>
+            (data?.items ?? []).sort((a, b) =>
+                (b.deletedTimeUtc ?? "").localeCompare(a.deletedTimeUtc ?? "")
+            ),
+        [data?.items]
+    );
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>

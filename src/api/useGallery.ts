@@ -7,7 +7,6 @@ import { computeItemProperties } from "./computeItemProperties";
 
 interface UseGalleryData {
     items: Item[];
-    deletedItems: Item[];
     checkpointTimeUtc: string;
 }
 
@@ -92,14 +91,8 @@ export const useGallery = () => useQuery({
             );
         }
 
-        // Separate deleted items
-        const deletedItems = mergedItems.filter(item => item.deletedTimeUtc !== null);
-
-        const items = mergedItems.filter(item => item.deletedTimeUtc === null);
-
         return {
-            items,
-            deletedItems,
+            items: mergedItems,
             checkpointTimeUtc: newCheckpointUtc
         };
     }
