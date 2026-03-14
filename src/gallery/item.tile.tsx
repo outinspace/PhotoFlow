@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 
@@ -16,18 +16,36 @@ interface Props {
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
     const [showImage, setShowImage] = useState(false);
+    const tileRef = useRef<HTMLDivElement>(null);
 
-    // Prevent mass loading of tile images when scrolling fast
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setShowImage(true);
-        }, 50);
+        const element = tileRef.current;
+        if (!element) return;
 
-        return () => clearTimeout(timeoutId);
-    });
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            setShowImage(true);
+                        }, 200);
+                        observer.unobserve(element);
+                    }
+                });
+            },
+            { rootMargin: '200px' }
+        );
+
+        observer.observe(element);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
 
     return (
         <div
+            ref={tileRef}
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
             style={{
                 backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length]
@@ -47,7 +65,6 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     objectFit: 'cover',
                 }}
                 src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
-                loading='lazy'
                 decoding='async'
             />
             {item.isFavorite && (
