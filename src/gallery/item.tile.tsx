@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 
+const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
+    const alpha = 0.9 + (i * 0.005);
+    return `rgba(0,0,0,${alpha})`;
+});
+
 interface Props {
     item: Item;
     onClick: (isDoubleClick: boolean) => any;
     idealTileSize: number;
     isSelected: boolean;
-}
-
-const placeholderColors: string[] = [];
-for (let i = 0; i < 20; i++) {
-    const alpha = Math.random() * 0.1 + 0.9;
-    placeholderColors.push(`rgba(0,0,0,${alpha})`);
 }
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
@@ -31,7 +30,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
         <div
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
             style={{
-                backgroundColor: placeholderColors[item.itemId % placeholderColors.length]
+                backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length]
             }}
             onClick={e => {
                 const clickCount = e.detail;
@@ -40,7 +39,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             }}
         >
             <img
-                className={'select-none'}
+                className='select-none'
                 style={{
                     position: 'relative',
                     width: '100%',
@@ -49,6 +48,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 }}
                 src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 loading='lazy'
+                decoding='async'
             />
             {item.isFavorite && (
                 <div className='absolute bottom-1 left-1 text-slate-100 shadow'>
@@ -91,4 +91,3 @@ function formatVideoSeconds(inputSeconds: number | null) {
 
     return outputString;
 }
-
