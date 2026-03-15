@@ -81,7 +81,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [scrollTop, setScrollTop] = useState(0);
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
@@ -209,19 +208,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
 
-    // Track scroll position for top blur gradient
-    useEffect(() => {
-        const scrollContainer = scrollContainerRef.current;
-        if (!scrollContainer) return;
-
-        const handleScroll = () => {
-            setScrollTop(scrollContainer.scrollTop);
-        };
-
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-        return () => scrollContainer.removeEventListener('scroll', handleScroll);
-    }, []);
-
     // Cleanup timer on unmount
     useEffect(() => {
         return () => {
@@ -343,30 +329,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             </div>
                         )}
                     </div>
-                    {scrollTop > 20 && (
-                        <div 
-                            className='absolute top-0 left-0 right-0 h-24 pointer-events-none'
-                            style={{
-                                opacity: Math.min(1, (scrollTop - 20) / 40),
-                                transition: 'opacity 0.2s ease-out'
-                            }}
-                        >
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backdropFilter: 'blur(5px)',
-                                    WebkitBackdropFilter: 'blur(5px)',
-                                    background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, transparent 100%)',
-                                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
-                                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
-                                }}
-                            />
-                        </div>
-                    )}
                     <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none'>
                         {!disableFilteringSorting && <div className='font-bold text-2xl'>{formattedRange}</div>}
                         {selectModeEnabled && (
