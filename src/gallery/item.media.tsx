@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Item } from '../types';
 import { nonSelectable } from '../styles';
 import { useLongPress } from 'use-long-press';
 import { useAutoplayLivePhotos } from '../hooks/use.autoplay.live.photos';
 import { useAutoplayVideos } from '../hooks/use.autoplay.videos';
+import { blurhashToDataUrl } from '../utils/blurhashToDataUrl';
 
 const zIndex = {
     controls: 10,
     previewVideo: 3,
     previewImage: 2,
-    tileImage: 1
+    tileImage: 1,
+    blurPlaceholder: 0
 };
 
 interface Props {
@@ -29,6 +31,11 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
     const isLivePhoto = !!imageFile && !!videoFile;
+
+    const blurPlaceholderDataUrl = useMemo(() => {
+        const blurHash = imageFile?.blurHash ?? videoFile?.blurHash;
+        return blurhashToDataUrl(blurHash ?? null);
+    }, [imageFile?.blurHash, videoFile?.blurHash]);
 
     useEffect(() => {
         if (isPrimary && autoplayVideos) {
@@ -123,6 +130,21 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
             className={`fixed top-0 bottom-0 left-0 right-0 ${isLivePhoto && showLivePhoto && 'animate-[pulse_0.5s_ease-in-out_1]'}`}
             {...longPressHandlers()}
         >
+            {blurPlaceholderDataUrl && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundImage: `url(${blurPlaceholderDataUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        zIndex: zIndex.blurPlaceholder
+                    }}
+                />
+            )}
             {imageFile && <>
                 <img
                     className={nonSelectable}

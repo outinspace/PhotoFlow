@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
+import { blurhashToDataUrl } from '../utils/blurhashToDataUrl';
 
 const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
     const alpha = 0.9 + (i * 0.005);
@@ -17,6 +18,17 @@ interface Props {
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
     const [showImage, setShowImage] = useState(false);
     const tileRef = useRef<HTMLDivElement>(null);
+
+    const placeholderStyle = useMemo(() => {
+        // if (!showImage) {
+        //     return { backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length] };
+        // }
+        const dataUrl = blurhashToDataUrl(item.primaryFile.blurHash);
+        if (dataUrl) {
+            return { backgroundImage: `url(${dataUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+        }
+        return { backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length] };
+    }, [showImage, item.itemId, item.primaryFile.blurHash]);
 
     useEffect(() => {
         const element = tileRef.current;
@@ -47,9 +59,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
         <div
             ref={tileRef}
             className={`h-full w-full ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
-            style={{
-                backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length]
-            }}
+            style={placeholderStyle}
             onClick={e => {
                 const clickCount = e.detail;
                 const isDoubleClick = clickCount > 1;

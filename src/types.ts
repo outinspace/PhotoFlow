@@ -38,6 +38,7 @@ export interface File {
     lastProcessedTimeUtc: string | null;
     tileVersion: number | null;
     previewVersion: number | null;
+    blurHash: string | null;
 
     // Computed
     originalUrl: string;
