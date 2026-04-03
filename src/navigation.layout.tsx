@@ -1,7 +1,7 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
 import { Map, Menu, ViewGrid, Flower } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 const options = [
     {
@@ -31,6 +31,20 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
     const router = useRouter();
 
     const safeAreaPadding = IS_STANDALONE ? 'pb-10 md:pb-2' : '';
+
+    useEffect(() => {
+        const tenantId = localStorage.getItem('tenantId');
+        const sessionId = localStorage.getItem('sessionId');
+
+        if (!tenantId || !sessionId) {
+            router.navigate({ to: '/login' });
+            return;
+        }
+
+        if (localStorage.getItem('s3Configured') !== 'true') {
+            router.navigate({ to: '/setup' });
+        }
+    }, []);
 
     return (
         <div className="flex flex-auto flex-col md:flex-row max-w-full">

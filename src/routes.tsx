@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import Gallery from "./gallery/gallery";
 import Login from "./login/login";
+import Setup from "./setup/setup";
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
@@ -8,6 +9,7 @@ import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import { Billing } from './menu/billing';
 import Settings from './menu/settings';
+import S3Settings from './menu/s3.settings';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
@@ -24,6 +26,18 @@ export const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     beforeLoad: () => {
+        const tenantId = localStorage.getItem('tenantId');
+        const sessionId = localStorage.getItem('sessionId');
+
+        if (!tenantId || !sessionId) {
+            throw redirect({ to: '/login' });
+        }
+
+        const s3Configured = localStorage.getItem('s3Configured') === 'true';
+        if (!s3Configured) {
+            throw redirect({ to: '/setup' });
+        }
+
         const defaultToMemories = getDefaultToMemories();
         throw redirect({
             to: defaultToMemories ? '/memories' : '/gallery',
@@ -55,6 +69,12 @@ export const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/login',
     component: Login
+});
+
+export const setupRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/setup',
+    component: Setup
 });
 
 export const mapRoute = createRoute({
@@ -167,6 +187,16 @@ export const settingsRoute = createRoute({
     )
 });
 
+export const s3SettingsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/s3-settings',
+    component: () => (
+        <NavigationLayout>
+            <S3Settings />
+        </NavigationLayout>
+    )
+});
+
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
@@ -188,6 +218,7 @@ const routeTree = rootRoute.addChildren([
     homeRoute,
     galleryRoute,
     loginRoute,
+    setupRoute,
     mapRoute,
     albumsRoute,
     albumRoute,
@@ -199,6 +230,7 @@ const routeTree = rootRoute.addChildren([
     billingRoute,
     itemsInProcessRoute,
     settingsRoute,
+    s3SettingsRoute,
     publicItemRoute,
     publicAlbumRoute
 ]);
