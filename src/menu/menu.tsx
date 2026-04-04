@@ -1,5 +1,5 @@
-import { Database, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
-import { useMemo } from 'react';
+import { Database, Download, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
+import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
@@ -9,11 +9,10 @@ import { useDebugMode } from '../hooks/use.debug.mode';
 import { queryClient } from '../app';
 import UploadButton from './upload.button';
 
-const options = [
+const commonOptions = [
     {
         name: 'Settings',
         icon: Settings,
-        debug: false,
         onClick: () => {
             router.navigate({ to: '/settings' });
         }
@@ -21,11 +20,23 @@ const options = [
     {
         name: 'Recently Deleted Items',
         icon: Trash,
-        debug: false,
         onClick: () => {
             router.navigate({ to: '/recently-deleted' });
         }
     },
+    {
+        name: 'Logout',
+        icon: LogOut,
+        onClick: () => {
+            queryClient.clear();
+            localStorage.removeItem('tenantId');
+            localStorage.removeItem('sessionId');
+            router.navigate({ to: '/login' });
+        }
+    },
+];
+
+const advancedOptions = [
     {
         name: 'Items In-Process',
         icon: RefreshDouble,
@@ -43,14 +54,11 @@ const options = [
         }
     },
     {
-        name: 'Logout',
-        icon: LogOut,
+        name: 'Export Your Data',
+        icon: Download,
         debug: false,
         onClick: () => {
-            queryClient.clear();
-            localStorage.removeItem('tenantId');
-            localStorage.removeItem('sessionId');
-            router.navigate({ to: '/login' });
+            router.navigate({ to: '/export-data' });
         }
     },
     {
@@ -67,8 +75,24 @@ const options = [
     }
 ];
 
+const MenuSection = ({ options }: { options: { name: string; icon: React.ElementType; onClick: () => void }[] }) => (
+    <div>
+        {options.map(option => (
+            <div
+                key={option.name}
+                className='flex first:rounded-t-lg last:rounded-b-lg bg-slate-100 p-2 border-b border-slate-200 last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300'
+                onClick={option.onClick}
+            >
+                <option.icon className='mr-2' />
+                {option.name}
+            </div>
+        ))}
+    </div>
+);
+
 const Menu = () => {
     const showDebugOptions = useDebugMode();
+    const visibleAdvancedOptions = advancedOptions.filter(option => !option.debug || showDebugOptions);
 
     return (
         <div className='p-5'>
@@ -76,19 +100,10 @@ const Menu = () => {
                 <PageHeader name='Menu' />
                 <UploadButton />
             </div>
-            <div>
-                {options
-                    .filter(option => !option.debug || showDebugOptions)
-                    .map(option => (
-                        <div
-                            key={option.name}
-                            className='flex first:rounded-t-lg last:rounded-b-lg bg-slate-100 p-2 border-b border-slate-200 last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300'
-                            onClick={option.onClick}
-                        >
-                            <option.icon className='mr-2' />
-                            {option.name}
-                        </div>
-                    ))}
+            <MenuSection options={commonOptions} />
+            <div className='mt-5'>
+                <div className='text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2'>Advanced</div>
+                <MenuSection options={visibleAdvancedOptions} />
             </div>
             <GalleryStats />
         </div>

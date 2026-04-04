@@ -9,6 +9,7 @@ import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import Settings from './menu/settings';
 import StorageSettings from './menu/storage.settings';
+import ExportData from './menu/export.data';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
@@ -180,6 +181,16 @@ export const s3SettingsRoute = createRoute({
     )
 });
 
+export const exportDataRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/export-data',
+    component: () => (
+        <NavigationLayout>
+            <ExportData />
+        </NavigationLayout>
+    )
+});
+
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
@@ -213,6 +224,7 @@ const routeTree = rootRoute.addChildren([
     itemsInProcessRoute,
     settingsRoute,
     s3SettingsRoute,
+    exportDataRoute,
     publicItemRoute,
     publicAlbumRoute
 ]);
