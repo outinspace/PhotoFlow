@@ -40,10 +40,6 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
             router.navigate({ to: '/login' });
             return;
         }
-
-        if (localStorage.getItem('s3Configured') !== 'true') {
-            router.navigate({ to: '/setup' });
-        }
     }, []);
 
     return (

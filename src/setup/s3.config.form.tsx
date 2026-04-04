@@ -77,7 +77,6 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
             if (res.status === 401) {
                 localStorage.removeItem('tenantId');
                 localStorage.removeItem('sessionId');
-                localStorage.removeItem('s3Configured');
                 router.navigate({ to: '/login' });
                 return;
             }
