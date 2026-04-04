@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
+import { useGallery } from '../api/useGallery';
 import PageHeader from '../common/page.header';
 import { S3ConfigForm } from '../setup/s3.config.form';
 
@@ -13,8 +14,8 @@ interface ExistingConfig {
 
 const S3Settings = () => {
     const [config, setConfig] = useState<ExistingConfig | null>(null);
-    const [hasPhotos, setHasPhotos] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const { data: galleryData } = useGallery();
+    const hasPhotos = (galleryData?.items.length ?? 0) > 0;
 
     useEffect(() => {
         fetchAuthenticatedRoute('/tenant/s3-config')
@@ -22,16 +23,7 @@ const S3Settings = () => {
             .then((data: ExistingConfig) => setConfig(data));
     }, []);
 
-    // We detect existing photos from the gallery cache if available, but a simpler
-    // heuristic is: if the tenant already has S3 configured, they may have photos.
-    useEffect(() => {
-        if (config?.isConfigured) {
-            setHasPhotos(true);
-        }
-    }, [config]);
-
     const handleSaveSuccess = () => {
-        setSaved(true);
         localStorage.setItem('s3Configured', 'true');
     };
 
@@ -43,7 +35,7 @@ const S3Settings = () => {
         <div className="p-5">
             <PageHeader name="Storage Settings" />
 
-            {hasPhotos && config.isConfigured && (
+            {hasPhotos && (
                 <div className="mb-6 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-900">
                     <p className="font-semibold mb-1">Warning: changing your bucket will break existing photos</p>
                     <p>
@@ -55,12 +47,6 @@ const S3Settings = () => {
                         <code className="font-mono text-xs">preview/</code>).
                         PhotoFlow does not migrate files automatically.
                     </p>
-                </div>
-            )}
-
-            {saved && (
-                <div className="mb-6 rounded-md border border-green-300 bg-green-50 p-4 text-sm text-green-900">
-                    Storage settings saved. New uploads will use the updated bucket.
                 </div>
             )}
 
