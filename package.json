@@ -32,6 +32,7 @@
     "react-hot-toast": "^2.5.1",
     "react-leaflet": "^4.2.1",
     "react-use-measure": "^2.1.1",
+    "thumbhash": "^0.1.1",
     "use-long-press": "^3.3.0"
   },
   "devDependencies": {

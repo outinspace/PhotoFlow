@@ -39,11 +39,13 @@ export interface File {
     failedProcessingTimeUtc: string | null;
     tileVersion: number | null;
     previewVersion: number | null;
+    thumbHash: string | null;
 
     // Computed
     originalUrl: string;
     tileImageUrl: string | null;
     previewUrl: string | null;
+    tilePlaceholderUrl: string | null;
 }
 
 export interface Album {
