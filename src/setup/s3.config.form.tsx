@@ -213,7 +213,7 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
                 </div>
             )}
 
-            <div>
+            <div className="pb-8">
                 <button
                     onClick={handleSave}
                     disabled={saving}
