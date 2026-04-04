@@ -39,7 +39,7 @@ const options = [
         icon: Database,
         debug: false,
         onClick: () => {
-            router.navigate({ to: '/s3-settings' });
+            router.navigate({ to: '/storage-settings' });
         }
     },
     {

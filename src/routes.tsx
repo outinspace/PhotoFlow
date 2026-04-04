@@ -8,7 +8,7 @@ import Menu from './menu/menu';
 import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import Settings from './menu/settings';
-import S3Settings from './menu/s3.settings';
+import StorageSettings from './menu/storage.settings';
 import { AlbumLayout } from './albums/album.layout';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
@@ -178,10 +178,10 @@ export const settingsRoute = createRoute({
 
 export const s3SettingsRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/s3-settings',
+    path: '/storage-settings',
     component: () => (
         <NavigationLayout>
-            <S3Settings />
+            <StorageSettings />
         </NavigationLayout>
     )
 });

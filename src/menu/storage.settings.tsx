@@ -12,7 +12,7 @@ interface ExistingConfig {
     isConfigured: boolean;
 }
 
-const S3Settings = () => {
+const StorageSettings = () => {
     const [config, setConfig] = useState<ExistingConfig | null>(null);
     const { data: galleryData } = useGallery();
     const hasPhotos = (galleryData?.items.length ?? 0) > 0;
@@ -60,4 +60,4 @@ const S3Settings = () => {
     );
 };
 
-export default S3Settings;
+export default StorageSettings;
