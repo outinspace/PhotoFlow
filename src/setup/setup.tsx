@@ -30,7 +30,7 @@ const Setup = () => {
                 <S3ConfigForm onSaveSuccess={handleSaveSuccess} />
                 <button
                     onClick={() => router.navigate({ to: '/gallery' })}
-                    className="mt-2 flex w-full justify-center rounded-md px-3 py-1.5 text-sm/6 font-semibold text-gray-500 hover:text-gray-700"
+                    className="mt-2 mb-8 flex w-full justify-center rounded-md px-3 py-1.5 text-sm/6 font-semibold text-gray-500 hover:text-gray-700"
                 >
                     Skip for now
                 </button>
