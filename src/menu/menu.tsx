@@ -1,4 +1,4 @@
-import { CreditCard, Database, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
+import { Database, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
 import { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -40,14 +40,6 @@ const options = [
         debug: false,
         onClick: () => {
             router.navigate({ to: '/s3-settings' });
-        }
-    },
-    {
-        name: 'Billing',
-        icon: CreditCard,
-        debug: false,
-        onClick: () => {
-            router.navigate({ to: '/billing' });
         }
     },
     {

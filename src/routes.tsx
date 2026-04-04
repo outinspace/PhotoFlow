@@ -7,7 +7,6 @@ import Search from './search/search';
 import Menu from './menu/menu';
 import Map from './map/map';
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
-import { Billing } from './menu/billing';
 import Settings from './menu/settings';
 import S3Settings from './menu/s3.settings';
 import { AlbumLayout } from './albums/album.layout';
@@ -157,16 +156,6 @@ export const recentlyDeletedRoute = createRoute({
     )
 });
 
-export const billingRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/billing',
-    component: () => (
-        <NavigationLayout>
-            <Billing />
-        </NavigationLayout>
-    )
-});
-
 export const itemsInProcessRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/items-in-process',
@@ -227,7 +216,6 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,
-    billingRoute,
     itemsInProcessRoute,
     settingsRoute,
     s3SettingsRoute,
