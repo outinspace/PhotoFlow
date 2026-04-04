@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import constants from '../constants';
 import { router } from '../routes';
 
@@ -13,60 +13,40 @@ interface S3ConfigFormProps {
     onSaveSuccess: () => void;
 }
 
-interface FieldInfo {
-    id: string;
-    label: string;
-    help: string;
-    placeholder: string;
-    type?: string;
+function derivePublicBaseUrl(endpointUrl: string, bucketName: string): string {
+    const base = endpointUrl.trim().replace(/\/$/, '');
+    const bucket = bucketName.trim();
+    if (!base || !bucket) return '';
+    return `${base}/${bucket}`;
 }
 
-const fields: FieldInfo[] = [
-    {
-        id: 'endpointUrl',
-        label: 'S3 Endpoint URL',
-        help: 'The S3-compatible API endpoint for your provider. For Backblaze B2 this looks like https://s3.us-west-004.backblazeb2.com. For Cloudflare R2 it is https://<account-id>.r2.cloudflarestorage.com.',
-        placeholder: 'https://s3.us-west-004.backblazeb2.com',
-    },
-    {
-        id: 'bucketName',
-        label: 'Bucket Name',
-        help: 'The name of your S3 bucket.',
-        placeholder: 'my-photoflow-bucket',
-    },
-    {
-        id: 'publicBaseUrl',
-        label: 'Public Base URL',
-        help: 'The public URL prefix used to fetch files directly from the bucket. This is the URL your browser will use to load photos. For Backblaze B2 it is typically https://f005.backblazeb2.com/file/<bucket-name> or your custom CDN domain.',
-        placeholder: 'https://f005.backblazeb2.com/file/my-photoflow-bucket',
-    },
-    {
-        id: 'accessKeyId',
-        label: 'Access Key ID',
-        help: 'The S3 access key ID. This is not sensitive and is stored in plaintext.',
-        placeholder: 'keyId123',
-    },
-    {
-        id: 'secretAccessKey',
-        label: 'Secret Access Key',
-        help: 'The S3 secret access key. This is encrypted before being stored. Your key should have only GetObject and PutObject permissions — no ListBucket or DeleteObject.',
-        placeholder: '',
-        type: 'password',
-    },
-];
-
 export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProps) => {
-    const [values, setValues] = useState({
-        endpointUrl: existingConfig?.endpointUrl ?? '',
-        bucketName: existingConfig?.bucketName ?? '',
-        publicBaseUrl: existingConfig?.publicBaseUrl ?? '',
-        accessKeyId: existingConfig?.accessKeyId ?? '',
-        secretAccessKey: '',
-    });
+    const [endpointUrl, setEndpointUrl] = useState(existingConfig?.endpointUrl ?? '');
+    const [bucketName, setBucketName] = useState(existingConfig?.bucketName ?? '');
+    const [publicBaseUrl, setPublicBaseUrl] = useState(existingConfig?.publicBaseUrl ?? '');
+    const [publicBaseUrlOverridden, setPublicBaseUrlOverridden] = useState(!!existingConfig?.publicBaseUrl);
+    const [accessKeyId, setAccessKeyId] = useState(existingConfig?.accessKeyId ?? '');
+    const [secretAccessKey, setSecretAccessKey] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [warnings, setWarnings] = useState<string[]>([]);
     const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        if (!publicBaseUrlOverridden) {
+            setPublicBaseUrl(derivePublicBaseUrl(endpointUrl, bucketName));
+        }
+    }, [endpointUrl, bucketName, publicBaseUrlOverridden]);
+
+    const handlePublicBaseUrlChange = (value: string) => {
+        setPublicBaseUrl(value);
+        setPublicBaseUrlOverridden(true);
+    };
+
+    const handleResetPublicBaseUrl = () => {
+        setPublicBaseUrlOverridden(false);
+        setPublicBaseUrl(derivePublicBaseUrl(endpointUrl, bucketName));
+    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -86,11 +66,11 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
                     'x-tenant-id': tenantId,
                 },
                 body: JSON.stringify({
-                    endpointUrl: values.endpointUrl.trim(),
-                    bucketName: values.bucketName.trim(),
-                    publicBaseUrl: values.publicBaseUrl.trim(),
-                    accessKeyId: values.accessKeyId.trim(),
-                    secretAccessKey: values.secretAccessKey,
+                    endpointUrl: endpointUrl.trim(),
+                    bucketName: bucketName.trim(),
+                    publicBaseUrl: publicBaseUrl.trim(),
+                    accessKeyId: accessKeyId.trim(),
+                    secretAccessKey,
                 }),
             });
 
@@ -106,9 +86,10 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
                 const body = await res.json();
                 if (body.warnings?.length > 0) {
                     setWarnings(body.warnings);
+                } else {
+                    onSaveSuccess();
                 }
                 setSuccess(true);
-                onSaveSuccess();
             } else {
                 const text = await res.text();
                 setError(text.replace(/^"|"$/g, ''));
@@ -120,25 +101,91 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
         }
     };
 
+    const inputClass = "block w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm/6";
+    const labelClass = "block text-sm/6 font-medium text-gray-900";
+    const helpClass = "mt-1 text-xs text-gray-500";
+
     return (
         <div className="space-y-6">
-            {fields.map(field => (
-                <div key={field.id}>
-                    <label className="block text-sm/6 font-medium text-gray-900">
-                        {field.label}
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type={field.type ?? 'text'}
-                            value={(values as any)[field.id]}
-                            onChange={e => setValues(v => ({ ...v, [field.id]: e.target.value }))}
-                            placeholder={field.placeholder}
-                            className="block w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm/6"
-                        />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">{field.help}</p>
+            <div>
+                <label className={labelClass}>S3 Endpoint URL</label>
+                <div className="mt-1">
+                    <input
+                        type="text"
+                        value={endpointUrl}
+                        onChange={e => setEndpointUrl(e.target.value)}
+                        placeholder="https://s3.us-west-004.backblazeb2.com"
+                        className={inputClass}
+                    />
                 </div>
-            ))}
+                <p className={helpClass}>The S3-compatible API endpoint for your provider.</p>
+            </div>
+
+            <div>
+                <label className={labelClass}>Bucket Name</label>
+                <div className="mt-1">
+                    <input
+                        type="text"
+                        value={bucketName}
+                        onChange={e => setBucketName(e.target.value)}
+                        placeholder="my-photoflow-bucket"
+                        className={inputClass}
+                    />
+                </div>
+            </div>
+
+            <div>
+                <div className="flex items-baseline justify-between">
+                    <label className={labelClass}>Public Base URL</label>
+                    {publicBaseUrlOverridden && (
+                        <button
+                            type="button"
+                            onClick={handleResetPublicBaseUrl}
+                            className="text-xs text-sky-600 hover:text-sky-500"
+                        >
+                            Reset to derived
+                        </button>
+                    )}
+                </div>
+                <div className="mt-1">
+                    <input
+                        type="text"
+                        value={publicBaseUrl}
+                        onChange={e => handlePublicBaseUrlChange(e.target.value)}
+                        placeholder="https://my-photoflow-bucket.s3.us-west-004.backblazeb2.com"
+                        className={inputClass}
+                    />
+                </div>
+                <p className={helpClass}>
+                    Derived from your endpoint and bucket name. Override if your provider uses a different public URL (e.g. Backblaze B2's download subdomain or a custom CDN domain).
+                </p>
+            </div>
+
+            <div>
+                <label className={labelClass}>Access Key ID</label>
+                <div className="mt-1">
+                    <input
+                        type="text"
+                        value={accessKeyId}
+                        onChange={e => setAccessKeyId(e.target.value)}
+                        placeholder="keyId123"
+                        className={inputClass}
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className={labelClass}>Secret Access Key</label>
+                <div className="mt-1">
+                    <input
+                        type="password"
+                        value={secretAccessKey}
+                        onChange={e => setSecretAccessKey(e.target.value)}
+                        className={inputClass}
+                    />
+                </div>
+                <p className={helpClass}>Encrypted before being stored.</p>
+            </div>
 
             {error && (
                 <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">
@@ -147,9 +194,16 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
             )}
 
             {warnings.length > 0 && (
-                <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800 space-y-1">
+                <div className="rounded-md bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800 space-y-3">
                     <p className="font-medium">Configuration saved with warnings:</p>
                     {warnings.map((w, i) => <p key={i}>{w}</p>)}
+                    <button
+                        type="button"
+                        onClick={onSaveSuccess}
+                        className="mt-1 text-sm font-medium text-yellow-900 underline hover:no-underline"
+                    >
+                        I understand, continue
+                    </button>
                 </div>
             )}
 
@@ -167,19 +221,6 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
                 >
                     {saving ? 'Testing & Saving…' : 'Test & Save'}
                 </button>
-            </div>
-
-            <div className="text-xs text-gray-500 space-y-1">
-                <p className="font-medium">Required API key permissions:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                    <li>GetObject — to serve photos to the browser</li>
-                    <li>PutObject — to upload new photos</li>
-                </ul>
-                <p className="font-medium mt-2">Do NOT grant these permissions:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                    <li>ListBucket — prevents directory enumeration</li>
-                    <li>DeleteObject — prevents accidental deletion via the API key</li>
-                </ul>
             </div>
         </div>
     );

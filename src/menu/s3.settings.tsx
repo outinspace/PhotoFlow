@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
 import { useGallery } from '../api/useGallery';
-import PageHeader from '../common/page.header';
+import { TopBar } from '../common/top.bar';
 import { S3ConfigForm } from '../setup/s3.config.form';
 
 interface ExistingConfig {
@@ -32,8 +32,9 @@ const S3Settings = () => {
     }
 
     return (
-        <div className="p-5">
-            <PageHeader name="Storage Settings" />
+        <div className='flex flex-auto flex-col overflow-hidden'>
+            <TopBar title='Storage Settings' />
+            <div className="p-5 overflow-auto">
 
             {hasPhotos && (
                 <div className="mb-6 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-900">
@@ -54,6 +55,7 @@ const S3Settings = () => {
                 existingConfig={config}
                 onSaveSuccess={handleSaveSuccess}
             />
+            </div>
         </div>
     );
 };

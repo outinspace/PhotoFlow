@@ -8,21 +8,26 @@ const Setup = () => {
     };
 
     return (
-        <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+        <div className="flex min-h-full flex-1 flex-col px-6 py-12 pb-24 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="text-center text-3xl font-bold italic text-gray-900">
-                    PhotoFlow
-                </h2>
-                <h3 className="mt-4 text-center text-xl font-semibold text-gray-800">
+                <h3 className="text-center text-xl font-semibold text-gray-800">
                     Set up your storage bucket
                 </h3>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    PhotoFlow stores your photos in an S3-compatible bucket that you provide and control.
-                    You can use Backblaze B2, Cloudflare R2, AWS S3, or any compatible provider.
-                </p>
+
+                <ol className="mt-4 space-y-2 text-sm text-gray-600 list-decimal list-inside">
+                    <li>
+                        Create a bucket at your S3-compatible provider (Backblaze B2, Cloudflare R2, AWS S3, etc.)
+                    </li>
+                    <li>
+                        Make the bucket <span className="font-medium text-gray-800">publicly accessible</span> — PhotoFlow serves photos directly from it to your browser
+                    </li>
+                    <li>
+                        Generate an API key with only <span className="font-mono text-xs font-medium text-gray-800">PutObject</span> permission — photos are served directly from the public bucket URL, so the key does not need read access
+                    </li>
+                </ol>
             </div>
 
-            <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <S3ConfigForm onSaveSuccess={handleSaveSuccess} />
             </div>
         </div>
