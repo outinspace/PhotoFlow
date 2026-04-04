@@ -11,6 +11,7 @@ import Settings from './menu/settings';
 import StorageSettings from './menu/storage.settings';
 import ExportData from './menu/export.data';
 import { AlbumLayout } from './albums/album.layout';
+import { FailedItems } from './menu/failed.items';
 import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
@@ -161,6 +162,16 @@ export const itemsInProcessRoute = createRoute({
     )
 });
 
+export const failedItemsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/failed-items',
+    component: () => (
+        <NavigationLayout>
+            <FailedItems />
+        </NavigationLayout>
+    )
+});
+
 export const settingsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings',
@@ -222,6 +233,7 @@ const routeTree = rootRoute.addChildren([
     menuRoute,
     recentlyDeletedRoute,
     itemsInProcessRoute,
+    failedItemsRoute,
     settingsRoute,
     s3SettingsRoute,
     exportDataRoute,
