@@ -23,9 +23,6 @@ const StorageSettings = () => {
             .then((data: ExistingConfig) => setConfig(data));
     }, []);
 
-    const handleSaveSuccess = () => {
-        localStorage.setItem('s3Configured', 'true');
-    };
 
     if (!config) {
         return <div className="p-5 text-slate-500">Loading…</div>;
@@ -53,7 +50,7 @@ const StorageSettings = () => {
 
             <S3ConfigForm
                 existingConfig={config}
-                onSaveSuccess={handleSaveSuccess}
+                onSaveSuccess={() => {}}
             />
             </div>
         </div>

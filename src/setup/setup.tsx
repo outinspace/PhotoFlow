@@ -3,7 +3,6 @@ import { S3ConfigForm } from './s3.config.form';
 
 const Setup = () => {
     const handleSaveSuccess = () => {
-        localStorage.setItem('s3Configured', 'true');
         router.navigate({ to: '/' });
     };
 

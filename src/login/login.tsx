@@ -35,7 +35,6 @@ const Login = () => {
 
             localStorage.setItem('tenantId', body.tenantId);
             localStorage.setItem('sessionId', body.sessionId);
-            localStorage.setItem('s3Configured', body.s3Configured ? 'true' : 'false');
 
             navigate({ to: body.s3Configured ? '/gallery' : '/setup' });
         } else {
