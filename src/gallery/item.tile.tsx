@@ -16,6 +16,7 @@ interface Props {
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
     const [showImage, setShowImage] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
     const tileRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -56,6 +57,25 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 onClick(isDoubleClick);
             }}
         >
+            {item.primaryFile.tilePlaceholderUrl && (
+                <img
+                    aria-hidden
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        filter: 'blur(8px)',
+                        transform: 'scale(1.1)',
+                        opacity: imageLoaded ? 0 : 1,
+                        transition: 'opacity 0.3s ease-out',
+                        pointerEvents: 'none',
+                    }}
+                    src={item.primaryFile.tilePlaceholderUrl}
+                    decoding='async'
+                />
+            )}
             <img
                 className='select-none'
                 style={{
@@ -66,6 +86,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 }}
                 src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 decoding='async'
+                onLoad={() => setImageLoaded(true)}
             />
             {item.isFavorite && (
                 <div className='absolute bottom-1 left-1 text-slate-100 shadow'>
