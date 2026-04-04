@@ -1,4 +1,4 @@
-import { CreditCard, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
+import { Database, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
 import { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -35,11 +35,11 @@ const options = [
         }
     },
     {
-        name: 'Billing',
-        icon: CreditCard,
+        name: 'Storage Settings',
+        icon: Database,
         debug: false,
         onClick: () => {
-            router.navigate({ to: '/billing' });
+            router.navigate({ to: '/storage-settings' });
         }
     },
     {
