@@ -112,7 +112,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const rangeDateFormat = zoomLevel.idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
 
-    // TODO: Extract into useTileVirtualizer
     const columns = Math.floor(containerWidth / zoomLevel.idealTileSize);
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
 
