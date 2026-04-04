@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import constants from '../constants';
 import { useNavigate } from '@tanstack/react-router';
+import toast from 'react-hot-toast';
 
 const Login = () => {
     const [tenantValue, setTenantValue] = useState('');
@@ -38,8 +39,7 @@ const Login = () => {
 
             navigate({ to: body.s3Configured ? '/gallery' : '/setup' });
         } else {
-            // TODO: Fancy toast
-            alert('Login failed');
+            toast.error('Login failed')
         }
     };
 
