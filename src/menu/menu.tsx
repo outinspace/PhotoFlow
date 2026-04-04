@@ -1,4 +1,4 @@
-import { Database, Download, LogOut, Refresh, RefreshDouble, Settings, Trash } from 'iconoir-react';
+import { Database, Download, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -43,6 +43,14 @@ const advancedOptions = [
         debug: false,
         onClick: () => {
             router.navigate({ to: '/items-in-process' });
+        }
+    },
+    {
+        name: 'Failed Items',
+        icon: WarningTriangle,
+        debug: false,
+        onClick: () => {
+            router.navigate({ to: '/failed-items' });
         }
     },
     {
@@ -137,7 +145,7 @@ const GalleryStats = () => {
     }, [items]);
 
     const processingItemsCount = useMemo(() =>
-        items.filter(i => i.files.some(f => f.lastProcessedTimeUtc === null)).length,
+        items.filter(i => i.files.some(f => f.lastProcessedTimeUtc === null && !f.failedProcessingTimeUtc)).length,
         [items]);
 
     // @ts-ignore

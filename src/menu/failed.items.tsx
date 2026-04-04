@@ -4,18 +4,18 @@ import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 
 
-export const ItemsInProcess = () => {
+export const FailedItems = () => {
     const { data: gallery } = useGallery();
 
     const items = useMemo(() => {
         const input = gallery?.items ?? [];
 
-        return input.filter(item => item.files.some(file => file.lastProcessedTimeUtc === null && !file.failedProcessingTimeUtc));
+        return input.filter(item => item.files.some(file => !!file.failedProcessingTimeUtc));
     }, [gallery?.items]);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar title='Items In-Process' />
+            <TopBar title='Failed Items' />
             <ItemGrid items={items} albumId={null} />
         </div>
     );

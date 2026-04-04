@@ -36,6 +36,7 @@ export interface File {
     sizeBytes: number;
     uploadTimeUtc: string;
     lastProcessedTimeUtc: string | null;
+    failedProcessingTimeUtc: string | null;
     tileVersion: number | null;
     previewVersion: number | null;
 
