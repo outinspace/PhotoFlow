@@ -33,7 +33,8 @@ const persister = createIDBPersister('react-query');
 export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            gcTime: cacheMaxAgeMs
+            gcTime: cacheMaxAgeMs,
+            refetchOnWindowFocus: false // Don't refresh on browser tab focus
         }
     }
 })
