@@ -18,7 +18,6 @@ import MemoriesLayout from "./memories/memories.layout";
 import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.default.to.memories";
-
 export const rootRoute = createRootRoute();
 
 export const indexRoute = createRoute({
@@ -30,11 +29,6 @@ export const indexRoute = createRoute({
 
         if (!tenantId || !sessionId) {
             throw redirect({ to: '/login' });
-        }
-
-        const s3Configured = localStorage.getItem('s3Configured') === 'true';
-        if (!s3Configured) {
-            throw redirect({ to: '/setup' });
         }
 
         const defaultToMemories = getDefaultToMemories();
