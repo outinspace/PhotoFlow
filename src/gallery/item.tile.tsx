@@ -68,8 +68,6 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                         objectFit: 'cover',
                         filter: 'blur(8px)',
                         clipPath: 'inset(0)',
-                        opacity: imageLoaded ? 0 : 1,
-                        transition: 'opacity 0.3s ease-out',
                         pointerEvents: 'none',
                     }}
                     src={item.primaryFile.tilePlaceholderUrl}
@@ -83,6 +81,8 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                    opacity: imageLoaded ? 1 : 0,
+                    transition: 'opacity 0.3s ease-out',
                 }}
                 src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 decoding='async'
