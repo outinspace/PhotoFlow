@@ -20,6 +20,7 @@ import MemoriesLayout from "./memories/memories.layout";
 import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.default.to.memories";
+import { isSetupWizardRequired } from "./setup/setup.wizard.state";
 export const rootRoute = createRootRoute();
 
 export const indexRoute = createRoute({
@@ -31,6 +32,10 @@ export const indexRoute = createRoute({
 
         if (!tenantId || !sessionId) {
             throw redirect({ to: '/login' });
+        }
+
+        if (isSetupWizardRequired(tenantId)) {
+            throw redirect({ to: '/setup' });
         }
 
         const defaultToMemories = getDefaultToMemories();

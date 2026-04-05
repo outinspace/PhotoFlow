@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import constants from '../constants';
 import { useNavigate } from '@tanstack/react-router';
 import toast from 'react-hot-toast';
+import { isSetupWizardRequired } from '../setup/setup.wizard.state';
 
 const Login = () => {
     const [tenantValue, setTenantValue] = useState('');
@@ -37,7 +38,7 @@ const Login = () => {
             localStorage.setItem('tenantId', body.tenantId);
             localStorage.setItem('sessionId', body.sessionId);
 
-            navigate({ to: body.s3Configured ? '/gallery' : '/setup' });
+            navigate({ to: isSetupWizardRequired(body.tenantId) ? '/setup' : '/gallery' });
         } else {
             toast.error('Login failed')
         }

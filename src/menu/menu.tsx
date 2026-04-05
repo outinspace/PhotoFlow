@@ -1,4 +1,4 @@
-import { Database, Download, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
+import { Database, Download, Learning, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -22,6 +22,13 @@ const commonOptions = [
         icon: Trash,
         onClick: () => {
             router.navigate({ to: '/recently-deleted' });
+        }
+    },
+    {
+        name: 'Setup Tutorial',
+        icon: Learning,
+        onClick: () => {
+            router.navigate({ to: '/setup' });
         }
     },
     {
