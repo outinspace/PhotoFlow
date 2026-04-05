@@ -19,6 +19,7 @@ export const computeItemProperties = (item: Item, originalUrlPrefix: string, til
     }
 
     item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
+    item.captureTime = item.captureTime ?? item.primaryFile.uploadTimeUtc;
 
     item.totalBytes = item.files.reduce((sum, file) => sum + file.sizeBytes, 0);
 
@@ -36,4 +37,3 @@ const getType = (item: Item) => {
         return 'live-photo';
     }
 }
-
