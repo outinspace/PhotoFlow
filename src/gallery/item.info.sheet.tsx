@@ -41,6 +41,9 @@ const BasicInfo = ({ item }: { item: Item }) => {
                     {format(new Date(item.captureTime), 'MMMM d, yyyy')} at {format(new Date(item.captureTime), 'h:mm a')}
                 </span>
             </div>
+            <div className='mt-1 text-sm text-slate-600'>
+                Uploaded {format(new Date(item.primaryFile.uploadTimeUtc), 'MMMM d, yyyy')} at {format(new Date(item.primaryFile.uploadTimeUtc), 'h:mm a')}
+            </div>
         </div>
     );
 };
