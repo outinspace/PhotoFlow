@@ -47,7 +47,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
     return (
         <div
             ref={tileRef}
-            className={`h-full w-full overflow-hidden ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
+            className={`relative h-full w-full overflow-hidden ${idealTileSize > 50 && 'outline outline-white outline-1'}`}
             style={{
                 backgroundColor: PLACEHOLDER_COLORS[item.itemId % PLACEHOLDER_COLORS.length]
             }}
@@ -67,7 +67,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                         height: '100%',
                         objectFit: 'cover',
                         filter: 'blur(8px)',
-                        clipPath: 'inset(0)',
+                        transform: 'scale(1.3)',
                         pointerEvents: 'none',
                     }}
                     src={item.primaryFile.tilePlaceholderUrl}
