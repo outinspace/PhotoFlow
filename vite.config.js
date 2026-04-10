@@ -23,7 +23,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/cdn-prod-01\.outin\.space\/tile-image\//,
+            urlPattern: /^https:\/\/.*\/tile-image\//,
             handler: 'CacheFirst',
             options: {
               cacheName: 'photoflow-tile-images',
