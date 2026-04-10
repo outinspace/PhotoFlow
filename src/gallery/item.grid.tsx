@@ -146,7 +146,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
         return () => window.removeEventListener('resize', updateWidth);
     }, []);
-    // END: Extract into useTileVirtualizer
 
 
     const zoomOut = () => {
