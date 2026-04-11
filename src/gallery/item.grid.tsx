@@ -122,6 +122,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         estimateSize: () => tileSize,
         overscan: columns * zoomLevel.overscanRows,
         paddingEnd: 100,
+        getItemKey: index => items[index].itemId,
         rangeExtractor: useCallback((range: Range) => {
             visibleRangeRef.current = {
                 startIndex: range.startIndex,
