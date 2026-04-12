@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { useRemoveItemsFromAlbum } from '../api/useRemoveItemsFromAlbum';
-import { useReprocessItem } from '../api/useReprocessItem';
 import { useReprocessItems } from '../api/useReprocessItems';
 import { useRestoreItems } from '../api/useRestoreItems';
 import { AddToAlbumModal } from './add.to.album.modal';
@@ -33,7 +32,6 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
 
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
-    const reprocessItemMutation = useReprocessItem();
     const reprocessItemsMutation = useReprocessItems();
 
     const getPublicUrl = () => {
@@ -152,12 +150,8 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
             icon: Refresh,
             className: '',
             onClick: () => {
-                if (items.length === 1) {
-                    reprocessItemMutation.mutate(items[0].itemId);
-                } else {
-                    const itemIds = items.map(item => item.itemId);
-                    reprocessItemsMutation.mutate(itemIds);
-                }
+                const itemIds = items.map(item => item.itemId);
+                reprocessItemsMutation.mutate(itemIds);
                 onDismiss();
             }
         },
