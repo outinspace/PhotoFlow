@@ -159,7 +159,8 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         rowVirtualizer.measure();
     }
 
-    let formattedRange = useFormattedRange(items, visibleRangeRef.current, rangeDateFormat);
+    const sort = disableFilteringSorting ? 'capture-date' : filterProps.filters.sort;
+    let formattedRange = useFormattedRange(items, visibleRangeRef.current, rangeDateFormat, sort);
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
@@ -396,14 +397,18 @@ const ScrollContainer = styled.div`
 
 export default ItemGrid;
 
-function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, rangeDateFormat: string) {
+function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, rangeDateFormat: string, sort: string) {
     const rangeStartItem: Item | undefined = items[visibleRange.startIndex];
     const rangeEndItem: Item | undefined = items[visibleRange.endIndex - 1];
 
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
-        const start = format(rangeStartItem.captureTime, rangeDateFormat);
-        formattedRange = start;
+        if (sort === 'upload-date') {
+            const start = format(rangeStartItem.primaryFile.uploadTimeUtc, rangeDateFormat);
+            formattedRange = `Uploaded ${start}`;
+        } else {
+            formattedRange = format(rangeStartItem.captureTime, rangeDateFormat);
+        }
     }
     return formattedRange;
 }
