@@ -69,7 +69,7 @@ const SystemStatus = () => {
                         <div className='mt-4 flex flex-col gap-3 md:flex-row'>
                             <Bucket title='Pending' counts={data.pending} tone='pending' />
                             <Bucket title='In-flight' counts={data.inFlight} tone='inFlight' />
-                            <Bucket title='Failed' counts={data.failed} tone='failed' />
+                            <Bucket title='Failed (24h)' counts={data.failed} tone='failed' />
                         </div>
 
                         <div className='mt-3 text-xs text-slate-400'>Auto-refreshes every 5 seconds.</div>
