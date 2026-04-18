@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import PageHeader from '../common/page.header';
 import { useEventsStatus } from '../api/useSystemStatus';
 import { TopBar } from '../common/top.bar';
 
