@@ -1,4 +1,4 @@
-import { Database, Download, Learning, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
+import { Activity, Database, Download, Learning, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
@@ -86,6 +86,14 @@ const advancedOptions = [
             });
 
             alert(res.status + ' ' + res.statusText);
+        }
+    },
+    {
+        name: 'System Status',
+        icon: Activity,
+        debug: false,
+        onClick: () => {
+            router.navigate({ to: '/system-status' });
         }
     }
 ];
