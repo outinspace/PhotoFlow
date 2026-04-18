@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
-import { Map, Menu, ViewGrid, Flower } from 'iconoir-react';
+import { Map, Menu, ViewGrid, Flower, Search } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
 import { ReactNode, useEffect } from 'react';
 
@@ -8,6 +8,11 @@ const options = [
         name: 'Gallery',
         route: '/gallery',
         icon: ViewGrid
+    },
+    {
+        name: 'Search',
+        route: '/search',
+        icon: Search
     },
     {
         name: 'Map',
