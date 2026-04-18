@@ -10,6 +10,7 @@ import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import Settings from './menu/settings';
 import StorageSettings from './menu/storage.settings';
 import ExportData from './menu/export.data';
+import SystemStatus from './menu/system.status';
 import { AlbumLayout } from './albums/album.layout';
 import { FailedItems } from './menu/failed.items';
 import { ItemsInProcess } from './menu/items.in.process';
@@ -207,6 +208,16 @@ export const exportDataRoute = createRoute({
     )
 });
 
+export const systemStatusRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/system-status',
+    component: () => (
+        <NavigationLayout>
+            <SystemStatus />
+        </NavigationLayout>
+    )
+});
+
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
@@ -242,6 +253,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     s3SettingsRoute,
     exportDataRoute,
+    systemStatusRoute,
     publicItemRoute,
     publicAlbumRoute
 ]);
