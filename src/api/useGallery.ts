@@ -60,7 +60,7 @@ export const useGallery = () => useQuery({
 
         // Invalidate service worker cache for updated items
         if ('caches' in window) {
-            const cache = await caches.open('photoflow-images');
+            const cache = await caches.open('photoflow-tile-images');
 
             for (const updatedItem of updatedGallery.items) {
                 const cachedItem = cachedItemsMap[updatedItem.itemId];
@@ -71,9 +71,6 @@ export const useGallery = () => useQuery({
                 for (const file of cachedItem.files) {
                     if (file.tileImageUrl) {
                         await cache.delete(file.tileImageUrl);
-                    }
-                    if (file.previewUrl) {
-                        await cache.delete(file.previewUrl);
                     }
                 }
             }
