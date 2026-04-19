@@ -45,7 +45,6 @@ export interface File {
     originalUrl: string;
     tileImageUrl: string | null;
     previewUrl: string | null;
-    tilePlaceholderUrl: string | null;
 }
 
 export interface Album {
