@@ -21,10 +21,9 @@ interface Props {
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
     tenantId?: string;
-    initialZoomLevelIndex?: number;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, tenantId, initialZoomLevelIndex = 2 }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, tenantId }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -85,7 +84,19 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
-    const [zoomLevelIndex, setZoomIndex] = useState(initialZoomLevelIndex);
+    const [zoomLevelIndex, setZoomIndex] = useState(() => {
+        const baseIndex = 2;
+        const baseTileSize = 70;
+        const threshold = 200;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const cols = Math.max(1, Math.floor(w / baseTileSize));
+        const tile = w / cols;
+        const rows = Math.ceil(h / tile);
+        const visible = cols * rows;
+
+        return visible > threshold ? Math.min(baseIndex + 1, 4) : baseIndex;
+    });
     const zoomLevels = [
         {
             idealTileSize: 40,
