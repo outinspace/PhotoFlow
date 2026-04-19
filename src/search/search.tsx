@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Search as SearchIcon, Xmark } from 'iconoir-react';
 import PageHeader from '../common/page.header';
 import ItemGrid from '../gallery/item.grid';
@@ -22,6 +22,7 @@ const Search = () => {
             .map(r => itemsById[r.itemId])
             .filter((i): i is Item => Boolean(i));
     }, [results, gallery]);
+    const deferredItems = useDeferredValue(items);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
@@ -57,8 +58,8 @@ const Search = () => {
                 </div>
             </div>
             <div className='flex flex-auto overflow-hidden'>
-                {debouncedQuery && items.length > 0 && (
-                    <ItemGrid items={items} albumId={null} disableFilteringSorting initialZoomLevelIndex={3} />
+                {debouncedQuery && deferredItems.length > 0 && (
+                    <ItemGrid items={deferredItems} albumId={null} disableFilteringSorting initialZoomLevelIndex={3} />
                 )}
             </div>
         </div>
