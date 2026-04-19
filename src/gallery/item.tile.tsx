@@ -1,24 +1,13 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { thumbHashToDataURL } from 'thumbhash';
+import { useState, useEffect, useRef } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
+import { useThumbHashDataUrl } from '../common/thumb.hash.cache';
 
 const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
     const alpha = 0.9 + (i * 0.005);
     return `rgba(0,0,0,${alpha})`;
 });
-
-const thumbHashDataUrlCache = new Map<string, string>();
-
-const getThumbHashDataUrl = (thumbHash: string): string => {
-    const cached = thumbHashDataUrlCache.get(thumbHash);
-    if (cached) return cached;
-    const binary = Uint8Array.from(atob(thumbHash), c => c.charCodeAt(0));
-    const dataUrl = thumbHashToDataURL(binary);
-    thumbHashDataUrlCache.set(thumbHash, dataUrl);
-    return dataUrl;
-};
 
 interface Props {
     item: Item;
@@ -33,10 +22,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
     const imgRef = useRef<HTMLImageElement>(null);
     const loadedRef = useRef(false);
 
-    const tilePlaceholderUrl = useMemo(
-        () => item.primaryFile.thumbHash ? getThumbHashDataUrl(item.primaryFile.thumbHash) : null,
-        [item.primaryFile.thumbHash]
-    );
+    const tilePlaceholderUrl = useThumbHashDataUrl(item.primaryFile.thumbHash);
 
     useEffect(() => {
         const element = tileRef.current;
