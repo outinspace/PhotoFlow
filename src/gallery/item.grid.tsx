@@ -92,15 +92,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         },
         {
             idealTileSize: 50,
-            overscanRows: 10
-        },
-        {
-            idealTileSize: 70,
             overscanRows: 20
         },
         {
+            idealTileSize: 70,
+            overscanRows: 40
+        },
+        {
             idealTileSize: 110,
-            overscanRows: 30
+            overscanRows: 40
         },
         {
             idealTileSize: Math.min(containerWidth, 300),
