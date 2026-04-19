@@ -1,4 +1,3 @@
-import { thumbHashToDataURL } from 'thumbhash';
 import { Item } from "../types";
 
 export const computeItemProperties = (item: Item, originalUrlPrefix: string, tileImageUrlPrefix: string, previewUrlPrefix: string) => {
@@ -9,13 +8,6 @@ export const computeItemProperties = (item: Item, originalUrlPrefix: string, til
 
         const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
         file.previewUrl = file.previewVersion ? `${previewUrlPrefix}${file.fileId}${previewExtension}?t=${file.lastProcessedTimeUtc}` : null;
-
-        if (file.thumbHash) {
-            const binary = Uint8Array.from(atob(file.thumbHash), c => c.charCodeAt(0));
-            file.tilePlaceholderUrl = thumbHashToDataURL(binary);
-        } else {
-            file.tilePlaceholderUrl = null;
-        }
     }
 
     item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];

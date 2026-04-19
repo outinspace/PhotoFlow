@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { thumbHashToDataURL } from 'thumbhash';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
@@ -7,6 +8,17 @@ const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
     const alpha = 0.9 + (i * 0.005);
     return `rgba(0,0,0,${alpha})`;
 });
+
+const thumbHashDataUrlCache = new Map<string, string>();
+
+const getThumbHashDataUrl = (thumbHash: string): string => {
+    const cached = thumbHashDataUrlCache.get(thumbHash);
+    if (cached) return cached;
+    const binary = Uint8Array.from(atob(thumbHash), c => c.charCodeAt(0));
+    const dataUrl = thumbHashToDataURL(binary);
+    thumbHashDataUrlCache.set(thumbHash, dataUrl);
+    return dataUrl;
+};
 
 interface Props {
     item: Item;
@@ -20,6 +32,11 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
     const tileRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
     const loadedRef = useRef(false);
+
+    const tilePlaceholderUrl = useMemo(
+        () => item.primaryFile.thumbHash ? getThumbHashDataUrl(item.primaryFile.thumbHash) : null,
+        [item.primaryFile.thumbHash]
+    );
 
     useEffect(() => {
         const element = tileRef.current;
@@ -79,7 +96,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 onClick(isDoubleClick);
             }}
         >
-            {item.primaryFile.tilePlaceholderUrl && (
+            {tilePlaceholderUrl && (
                 <img
                     aria-hidden
                     style={{
@@ -92,7 +109,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                         transform: 'scale(1.3)',
                         pointerEvents: 'none',
                     }}
-                    src={item.primaryFile.tilePlaceholderUrl}
+                    src={tilePlaceholderUrl}
                     decoding='async'
                 />
             )}
