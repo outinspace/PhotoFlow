@@ -295,7 +295,8 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                         left: 0,
                                         height: `${tileSize}px`,
                                         width: `${tileSize}px`,
-                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * tileSize}px)`
+                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * tileSize}px)`,
+                                        contain: 'layout',
                                     }}
                                 >
                                     <ItemTile
