@@ -15,34 +15,58 @@ interface Props {
 }
 
 export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
-    const [showImage, setShowImage] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const tileRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
+    const loadedRef = useRef(false);
 
     useEffect(() => {
         const element = tileRef.current;
         if (!element) return;
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setTimeout(() => {
-                            setShowImage(true);
-                        }, 200);
-                        observer.unobserve(element);
-                    }
-                });
-            },
-            { rootMargin: '200px' }
-        );
+        const url = item.primaryFile.tileImageUrl;
+        if (!url) return;
+
+        let timeoutId: number | null = null;
+
+        const cancelPending = () => {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            const img = imgRef.current;
+            if (img && img.getAttribute('src')) {
+                img.src = '';
+                img.removeAttribute('src');
+            }
+        };
+
+        const startLoad = () => {
+            const img = imgRef.current;
+            if (!img) return;
+            img.src = url;
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[entries.length - 1];
+            if (entry.isIntersecting) {
+                if (loadedRef.current || timeoutId !== null) return;
+                timeoutId = window.setTimeout(() => {
+                    timeoutId = null;
+                    startLoad();
+                }, 200);
+            } else if (!loadedRef.current) {
+                cancelPending();
+            }
+        }, { rootMargin: '0px' });
 
         observer.observe(element);
 
         return () => {
+            cancelPending();
             observer.disconnect();
         };
-    }, []);
+    }, [item.primaryFile.tileImageUrl]);
 
     return (
         <div
@@ -75,6 +99,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                 />
             )}
             <img
+                ref={imgRef}
                 className='select-none'
                 style={{
                     position: 'relative',
@@ -84,9 +109,13 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                     opacity: imageLoaded ? 1 : 0,
                     transition: 'opacity 0.3s ease-out',
                 }}
-                src={showImage ? (item.primaryFile.tileImageUrl ?? undefined) : undefined}
                 decoding='async'
-                onLoad={() => setImageLoaded(true)}
+                onLoad={() => {
+                    if (imgRef.current?.getAttribute('src')) {
+                        loadedRef.current = true;
+                        setImageLoaded(true);
+                    }
+                }}
             />
             {item.isFavorite && (
                 <div className='absolute bottom-1 left-1 text-slate-100 shadow'>
