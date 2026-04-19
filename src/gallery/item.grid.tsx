@@ -13,6 +13,7 @@ import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
+import { prewarmThumbHashes } from '../common/thumb.hash.cache';
 
 interface Props {
     items: Item[];
@@ -31,6 +32,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const { filterProps, filteredItems } = useFilterBar(allItems);
     const items = disableFilteringSorting ? allItems : filteredItems;
+
+    useEffect(() => {
+        prewarmThumbHashes(allItems.map(item => item.primaryFile.thumbHash));
+    }, [allItems]);
 
     // Unified preview state management
     const [localPreviewItemId, setLocalPreviewItemId] = useState<number | null>(() => {
