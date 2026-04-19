@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
+import { observeVisibility } from '../common/visibility.observer';
 
 const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
     const alpha = 0.9 + (i * 0.005);
@@ -47,9 +48,8 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             img.src = url;
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            const entry = entries[entries.length - 1];
-            if (entry.isIntersecting) {
+        const unobserve = observeVisibility(element, (isIntersecting) => {
+            if (isIntersecting) {
                 if (loadedRef.current || timeoutId !== null) return;
                 timeoutId = window.setTimeout(() => {
                     timeoutId = null;
@@ -58,13 +58,11 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             } else if (!loadedRef.current) {
                 cancelPending();
             }
-        }, { rootMargin: '0px' });
-
-        observer.observe(element);
+        });
 
         return () => {
             cancelPending();
-            observer.disconnect();
+            unobserve();
         };
     }, [item.primaryFile.tileImageUrl]);
 
