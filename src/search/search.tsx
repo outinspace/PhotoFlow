@@ -58,7 +58,7 @@ const Search = () => {
             </div>
             <div className='flex flex-auto overflow-hidden'>
                 {debouncedQuery && items.length > 0 && (
-                    <ItemGrid items={items} albumId={null} disableFilteringSorting />
+                    <ItemGrid items={items} albumId={null} disableFilteringSorting initialZoomLevelIndex={3} />
                 )}
             </div>
         </div>

@@ -21,9 +21,10 @@ interface Props {
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
     tenantId?: string;
+    initialZoomLevelIndex?: number;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, tenantId }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, tenantId, initialZoomLevelIndex = 2 }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -84,7 +85,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
-    const [zoomLevelIndex, setZoomIndex] = useState(2);
+    const [zoomLevelIndex, setZoomIndex] = useState(initialZoomLevelIndex);
     const zoomLevels = [
         {
             idealTileSize: 40,
