@@ -72,8 +72,8 @@ const Setup = () => {
         return `${constants.apiUrl.replace(/\/$/, '')}/import/s3`;
     }, []);
 
-    const uploadSecret = tenantId ?? 'tenant-id-required';
-    const uploadAccessKey = 'photoflow';
+    const uploadSecret = 'test';
+    const uploadAccessKey = 'test';
     const bucketName = tenantId ?? 'tenant-id-required';
 
     const completeWizard = () => {
@@ -118,7 +118,7 @@ const Setup = () => {
                         </StepSection>
                         <StepSection title="PhotoFlow import values">
                             <FieldRow label="Server / Endpoint URL" value={importEndpoint} />
-                            <FieldRow label="Bucket Name" value={bucketName} />
+                            <FieldRow label="Bucket Name / Destination" value={bucketName} />
                             <FieldRow label="Access Key ID" value={uploadAccessKey} />
                             <FieldRow label="Secret Access Key" value={uploadSecret} />
                         </StepSection>
