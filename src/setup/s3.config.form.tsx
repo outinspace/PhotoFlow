@@ -9,6 +9,7 @@ interface S3ConfigFormProps {
         bucketName?: string | null;
         publicBaseUrl?: string | null;
         accessKeyId?: string | null;
+        isConfigured?: boolean;
     };
     onSaveSuccess: () => void;
 }
@@ -180,10 +181,15 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
                         type="password"
                         value={secretAccessKey}
                         onChange={e => setSecretAccessKey(e.target.value)}
+                        placeholder={existingConfig?.isConfigured ? '••••••••' : ''}
                         className={inputClass}
                     />
                 </div>
-                <p className={helpClass}>Encrypted before being stored.</p>
+                <p className={helpClass}>
+                    {existingConfig?.isConfigured
+                        ? 'Leave blank to keep your saved secret. Enter a new value to replace it.'
+                        : 'Encrypted before being stored.'}
+                </p>
             </div>
 
             {error && (
