@@ -63,15 +63,15 @@ export const OneYearAgoToday = () => {
 
     const handleMoveNext = useCallback(() => {
         if (previewItemIndex === null) return;
-        const newIndex = previewItemIndex >= matchingItems.length - 1 ? matchingItems.length - 1 : previewItemIndex + 1;
+        const newIndex = previewItemIndex >= matchingItems.length - 1 ? 0 : previewItemIndex + 1;
         setPreviewItemIndex(newIndex);
     }, [previewItemIndex, matchingItems.length]);
 
     const handleMovePrevious = useCallback(() => {
         if (previewItemIndex === null) return;
-        const newIndex = previewItemIndex === 0 ? 0 : previewItemIndex - 1;
+        const newIndex = previewItemIndex === 0 ? matchingItems.length - 1 : previewItemIndex - 1;
         setPreviewItemIndex(newIndex);
-    }, [previewItemIndex]);
+    }, [previewItemIndex, matchingItems.length]);
 
     if (matchingItems.length === 0) {
         return null;

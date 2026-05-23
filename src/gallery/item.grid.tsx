@@ -375,14 +375,14 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     albumId={albumId}
                     tenantId={tenantId}
                     onMovePrevious={() => {
-                        const newIndex = previewItemIndex === 0 ? 0 : previewItemIndex - 1;
+                        const newIndex = previewItemIndex === 0 ? items.length - 1 : previewItemIndex - 1;
                         const newItem = items[newIndex];
                         if (newItem) {
                             setPreviewItemId(newItem.itemId, true);
                         }
                     }}
                     onMoveNext={() => {
-                        const newIndex = previewItemIndex === items.length - 1 ? items.length - 1 : previewItemIndex + 1;
+                        const newIndex = previewItemIndex === items.length - 1 ? 0 : previewItemIndex + 1;
                         const newItem = items[newIndex];
                         if (newItem) {
                             setPreviewItemId(newItem.itemId, true);

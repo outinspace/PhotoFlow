@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Heart, HeartSolid, Xmark } from 'iconoir-react';
+import { InfoCircle, Heart, HeartSolid, Xmark, Play, Pause } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import ItemInfoSheet from './item.info.sheet';
@@ -26,10 +26,14 @@ interface Props {
     tenantId?: string;
 }
 
+const SLIDESHOW_INTERVAL_MS = 4000;
+
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly, tenantId }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [slideshow, setSlideshow] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
     const { enabled: photoAnimationsEnabled } = usePhotoAnimations();
@@ -196,6 +200,51 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
 
+    const startSlideshow = async () => {
+        try {
+            await containerRef.current?.requestFullscreen();
+        } catch {
+            // Continue without fullscreen if denied
+        }
+        setSlideshow(true);
+    };
+
+    const stopSlideshow = () => {
+        setSlideshow(false);
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+    };
+
+    useEffect(() => {
+        if (!slideshow) return;
+
+        const timeoutId = setTimeout(() => {
+            onMoveNext?.();
+        }, SLIDESHOW_INTERVAL_MS);
+
+        return () => clearTimeout(timeoutId);
+    }, [slideshow, itemIndex]);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                setSlideshow(false);
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        };
+    }, []);
+
     if (!item) {
         return;
     }
@@ -210,7 +259,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container style={{ opacity: swipeSpring.opacity }}>
+        <Container ref={containerRef} style={{ opacity: swipeSpring.opacity }}>
             <SwipeArea {...dragBindings()}>
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length) // Only render relevant images
@@ -262,6 +311,21 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onClick={() => setShowInfoSheet(true)}
                     className='ml-3 text-shadow'
                 />
+                {items.length > 1 && (slideshow ? (
+                    <Pause
+                        height={30}
+                        width={30}
+                        onClick={stopSlideshow}
+                        className='ml-3 text-shadow'
+                    />
+                ) : (
+                    <Play
+                        height={30}
+                        width={30}
+                        onClick={startSlideshow}
+                        className='ml-3 text-shadow'
+                    />
+                ))}
                 {!readonly && !item.isFavorite && (
                     <Heart
                         height={30}
