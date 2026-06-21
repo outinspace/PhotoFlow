@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
@@ -11,12 +11,13 @@ const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
 
 interface Props {
     item: Item;
-    onClick: (isDoubleClick: boolean) => any;
+    // Receives the item so the parent can pass a single stable callback (enables memoization).
+    onClick: (item: Item, isDoubleClick: boolean) => any;
     idealTileSize: number;
     isSelected: boolean;
 }
 
-export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) => {
+export const ItemTile = memo(({ item, onClick, idealTileSize, isSelected }: Props) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const tileRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
@@ -79,7 +80,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             onClick={e => {
                 const clickCount = e.detail;
                 const isDoubleClick = clickCount > 1;
-                onClick(isDoubleClick);
+                onClick(item, isDoubleClick);
             }}
         >
             {tilePlaceholderUrl && (
@@ -91,8 +92,6 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
-                        filter: 'blur(8px)',
-                        transform: 'scale(1.3)',
                         pointerEvents: 'none',
                     }}
                     src={tilePlaceholderUrl}
@@ -136,7 +135,7 @@ export const ItemTile = ({ item, onClick, idealTileSize, isSelected }: Props) =>
             )}
         </div>
     );
-};
+});
 
 function formatVideoSeconds(inputSeconds: number | null) {
     if (!inputSeconds) {

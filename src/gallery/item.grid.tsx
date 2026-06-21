@@ -6,7 +6,7 @@ import { Item } from '../types';
 import ItemPreview from './item.preview';
 import { format } from 'date-fns';
 import { FilterSheet, useFilterBar, countActiveFilters } from './filter.bar';
-import { Filter, OneFingerSelectHandGesture, Xmark } from 'iconoir-react';
+import { Filter, CheckCircle, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
 import { Ellipsis } from '../common/ellipsis';
@@ -90,7 +90,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
     const [zoomLevelIndex, setZoomIndex] = useState(() => {
-        const baseIndex = 2;
+        const baseIndex = 1;
         const baseTileSize = 70;
         const threshold = 200;
         const w = window.innerWidth;
@@ -105,42 +105,46 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const zoomLevels = [
         {
             idealTileSize: 40,
-            overscanRows: 5
+            overscanRows: 6
         },
         {
             idealTileSize: 50,
-            overscanRows: 20
+            overscanRows: 8
         },
         {
             idealTileSize: 70,
-            overscanRows: 40
+            overscanRows: 10
         },
         {
             idealTileSize: 110,
-            overscanRows: 40
+            overscanRows: 8
         },
         {
             idealTileSize: Math.min(containerWidth, 300),
-            overscanRows: 40
+            overscanRows: 6
         }
     ];
     const zoomLevel = zoomLevels[zoomLevelIndex];
 
     const rangeDateFormat = zoomLevel.idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
 
-    const columns = Math.floor(containerWidth / zoomLevel.idealTileSize);
+    const columns = Math.max(1, Math.floor(containerWidth / zoomLevel.idealTileSize));
     const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
+
+    // Virtualize rows (each holds `columns` tiles) instead of using TanStack's `lanes`
+    // masonry path — for a uniform grid lanes makes measurement scale with count × columns
+    // (getFurthestMeasurement), which dominated the CPU profile. lanes=1 is O(1) per row.
+    const rowCount = Math.ceil(items.length / columns);
 
     const rowVirtualizer = useVirtualizer({
         enabled: tileSize > 0,
-        count: items.length,
-        lanes: columns,
+        count: rowCount,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: () => tileSize,
-        overscan: columns * zoomLevel.overscanRows,
+        overscan: zoomLevel.overscanRows,
         paddingEnd: 100,
-        getItemKey: index => items[index].itemId,
         rangeExtractor: useCallback((range: Range) => {
+            // range is in row indices here.
             visibleRangeRef.current = {
                 startIndex: range.startIndex,
                 endIndex: range.endIndex
@@ -177,7 +181,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     }
 
     const sort = disableFilteringSorting ? 'capture-date' : filterProps.filters.sort;
-    let formattedRange = useFormattedRange(items, visibleRangeRef.current, rangeDateFormat, sort);
+    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, rangeDateFormat, sort);
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
@@ -197,24 +201,29 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         }}
     ], [selectedItems, showDeleteModal, selectModeEnabled]);
 
-    const handleItemClick = (item: Item, isDoubleClick: boolean) => {
+    // Keep a ref so handleItemClick can stay referentially stable (it's passed to every
+    // memoized tile) without going stale on the latest select-mode value.
+    const selectModeEnabledRef = useRef(selectModeEnabled);
+    selectModeEnabledRef.current = selectModeEnabled;
+
+    const handleItemClick = useCallback((item: Item, isDoubleClick: boolean) => {
         if (clickTimerRef.current) {
             clearTimeout(clickTimerRef.current);
             clickTimerRef.current = null;
             // Handle double click - start selection mode
             setSelectModeEnabled(true);
             toggleItemSelection(item, false);
-        } else if (selectModeEnabled) {
+        } else if (selectModeEnabledRef.current) {
             // Already in selection mode, handle selection immediately
             toggleItemSelection(item, isDoubleClick);
         } else {
             // Set timer for single click to handle preview
-            clickTimerRef.current = setTimeout(() => {
+            clickTimerRef.current = window.setTimeout(() => {
                 clickTimerRef.current = null;
                 setPreviewItemId(item.itemId, false);
             }, 250); // 250ms delay to detect double click
         }
-    }
+    }, [toggleItemSelection, setPreviewItemId]);
 
     const closeSelectionMode = () => {
         resetSelection();
@@ -248,27 +257,32 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
             <div className='flex flex-auto overflow-hidden relative' onClickCapture={handleReturnToTopClick}>
                 <div className='absolute bottom-2 right-2 z-10 flex'>
                     {!selectModeEnabled && (
-                        <div
-                            className={floatingButtonClasses}
+                        <button
+                            className={`${floatingButtonClasses} flex items-center gap-1.5`}
                             onClick={() => setSelectModeEnabled(true)}
+                            title='Select photos'
+                            aria-label='Select photos'
                         >
-                            <OneFingerSelectHandGesture
+                            <CheckCircle
                                 className='size-6 drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
-                        </div>
+                            <span className='text-sm font-medium pr-1'>Select</span>
+                        </button>
                     )}
                     {selectModeEnabled && selectedItems.length > 0 && (
                         <>
-                            <div
+                            <button
                                 className={floatingButtonClasses}
                                 onClick={() => setShowActionMenu(!showActionMenu)}
+                                title='Actions'
+                                aria-label='Actions'
                             >
                                 <Ellipsis
                                     className='size-6 drop-shadow-sm'
                                     style={{ marginTop: 2, marginBottom: -2 }}
                                 />
-                            </div>
+                            </button>
                             <ItemActionMenu
                                 items={selectedItems}
                                 albumId={albumId}
@@ -282,15 +296,17 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                         </>
                     )}
                     {selectModeEnabled && (
-                        <div
+                        <button
                             className={floatingButtonClasses}
                             onClick={() => closeSelectionMode()}
+                            title='Cancel selection'
+                            aria-label='Cancel selection'
                         >
                             <Xmark
                                 className='size-6 drop-shadow-sm'
                                 style={{ marginTop: 2, marginBottom: -2 }}
                             />
-                        </div>
+                        </button>
                     )}
                 </div>
                 <ScrollContainer ref={scrollContainerRef}>
@@ -301,27 +317,40 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             position: 'relative'
                         }}
                     >
-                        {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                            const item = items[virtualItem.index];
+                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const startIndex = virtualRow.index * columns;
+                            const rowItems = items.slice(startIndex, startIndex + columns);
                             return (
                                 <div
-                                    key={virtualItem.key}
+                                    key={virtualRow.key}
                                     style={{
                                         position: 'absolute',
                                         top: 0,
                                         left: 0,
                                         height: `${tileSize}px`,
-                                        width: `${tileSize}px`,
-                                        transform: `translateY(${virtualItem.start}px) translateX(${virtualItem.lane * tileSize}px)`,
+                                        width: '100%',
+                                        transform: `translateY(${virtualRow.start}px)`,
+                                        display: 'flex',
                                         contain: 'layout',
                                     }}
                                 >
-                                    <ItemTile
-                                        item={item}
-                                        idealTileSize={zoomLevel.idealTileSize}
-                                        onClick={(isDoubleClick) => handleItemClick(item, isDoubleClick)}
-                                        isSelected={!!selectedItemsById[item.itemId]}
-                                    />
+                                    {rowItems.map((item) => (
+                                        <div
+                                            key={item.itemId}
+                                            style={{
+                                                height: `${tileSize}px`,
+                                                width: `${tileSize}px`,
+                                                flex: '0 0 auto',
+                                            }}
+                                        >
+                                            <ItemTile
+                                                item={item}
+                                                idealTileSize={zoomLevel.idealTileSize}
+                                                onClick={handleItemClick}
+                                                isSelected={!!selectedItemsById[item.itemId]}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
                             );
                         })}
@@ -332,9 +361,11 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             onZoomIn={zoomIn}
                         />
                         {!disableFilteringSorting && (
-                            <div
+                            <button
                                 className={`${floatingButtonClasses} relative`}
                                 onClick={() => setFilterBarVisible(true)}
+                                title='Filter & sort'
+                                aria-label='Filter & sort'
                             >
                                 <Filter
                                     className='size-6 drop-shadow-sm'
@@ -342,9 +373,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 />
                                 {countActiveFilters(filterProps.filters) > 0 && (
                                     <div className='absolute -top-1 -right-1 bg-sky-500 text-white text-xs font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1'>
+                                        {countActiveFilters(filterProps.filters)}
                                     </div>
                                 )}
-                            </div>
+                            </button>
                         )}
                     </div>
 
@@ -415,9 +447,13 @@ const ScrollContainer = styled.div`
 
 export default ItemGrid;
 
-function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, rangeDateFormat: string, sort: string) {
-    const rangeStartItem: Item | undefined = items[visibleRange.startIndex];
-    const rangeEndItem: Item | undefined = items[visibleRange.endIndex - 1];
+function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, columns: number, rangeDateFormat: string, sort: string) {
+    if (!columns) return '';
+    // visibleRange is in row indices; convert to item indices.
+    const startItemIndex = visibleRange.startIndex * columns;
+    const endItemIndex = Math.min(items.length, (visibleRange.endIndex + 1) * columns) - 1;
+    const rangeStartItem: Item | undefined = items[startItemIndex];
+    const rangeEndItem: Item | undefined = items[endItemIndex];
 
     let formattedRange = '';
     if (rangeStartItem && rangeEndItem) {
@@ -448,6 +484,13 @@ function useItemSelection(allItems: Item[]) {
     const lastLastSelectedItem = useRef<Item | null>(null);
     const lastSelectedItem = useRef<Item | null>(null);
 
+    // Refs let toggleItemSelection stay referentially stable (it reaches every memoized
+    // tile via handleItemClick) while still reading the latest selection / item list.
+    const selectedItemsByIdRef = useRef(selectedItemsById);
+    selectedItemsByIdRef.current = selectedItemsById;
+    const allItemsRef = useRef(allItems);
+    allItemsRef.current = allItems;
+
     useEffect(() => {
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("keyup", handleKeyUp);
@@ -457,7 +500,9 @@ function useItemSelection(allItems: Item[]) {
         };
     }, []);
 
-    const toggleItemSelection = (item: Item, isDoubleClick: boolean) => {
+    const toggleItemSelection = useCallback((item: Item, isDoubleClick: boolean) => {
+        const selectedItemsById = selectedItemsByIdRef.current;
+        const allItems = allItemsRef.current;
         if (!isDoubleClick && selectedItemsById[item.itemId]) {
             const newItems = { ...selectedItemsById };
             delete newItems[item.itemId];
@@ -487,11 +532,11 @@ function useItemSelection(allItems: Item[]) {
             lastSelectedItem.current = item;
             setSelectedItemsById(newSelectedItemsById);
         }
-    };
+    }, []);
 
-    const resetSelection = () => {
+    const resetSelection = useCallback(() => {
         setSelectedItemsById({});
-    };
+    }, []);
 
     return {
         selectedItems,
