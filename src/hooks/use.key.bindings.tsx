@@ -19,6 +19,10 @@ export const useKeyBindings = (props: KeyBinding[], deps: any[]) => {
     currentlyPressedKeys.add(e.key);
     props.forEach((binding) => {
       if (areAllKeyPressed(binding.cmd)) {
+        // Prevent the browser's default action for the matched key (e.g. a
+        // focused <video controls> scrubbing on arrow keys) so the binding
+        // takes precedence over native behavior.
+        e.preventDefault();
         binding.callback();
       }
     });
