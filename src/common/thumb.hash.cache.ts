@@ -6,7 +6,7 @@ interface DecodeResult {
 }
 
 const cache = new Map<string, string>();
-const pending = new Set<string>();
+const inFlight = new Set<string>();          // sent to the worker, awaiting a result
 const subscribers = new Map<string, Set<(dataUrl: string) => void>>();
 
 const worker = new Worker(new URL('./thumb.hash.worker.ts', import.meta.url), { type: 'module' });
@@ -14,7 +14,7 @@ const worker = new Worker(new URL('./thumb.hash.worker.ts', import.meta.url), { 
 worker.onmessage = (e: MessageEvent<DecodeResult>) => {
     const { hash, dataUrl } = e.data;
     cache.set(hash, dataUrl);
-    pending.delete(hash);
+    inFlight.delete(hash);
     const subs = subscribers.get(hash);
     if (subs) {
         subscribers.delete(hash);
@@ -22,22 +22,14 @@ worker.onmessage = (e: MessageEvent<DecodeResult>) => {
     }
 };
 
-const requestDecode = (hashes: string[]) => {
-    if (hashes.length > 0) {
-        worker.postMessage({ hashes });
-    }
+const requestDecode = (hash: string) => {
+    if (cache.has(hash) || inFlight.has(hash)) return;
+    inFlight.add(hash);
+    worker.postMessage({ hashes: [hash] });
 };
 
-export const prewarmThumbHashes = (hashes: readonly (string | null)[]) => {
-    const toDecode: string[] = [];
-    for (const h of hashes) {
-        if (!h || cache.has(h) || pending.has(h)) continue;
-        pending.add(h);
-        toDecode.push(h);
-    }
-    requestDecode(toDecode);
-};
-
+// Decodes a thumbhash lazily, on mount, and caches the result so scrolling back
+// is instant. No eager prewarming — only what's mounted (visible + overscan) is decoded.
 export const useThumbHashDataUrl = (hash: string | null): string | null => {
     const [dataUrl, setDataUrl] = useState<string | null>(
         () => (hash ? cache.get(hash) ?? null : null)
@@ -65,10 +57,7 @@ export const useThumbHashDataUrl = (hash: string | null): string | null => {
         }
         subs.add(cb);
 
-        if (!pending.has(hash)) {
-            pending.add(hash);
-            requestDecode([hash]);
-        }
+        requestDecode(hash);
 
         return () => {
             const s = subscribers.get(hash);
