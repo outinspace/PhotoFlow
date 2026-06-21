@@ -90,9 +90,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
 
     const [zoomLevelIndex, setZoomIndex] = useState(() => {
-        const baseIndex = 1;
+        const baseIndex = 2;
         const baseTileSize = 70;
-        const threshold = 200;
+        const threshold = 300;
         const w = window.innerWidth;
         const h = window.innerHeight;
         const cols = Math.max(1, Math.floor(w / baseTileSize));
