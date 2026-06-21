@@ -305,49 +305,51 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 </div>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
-                <InfoCircle
-                    height={30}
-                    width={30}
+                <button
                     onClick={() => setShowInfoSheet(true)}
-                    className='ml-3 text-shadow'
-                />
+                    className='ml-3'
+                    title='Info'
+                    aria-label='Info'
+                >
+                    <InfoCircle height={30} width={30} className='text-shadow' />
+                </button>
                 {items.length > 1 && (slideshow ? (
-                    <Pause
-                        height={30}
-                        width={30}
-                        onClick={stopSlideshow}
-                        className='ml-3 text-shadow'
-                    />
+                    <button onClick={stopSlideshow} className='ml-3' title='Stop slideshow' aria-label='Stop slideshow'>
+                        <Pause height={30} width={30} className='text-shadow' />
+                    </button>
                 ) : (
-                    <Play
-                        height={30}
-                        width={30}
-                        onClick={startSlideshow}
-                        className='ml-3 text-shadow'
-                    />
+                    <button onClick={startSlideshow} className='ml-3' title='Start slideshow' aria-label='Start slideshow'>
+                        <Play height={30} width={30} className='text-shadow' />
+                    </button>
                 ))}
                 {!readonly && !item.isFavorite && (
-                    <Heart
-                        height={30}
-                        width={30}
+                    <button
                         onClick={() => favoriteItem.mutateAsync(item.itemId)}
-                        className='ml-3 text-shadow'
-                    />
+                        className='ml-3'
+                        title='Favorite'
+                        aria-label='Favorite'
+                    >
+                        <Heart height={30} width={30} className='text-shadow' />
+                    </button>
                 )}
                 {!readonly && item.isFavorite && (
-                    <HeartSolid
-                        height={30}
-                        width={30}
+                    <button
                         onClick={() => unfavoriteItem.mutateAsync(item.itemId)}
-                        className='ml-3 text-shadow'
-                    />
+                        className='ml-3'
+                        title='Remove favorite'
+                        aria-label='Remove favorite'
+                    >
+                        <HeartSolid height={30} width={30} className='text-shadow' />
+                    </button>
                 )}
-                <Ellipsis
-                    height={30}
-                    width={30}
+                <button
                     onClick={() => setShowActionMenu(!showActionMenu)}
-                    className='ml-3 text-shadow'
-                />
+                    className='ml-3'
+                    title='More'
+                    aria-label='More'
+                >
+                    <Ellipsis height={30} width={30} className='text-shadow' />
+                </button>
                 <ItemActionMenu
                     items={[item]}
                     albumId={albumId}

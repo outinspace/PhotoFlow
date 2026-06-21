@@ -1,11 +1,14 @@
-import { useDeferredValue, useMemo, useState } from 'react';
-import { Search as SearchIcon, Xmark } from 'iconoir-react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Search as SearchIcon, Xmark, Clock } from 'iconoir-react';
 import PageHeader from '../common/page.header';
 import ItemGrid from '../gallery/item.grid';
 import { useGallery } from '../api/useGallery';
 import { useSearch } from '../api/useSearch';
 import { useDebouncedValue } from '../hooks/use.debounced.value';
+import { useRecentSearches } from '../hooks/use.recent.searches';
 import { Item } from '../types';
+
+const EXAMPLE_QUERIES = ['beach', 'birthday cake', 'boats on a lake', 'documents', 'pets', 'sunsets'];
 
 const Search = () => {
     const [query, setQuery] = useState('');
@@ -13,6 +16,7 @@ const Search = () => {
 
     const { data: gallery } = useGallery();
     const { data: results, isFetching, error } = useSearch(debouncedQuery);
+    const { recent, addRecent, clearRecent } = useRecentSearches();
 
     const items = useMemo<Item[]>(() => {
         if (!results || !gallery) return [];
@@ -23,6 +27,13 @@ const Search = () => {
             .filter((i): i is Item => Boolean(i));
     }, [results, gallery]);
     const deferredItems = useDeferredValue(items);
+
+    // Record a search once it returns results, so we don't store every keystroke.
+    useEffect(() => {
+        if (debouncedQuery && !isFetching && results && results.length > 0) {
+            addRecent(debouncedQuery);
+        }
+    }, [debouncedQuery, isFetching, results, addRecent]);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
@@ -60,6 +71,52 @@ const Search = () => {
             <div className='flex flex-auto overflow-hidden'>
                 {debouncedQuery && deferredItems.length > 0 && (
                     <ItemGrid items={deferredItems} albumId={null} disableFilteringSorting />
+                )}
+                {!debouncedQuery && (
+                    <div className='flex-auto overflow-y-auto px-5 pb-5 space-y-6'>
+                        {recent.length > 0 && (
+                            <section>
+                                <div className='flex items-center justify-between mb-2'>
+                                    <h2 className='text-sm font-semibold text-gray-500'>Recent</h2>
+                                    <button
+                                        type='button'
+                                        onClick={clearRecent}
+                                        className='text-sm text-sky-500 hover:text-sky-600'
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                                <div className='flex flex-wrap gap-2'>
+                                    {recent.map(q => (
+                                        <button
+                                            key={q}
+                                            type='button'
+                                            onClick={() => setQuery(q)}
+                                            className='flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100'
+                                        >
+                                            <Clock className='size-4 text-gray-400' />
+                                            {q}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                        <section>
+                            <h2 className='text-sm font-semibold text-gray-500 mb-2'>Try searching for</h2>
+                            <div className='flex flex-wrap gap-2'>
+                                {EXAMPLE_QUERIES.map(q => (
+                                    <button
+                                        key={q}
+                                        type='button'
+                                        onClick={() => setQuery(q)}
+                                        className='px-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100'
+                                    >
+                                        {q}
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
                 )}
             </div>
         </div>
