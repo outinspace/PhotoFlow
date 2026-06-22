@@ -14,6 +14,7 @@ import ItemMedia from './item.media';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
 import { usePhotoAnimations } from '../hooks/use.photo.animations';
+import { useSlideshowInterval } from '../hooks/use.slideshow.interval';
 
 interface Props {
     items: Item[];
@@ -26,7 +27,7 @@ interface Props {
     tenantId?: string;
 }
 
-const SLIDESHOW_INTERVAL_MS = 4000;
+const SLIDESHOW_VIDEO_MAX_SECONDS = 15;
 
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly, tenantId }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
@@ -37,6 +38,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
     const { enabled: photoAnimationsEnabled } = usePhotoAnimations();
+    const { seconds: slideshowSeconds } = useSlideshowInterval();
 
     const item: Item | undefined = items[itemIndex];
 
@@ -219,12 +221,17 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     useEffect(() => {
         if (!slideshow) return;
 
+        const isVideo = item?.type === 'video';
+        const durationSeconds = isVideo
+            ? Math.min(item.videoLength ?? SLIDESHOW_VIDEO_MAX_SECONDS, SLIDESHOW_VIDEO_MAX_SECONDS)
+            : slideshowSeconds;
+
         const timeoutId = setTimeout(() => {
             onMoveNext?.();
-        }, SLIDESHOW_INTERVAL_MS);
+        }, durationSeconds * 1000);
 
         return () => clearTimeout(timeoutId);
-    }, [slideshow, itemIndex]);
+    }, [slideshow, itemIndex, slideshowSeconds]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
