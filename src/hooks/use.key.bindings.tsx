@@ -16,6 +16,14 @@ export const useKeyBindings = (props: KeyBinding[], deps: any[]) => {
   }
 
   const bindingsKeyDown = (e: KeyboardEvent) => {
+    // Don't let shortcuts fire (or swallow keystrokes) while the user is typing
+    // in a text field — e.g. 'd' in the album-name input must not open Delete.
+    const target = e.target as HTMLElement | null;
+    if (target && (target.isContentEditable ||
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) {
+      return;
+    }
+
     currentlyPressedKeys.add(e.key);
     props.forEach((binding) => {
       if (areAllKeyPressed(binding.cmd)) {
