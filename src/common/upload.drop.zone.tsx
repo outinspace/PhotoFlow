@@ -1,6 +1,6 @@
 import { ReactNode } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
-import { uploadFiles } from '../api/uploadFiles';
+import { enqueueFiles } from '../api/uploadManager';
 
 interface Props {
     children: ReactNode;
@@ -30,15 +30,13 @@ export const UploadDropZone = ({ children, className }: Props) => {
                     setIsActive(false);
                 }
             }}
-            onDrop={async e => {
+            onDrop={e => {
                 e.preventDefault();
 
-                dragCounter.current--;
-                if (dragCounter.current === 0) {
-                    setIsActive(false);
-                }
+                dragCounter.current = 0;
+                setIsActive(false);
 
-                await uploadFiles(e.dataTransfer.files);
+                enqueueFiles(e.dataTransfer.files);
             }}
             onDragOver={e => e.preventDefault()}
         >
