@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Item } from '../types';
-import { HeartSolid } from 'iconoir-react';
+import { Book, HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
 import { useThumbHashDataUrl } from '../common/thumb.hash.cache';
 
@@ -15,9 +15,10 @@ interface Props {
     onClick: (item: Item, isDoubleClick: boolean) => any;
     idealTileSize: number;
     isSelected: boolean;
+    inAlbum?: boolean;
 }
 
-export const ItemTile = memo(({ item, onClick, idealTileSize, isSelected }: Props) => {
+export const ItemTile = memo(({ item, onClick, idealTileSize, isSelected, inAlbum }: Props) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const tileRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
@@ -117,6 +118,14 @@ export const ItemTile = memo(({ item, onClick, idealTileSize, isSelected }: Prop
                     }
                 }}
             />
+            {inAlbum && (
+                <div className='absolute top-1 right-1 text-slate-100 shadow'>
+                    <Book
+                        height={idealTileSize / 6}
+                        width={idealTileSize / 6}
+                    />
+                </div>
+            )}
             {item.isFavorite && (
                 <div className='absolute bottom-1 left-1 text-slate-100 shadow'>
                     <HeartSolid

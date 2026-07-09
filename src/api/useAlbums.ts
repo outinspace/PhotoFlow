@@ -6,8 +6,9 @@ interface GetAlbumsResponse {
     albums: Album[];
 }
 
-export const useAlbums = () => useQuery({
+export const useAlbums = (enabled: boolean = true) => useQuery({
     queryKey: ['albums'],
+    enabled,
     queryFn: async () => {
         const res = await fetchAuthenticatedRoute('/albums');
 

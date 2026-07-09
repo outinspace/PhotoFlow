@@ -13,6 +13,7 @@ import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
+import { useItemAlbumsMap } from '../api/useItemAlbums';
 
 interface Props {
     items: Item[];
@@ -29,6 +30,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const clickTimerRef = useRef<number | null>(null);
 
+    const itemAlbumsMap = useItemAlbumsMap(!readonly);
     const { filterProps, filteredItems } = useFilterBar(allItems);
     const items = disableFilteringSorting ? allItems : filteredItems;
 
@@ -343,6 +345,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                                 idealTileSize={zoomLevel.idealTileSize}
                                                 onClick={handleItemClick}
                                                 isSelected={!!selectedItemsById[item.itemId]}
+                                                inAlbum={!!itemAlbumsMap?.[item.itemId]?.length}
                                             />
                                         </div>
                                     ))}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import styled from '@emotion/styled';
-import { InfoCircle, Heart, HeartSolid, Xmark, Play, Pause } from 'iconoir-react';
+import { Book, InfoCircle, Heart, HeartSolid, Xmark, Play, Pause } from 'iconoir-react';
 import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import ItemInfoSheet from './item.info.sheet';
@@ -13,6 +13,8 @@ import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
+import { useItemAlbumsMap } from '../api/useItemAlbums';
+import { useNavigate } from '@tanstack/react-router';
 import { usePhotoAnimations } from '../hooks/use.photo.animations';
 import { useSlideshowInterval } from '../hooks/use.slideshow.interval';
 
@@ -37,6 +39,8 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const containerRef = useRef<HTMLDivElement>(null);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
+    const itemAlbumsMap = useItemAlbumsMap(!readonly);
+    const navigate = useNavigate();
     const { enabled: photoAnimationsEnabled } = usePhotoAnimations();
     const { seconds: slideshowSeconds } = useSlideshowInterval();
 
@@ -256,6 +260,8 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         return;
     }
 
+    const itemAlbums = itemAlbumsMap?.[item.itemId] ?? [];
+
     const heading = formatRelativeOrLongDateTime(item.captureTime);
     const subheading = [
         item.type === 'live-photo' ? 'Live' : null,
@@ -309,6 +315,21 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     <div className='text-sm'>
                         {subheading}
                     </div>
+                    {itemAlbums.length > 0 && (
+                        <div className='flex flex-wrap gap-1 mt-1.5'>
+                            {itemAlbums.map(album => (
+                                <button
+                                    key={album.albumId}
+                                    onClick={() => navigate({ to: '/album/$albumId', params: { albumId: album.albumId.toString() } })}
+                                    className='flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-xs backdrop-blur-sm hover:bg-black/60'
+                                    title={`View album ${album.name}`}
+                                >
+                                    <Book className='size-3 flex-none' />
+                                    {album.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
             <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
