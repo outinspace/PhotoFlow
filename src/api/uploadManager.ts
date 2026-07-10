@@ -12,19 +12,29 @@ const STALL_TIMEOUT_MS = 60_000;
 // Hashing reads the whole file into memory, so skip dedup for very large files.
 const HASH_SIZE_LIMIT_BYTES = 512 * 1024 * 1024;
 
-const MEDIA_EXTENSIONS = new Set([
-    'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif',
-    'mp4', 'mov', 'm4v', 'hevc', '3gp', '3g2'
+// Folder uploads include non-media files (e.g. Google Takeout .json sidecars).
+// We use a denylist rather than an allowlist so that we fail safe: an unknown
+// extension (a camera RAW format, a new codec) is uploaded rather than silently
+// dropped. Only extensions we're confident are non-media are excluded here.
+const NON_MEDIA_EXTENSIONS = new Set([
+    // Metadata / sidecars commonly found alongside photos
+    'json', 'xml', 'txt', 'csv', 'md', 'log', 'ini', 'plist',
+    'html', 'htm', 'xmp', 'aae', 'thm',
+    // Documents / archives / executables that are clearly not media
+    'pdf', 'doc', 'docx', 'zip', 'rar', '7z', 'tar', 'gz',
+    'exe', 'dmg', 'app', 'url', 'lnk',
+    // OS junk (Thumbs.db -> 'db', .DS_Store -> 'ds_store')
+    'db', 'ds_store'
 ]);
 
-// Folder uploads include non-media files (e.g. Google Takeout .json sidecars); only queue media.
 const isMediaFile = (file: File) => {
+    // Trust an explicit media MIME type when the browser provides one.
     if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
         return true;
     }
 
     const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-    return MEDIA_EXTENSIONS.has(extension);
+    return !NON_MEDIA_EXTENSIONS.has(extension);
 };
 
 class HttpStatusError extends Error {
