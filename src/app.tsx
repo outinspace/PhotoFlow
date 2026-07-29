@@ -2,7 +2,7 @@ import {
     QueryClient,
 } from '@tanstack/react-query'
 import styled from '@emotion/styled';
-import { StrictMode, useEffect } from 'react';
+import { StrictMode } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './routes';
 import { get, set, del } from "idb-keyval";
@@ -40,14 +40,6 @@ export const queryClient = new QueryClient({
 })
 
 const App = () => {
-
-    // Redirect to login
-    useEffect(() => {
-        if (router.state.location.pathname === '/') {
-            router.navigate({ to: '/login' });
-        }
-    }, []);
-
     return (
         <StrictMode>
             <PersistQueryClientProvider
