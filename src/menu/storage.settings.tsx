@@ -2,15 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
 import { useGallery } from '../api/useGallery';
 import { TopBar } from '../common/top.bar';
-import { S3ConfigForm } from '../setup/s3.config.form';
-
-interface ExistingConfig {
-    endpointUrl: string | null;
-    bucketName: string | null;
-    publicBaseUrl: string | null;
-    accessKeyId: string | null;
-    isConfigured: boolean;
-}
+import { S3ConfigForm, ExistingConfig } from '../setup/s3.config.form';
 
 const StorageSettings = () => {
     const [config, setConfig] = useState<ExistingConfig | null>(null);
