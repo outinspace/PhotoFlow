@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import constants from '../constants';
 import { endSessionAndGoToLogin, getSession } from '../common/session';
 
+/** The S3 config as returned by /tenant/s3-config, without the secret key. */
+export interface ExistingConfig {
+    endpointUrl: string | null;
+    bucketName: string | null;
+    publicBaseUrl: string | null;
+    accessKeyId: string | null;
+    isConfigured: boolean;
+}
+
 interface S3ConfigFormProps {
     /** Existing config to pre-populate fields (minus the secret key). */
-    existingConfig?: {
-        endpointUrl?: string | null;
-        bucketName?: string | null;
-        publicBaseUrl?: string | null;
-        accessKeyId?: string | null;
-        isConfigured?: boolean;
-    };
+    existingConfig?: ExistingConfig;
     onSaveSuccess: () => void;
 }
 

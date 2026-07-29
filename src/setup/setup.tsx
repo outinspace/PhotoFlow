@@ -2,18 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import constants from '../constants';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
-import { S3ConfigForm } from './s3.config.form';
+import { S3ConfigForm, ExistingConfig } from './s3.config.form';
 import { markSetupWizardCompleted, getPostSetupRoute } from './setup.wizard.state';
 import { router } from '../routes';
 import { getTenantId } from '../common/session';
-
-interface ExistingConfig {
-    endpointUrl: string | null;
-    bucketName: string | null;
-    publicBaseUrl: string | null;
-    accessKeyId: string | null;
-    isConfigured: boolean;
-}
 
 interface SetupStep {
     id: string;
