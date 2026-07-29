@@ -9,8 +9,8 @@ interface UpdateAlbumArgs {
 
 export const useUpdateAlbum = () => {
     return useMutation({
-        mutationFn: async ({ albumId, name }: UpdateAlbumArgs): Promise<boolean> => {
-            const res = await fetchAuthenticatedRoute(`/album/${albumId}`, {
+        mutationFn: async ({ albumId, name }: UpdateAlbumArgs) => {
+            await fetchAuthenticatedRoute(`/album/${albumId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
                     name
@@ -19,8 +19,6 @@ export const useUpdateAlbum = () => {
                     'Content-Type': 'application/json'
                 }
             });
-
-            return res.ok;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['albums'] });

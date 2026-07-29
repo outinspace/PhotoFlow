@@ -17,10 +17,6 @@ export const useSearch = (query: string) => useQuery({
         const params = new URLSearchParams({ q: query });
         const res = await fetchAuthenticatedRoute(`/items/search?${params.toString()}`);
 
-        if (!res.ok) {
-            throw new Error(`Search failed: ${res.status}`);
-        }
-
         const body = (await res.json()) as SearchItemsResponse;
         return body.results;
     },

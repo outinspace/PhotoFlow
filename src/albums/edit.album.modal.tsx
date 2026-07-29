@@ -14,13 +14,11 @@ export const EditAlbumModal = ({ album, isOpen, onCancel, onEditComplete }: Prop
     const updateAlbumMutation = useUpdateAlbum();
     const [albumName, setAlbumName] = useState(album.name);
 
-    const handleUpdate = async () => {
-        await updateAlbumMutation.mutateAsync({
-            albumId: album.albumId,
-            name: albumName
-        });
-
-        onEditComplete();
+    const handleUpdate = () => {
+        updateAlbumMutation.mutate(
+            { albumId: album.albumId, name: albumName },
+            { onSuccess: () => onEditComplete() }
+        );
     };
 
     return (

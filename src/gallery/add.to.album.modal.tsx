@@ -17,19 +17,13 @@ export const AddToAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Prop
 
     const { data: albums } = useAlbums();
 
-    const handleAdd = async () => {
+    const handleAdd = () => {
         const itemIds = items.map(i => i.itemId);
 
-        const success = await addToAlbumMutation.mutateAsync({
-            albumId: selectedAlbumId,
-            itemIds
-        });
-
-        if (!success) {
-            return;
-        }
-
-        onAddComplete();
+        addToAlbumMutation.mutate(
+            { albumId: selectedAlbumId, itemIds },
+            { onSuccess: () => onAddComplete() }
+        );
     };
 
     return (

@@ -13,7 +13,6 @@ export const useEventsStatus = () => useQuery({
     refetchInterval: 5_000,
     queryFn: async (): Promise<EventsStatus> => {
         const res = await fetchAuthenticatedRoute('/system-status/events');
-        if (!res.ok) throw new Error(`System status failed: ${res.status}`);
         return res.json();
     },
 });

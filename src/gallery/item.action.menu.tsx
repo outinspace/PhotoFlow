@@ -69,23 +69,25 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         window.open(url, '_blank');
     }
 
-    const removeItemsFromAlbum = async () => {
+    const removeItemsFromAlbum = () => {
         if (!albumId) {
             return;
         }
 
         const itemIds = items.map(i => i.itemId);
-        await removeFromAlbumMutation.mutateAsync({ albumId, itemIds });
-
-        onDeleteCompletion?.();
-        onActionCompleted?.();
+        removeFromAlbumMutation.mutate({ albumId, itemIds }, {
+            onSuccess: () => {
+                onDeleteCompletion?.();
+                onActionCompleted?.();
+            }
+        });
     }
 
-    const restoreItems = async () => {
+    const restoreItems = () => {
         const itemIds = items.map(i => i.itemId);
-        await restoreItemsMutation.mutateAsync(itemIds);
-
-        onActionCompleted?.();
+        restoreItemsMutation.mutate(itemIds, {
+            onSuccess: () => onActionCompleted?.()
+        });
     }
 
     const showMenu = !showDeleteModal && !showAddToAlbumModal && !showCreateAlbumModal;
