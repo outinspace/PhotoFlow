@@ -7,10 +7,9 @@ import { useParams } from '@tanstack/react-router';
 
 export const TripLayout = () => {
     const { tripId } = useParams({ from: '/trip/$tripId' });
-    const { data: trips } = useTrips();
+    const trips = useTrips();
 
     const trip = useMemo(() => {
-        if (!trips) return null;
         return trips.find(t => t.tripId === tripId);
     }, [trips, tripId]);
 

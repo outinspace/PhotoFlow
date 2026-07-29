@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useGallery } from "./useGallery";
 import { Item } from "../types";
 import { parseISO, format } from "date-fns";
@@ -13,7 +13,6 @@ export interface Trip {
     region: string | null;
 }
 
-const STALE_TIME_MS = 1 * 24 * 60 * 60 * 1000; // 1 days
 const CLUSTERING_TIME_WINDOW_HOURS = 7 * 24; // 1 week
 const MAX_TRIP_DURATION_HOURS = 3 * 30 * 24; // 3 months
 const MIN_TRIP_PHOTOS = 20;
@@ -85,20 +84,15 @@ const formatTripName = (trip: { city: string | null; region: string | null; star
 };
 
 const detectTrips = (items: Item[]): Trip[] => {
-    console.log('[Trip Detection] Starting trip detection with', items.length, 'total items');
-    
     // Filter items with geographic coordinates
-    const itemsWithCoords = items.filter(item => 
+    const itemsWithCoords = items.filter(item =>
         item.latitude !== null && item.longitude !== null
     );
-    
-    console.log('[Trip Detection] Items with coordinates:', itemsWithCoords.length, `(${items.length - itemsWithCoords.length} without coords)`);
-    
+
     if (itemsWithCoords.length === 0) {
-        console.log('[Trip Detection] No items with coordinates, returning empty trips');
         return [];
     }
-    
+
     // Step 1: Group items by grid cell (O(n))
     const gridCells = new Map<string, GridCell>();
     
@@ -122,8 +116,6 @@ const detectTrips = (items: Item[]): Trip[] => {
         gridCell.minTime = Math.min(gridCell.minTime, itemTime);
         gridCell.maxTime = Math.max(gridCell.maxTime, itemTime);
     }
-    
-    console.log('[Trip Detection] Step 1 complete: Created', gridCells.size, 'grid cells');
     
     // Step 2: Merge adjacent cells within time window
     const cellGroups: GridCell[][] = [];
@@ -182,8 +174,6 @@ const detectTrips = (items: Item[]): Trip[] => {
         cellGroups.push(group);
     }
     
-    console.log('[Trip Detection] Step 2 complete: Merged into', cellGroups.length, 'cell groups');
-    
     // Step 3: Convert cell groups to trips
     const getPrimaryLocation = (tripItems: Item[]): LocationKey => {
         const locationCounts = new Map<string, { count: number; location: LocationKey }>();
@@ -220,10 +210,7 @@ const detectTrips = (items: Item[]): Trip[] => {
     };
     
     const trips: Trip[] = [];
-    let filteredByMinPhotos = 0;
-    let filteredByMaxPhotos = 0;
-    let filteredByDuration = 0;
-    
+
     for (const group of cellGroups) {
         // Combine all items from cells in this group
         const groupItems: Item[] = [];
@@ -244,15 +231,12 @@ const detectTrips = (items: Item[]): Trip[] => {
         
         // Filter by size and duration
         if (groupItems.length < MIN_TRIP_PHOTOS) {
-            filteredByMinPhotos++;
             continue;
         }
         if (groupItems.length > MAX_TRIP_PHOTOS) {
-            filteredByMaxPhotos++;
             continue;
         }
         if (tripDurationHours > MAX_TRIP_DURATION_HOURS) {
-            filteredByDuration++;
             continue;
         }
         
@@ -276,35 +260,14 @@ const detectTrips = (items: Item[]): Trip[] => {
         });
     }
     
-    console.log('[Trip Detection] Step 3 complete: Created', trips.length, 'trips');
-    console.log('[Trip Detection] Filtered out:', {
-        tooFewPhotos: filteredByMinPhotos,
-        tooManyPhotos: filteredByMaxPhotos,
-        tooLongDuration: filteredByDuration,
-        totalFiltered: filteredByMinPhotos + filteredByMaxPhotos + filteredByDuration
-    });
-    console.log('[Trip Detection] Final trips:', trips.map(t => ({
-        name: t.name,
-        photoCount: t.items.length,
-        duration: ((parseISO(t.endDate).getTime() - parseISO(t.startDate).getTime()) / (1000 * 60 * 60)).toFixed(1) + ' hours'
-    })));
-    
     return trips.sort((a, b) => b.startDate.localeCompare(a.startDate));
 };
 
-export const useTrips = () => {
+// Trips are derived from the gallery rather than fetched, so they recompute whenever the
+// gallery changes instead of living in the query cache.
+export const useTrips = (): Trip[] => {
     const { data: gallery } = useGallery();
-    
-    return useQuery({
-        queryKey: ['trips', gallery?.items.length ?? 0],
-        staleTime: STALE_TIME_MS,
-        queryFn: () => {
-            if (!gallery?.items) {
-                return [];
-            }
-            return detectTrips(gallery.items);
-        },
-        enabled: !!gallery?.items
-    });
+
+    return useMemo(() => gallery ? detectTrips(gallery.items) : [], [gallery]);
 };
 
