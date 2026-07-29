@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
-import { nonSelectable } from '../styles';
 import { useLongPress } from 'use-long-press';
 import { useAutoplayLivePhotos, useAutoplayVideos } from '../hooks/use.settings';
 
@@ -124,7 +123,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
         >
             {imageFile && <>
                 <img
-                    className={nonSelectable}
+                    className='select-none pointer-events-none'
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
@@ -135,7 +134,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                     src={imageFile?.tileImageUrl ?? undefined}
                 />
                 <img
-                    className={nonSelectable}
+                    className='select-none pointer-events-none'
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',
@@ -151,7 +150,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                     ref={livePhotoVideoRef}
                     playsInline
                     preload={autoplayLivePhotos ? "auto" : "none"}
-                    className={`${nonSelectable} transition-opacity duration-300 ${(showLivePhoto || (showSmoothAnimation && !isFadingOut)) ? 'opacity-100' : 'opacity-0'}`}
+                    className={`select-none pointer-events-none transition-opacity duration-300 ${(showLivePhoto || (showSmoothAnimation && !isFadingOut)) ? 'opacity-100' : 'opacity-0'}`}
                     style={{
                         position: 'absolute',
                         objectFit: 'contain',

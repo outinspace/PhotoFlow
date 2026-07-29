@@ -1,7 +1,6 @@
 import {
     QueryClient,
 } from '@tanstack/react-query'
-import styled from '@emotion/styled';
 import { StrictMode } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './routes';
@@ -51,23 +50,13 @@ const App = () => {
                 }}
             >
                 <GlobalLoadingBar />
-                <FlexContainer>
+                <div className='absolute top-0 left-0 flex h-dvh w-screen overflow-auto'>
                     <RouterProvider router={router} />
-                </FlexContainer>
+                </div>
             </PersistQueryClientProvider>
             <Toaster />
         </StrictMode>
     );
 };
-
-const FlexContainer = styled.div`
-    display: flex;
-    height: 100dvh;
-    width: 100vw;
-    overflow: auto;
-    position: absolute;
-    top: 0;
-    left: 0;
-`;
 
 export default App;
