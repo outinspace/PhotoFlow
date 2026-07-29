@@ -199,13 +199,13 @@ export const FilterSheet = ({ items, filters, setFilters, isOpen, onDismiss }: F
     );
 };
 
-// Clean up this hook ai!
 export const useFilterBar = (items: Item[]) => {
     const [filters, setFilters] = useState<FilterState>(defaultFilterState);
 
     const { data: albums } = useAlbums();
 
-    const sortedItems = useMemo(() => {
+    // Backs the 'unsorted' filter: an item counts as sorted once it is in some album.
+    const itemIdsInAlbums = useMemo(() => {
         const itemIds = (albums ?? []).flatMap(a => a.itemIds);
 
         return new Set(itemIds);
@@ -254,7 +254,7 @@ export const useFilterBar = (items: Item[]) => {
                 } else if (filters.type === 'live-photos') {
                     return item.type === 'live-photo';
                 } else if (filters.type === 'unsorted') {
-                    return !sortedItems.has(item.itemId);
+                    return !itemIdsInAlbums.has(item.itemId);
                 } else if (filters.type === 'favorites') {
                     return item.isFavorite;
                 } else {
@@ -263,7 +263,7 @@ export const useFilterBar = (items: Item[]) => {
             });
 
         return tempItems;
-    }, [items, filters, sortedItems]);
+    }, [items, filters, itemIdsInAlbums]);
 
     return {
         filterProps: {
