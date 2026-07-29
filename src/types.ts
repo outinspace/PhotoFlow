@@ -66,7 +66,3 @@ export interface AlbumWithItems {
 
     items: Item[];
 }
-
-export interface GetAlbumsResponse {
-    albums: Album[];
-}

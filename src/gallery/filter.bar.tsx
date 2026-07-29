@@ -270,10 +270,6 @@ export const useFilterBar = (items: Item[]) => {
             filters,
             setFilters
         },
-        filteredItems,
-        resetFilters: () => {
-            setFilters(defaultFilterState);
-        }
-
+        filteredItems
     };
 };
