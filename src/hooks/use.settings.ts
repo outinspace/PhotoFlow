@@ -43,6 +43,14 @@ export const useDefaultToMemories = () => useStoredSetting(DEFAULT_TO_MEMORIES_K
 // Route guards run outside React and need this before any component has mounted.
 export const getDefaultToMemories = () => parseDisabledByDefault(localStorage.getItem(DEFAULT_TO_MEMORIES_KEY));
 
+// Null until the user zooms the grid, so it can start from a screen-size default instead.
+const parseGridColumns = (stored: string | null) => {
+    const value = Number(stored);
+    return Number.isInteger(value) && value > 0 ? value : null;
+};
+
+export const useGridColumns = () => useStoredSetting('settings_grid_columns', parseGridColumns);
+
 export const SLIDESHOW_INTERVAL_OPTIONS_SECONDS = [4, 7, 10];
 
 const parseSlideshowInterval = (stored: string | null) => {
