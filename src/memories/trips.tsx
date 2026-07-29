@@ -4,11 +4,10 @@ import { ItemStack } from './item.stack';
 import { useNavigate } from '@tanstack/react-router';
 
 export const Trips = () => {
-    const { data: trips } = useTrips();
+    const trips = useTrips();
     const navigate = useNavigate();
 
     const tripsToShow = useMemo(() => {
-        if (!trips) return [];
         return trips.filter(trip => trip.items.length > 0);
     }, [trips]);
 
