@@ -18,14 +18,17 @@ interface Props {
     albumId: number | null;
     isOpen: boolean;
     onDismiss: Function;
-    onDeleteCompletion?: Function;
-    onActionCompleted?: Function;
+    // Fired when the items are no longer part of the list being viewed, so a caller
+    // showing that list can stop showing them.
+    onItemsRemoved?: () => void;
+    // Fired after any action finishes, removal or not.
+    onActionCompleted?: () => void;
     position: 'top' | 'bottom';
     readonly: boolean;
     tenantId?: string;
 }
 
-export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteCompletion, onActionCompleted, position, readonly, tenantId }: Props) => {
+export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemoved, onActionCompleted, position, readonly, tenantId }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
@@ -69,6 +72,11 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
         window.open(url, '_blank');
     }
 
+    const handleItemsRemoved = () => {
+        onItemsRemoved?.();
+        onActionCompleted?.();
+    }
+
     const removeItemsFromAlbum = () => {
         if (!albumId) {
             return;
@@ -76,17 +84,14 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
 
         const itemIds = items.map(i => i.itemId);
         removeFromAlbumMutation.mutate({ albumId, itemIds }, {
-            onSuccess: () => {
-                onDeleteCompletion?.();
-                onActionCompleted?.();
-            }
+            onSuccess: handleItemsRemoved
         });
     }
 
     const restoreItems = () => {
         const itemIds = items.map(i => i.itemId);
         restoreItemsMutation.mutate(itemIds, {
-            onSuccess: () => onActionCompleted?.()
+            onSuccess: handleItemsRemoved
         });
     }
 
@@ -190,8 +195,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onDeleteComp
                 }}
                 onDeleteComplete={() => {
                     setShowDeleteModal(false);
-                    onDeleteCompletion?.();
-                    onActionCompleted?.();
+                    handleItemsRemoved();
                 }}
                 items={items}
             />

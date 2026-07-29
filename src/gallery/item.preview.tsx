@@ -362,7 +362,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     albumId={albumId}
                     isOpen={showActionMenu}
                     onDismiss={() => setShowActionMenu(false)}
-                    onDeleteCompletion={() => onClose?.()}
+                    onItemsRemoved={() => onClose?.()}
                     position='bottom'
                     readonly={!!readonly}
                     tenantId={tenantId}
