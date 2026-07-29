@@ -1,6 +1,7 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
 import { Map, Menu, ViewGrid, Flower, Search } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
+import { getSession } from './common/session';
 import { ReactNode, useEffect } from 'react';
 
 const options = [
@@ -38,12 +39,8 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
     const safeAreaPadding = IS_STANDALONE ? 'pb-10 md:pb-2' : '';
 
     useEffect(() => {
-        const tenantId = localStorage.getItem('tenantId');
-        const sessionId = localStorage.getItem('sessionId');
-
-        if (!tenantId || !sessionId) {
+        if (!getSession()) {
             router.navigate({ to: '/login' });
-            return;
         }
     }, []);
 

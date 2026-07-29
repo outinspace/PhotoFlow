@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import constants from '../constants';
-import { router } from '../routes';
+import { endSessionAndGoToLogin, getSession } from '../common/session';
 
 interface S3ConfigFormProps {
     /** Existing config to pre-populate fields (minus the secret key). */
@@ -56,15 +56,14 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
         setSuccess(false);
 
         try {
-            const sessionId = localStorage.getItem('sessionId') ?? '';
-            const tenantId = localStorage.getItem('tenantId') ?? '';
+            const session = getSession();
 
             const res = await fetch(constants.apiUrl + '/tenant/s3-config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Session ' + sessionId,
-                    'x-tenant-id': tenantId,
+                    'Authorization': 'Session ' + (session?.sessionId ?? ''),
+                    'x-tenant-id': session?.tenantId ?? '',
                 },
                 body: JSON.stringify({
                     endpointUrl: endpointUrl.trim(),
@@ -76,9 +75,7 @@ export const S3ConfigForm = ({ existingConfig, onSaveSuccess }: S3ConfigFormProp
             });
 
             if (res.status === 401) {
-                localStorage.removeItem('tenantId');
-                localStorage.removeItem('sessionId');
-                router.navigate({ to: '/login' });
+                endSessionAndGoToLogin();
                 return;
             }
 

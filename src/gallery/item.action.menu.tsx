@@ -10,6 +10,7 @@ import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
 import { router } from '../routes';
+import { getTenantId } from '../common/session';
 import { DeleteItemsModal } from './delete.items.modal';
 import { IS_STANDALONE } from '../common/browser.utils';
 
@@ -38,7 +39,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
     const reprocessItemsMutation = useReprocessItems();
 
     const getPublicUrl = () => {
-        const tenantId = localStorage.getItem('tenantId');
+        const tenantId = getTenantId();
         const fileId = items[0]?.primaryFile?.fileId;
 
         if (!tenantId || !fileId) {
