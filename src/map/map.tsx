@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Leaflet, { Icon, LatLngExpression } from 'leaflet';
@@ -21,10 +21,12 @@ const Map = () => {
     const params: SearchParams = useSearch({ strict: false });
     const [previewItems, setPreviewItems] = useState<Item[]>([]);
 
-    let center: LatLngExpression | undefined = undefined;
-    if (params.longitude && params.latitude) {
-        center = [params.latitude, params.longitude]
-    }
+    // Memoised so the markers aren't rebuilt on every render by a new array identity.
+    const center = useMemo<LatLngExpression | undefined>(() => {
+        if (params.longitude && params.latitude) {
+            return [params.latitude, params.longitude];
+        }
+    }, [params.latitude, params.longitude]);
 
     const { data: gallery } = useGallery();
 
@@ -111,19 +113,27 @@ const useItemMarkers = ({ items, map, center, onSelectItems }: MarkerClusterProp
 
         // add the marker cluster group to the map
         map.addLayer(markerClusterGroup);
+    }, [items, center, map]);
 
-        markerClusterGroup.on('click', (e: any) => {
-            const marker = e.sourceTarget;
+    // markerClusterGroup outlives this component, so its listeners have to be removed
+    // again — otherwise they stack up and each click fires onSelectItems repeatedly.
+    useEffect(() => {
+        const handleMarkerClick = (e: any) => {
+            onSelectItems([e.sourceTarget.options.item]);
+        };
 
-            onSelectItems([marker.options.item]);
-        });
+        const handleClusterClick = (e: any) => {
+            onSelectItems(e.sourceTarget.getAllChildMarkers().map((marker: any) => marker.options.item));
+        };
 
-        markerClusterGroup.on('clusterclick', (e: any) => {
-            const items = e.sourceTarget.getAllChildMarkers().map((marker: any) => marker.options.item);
+        markerClusterGroup.on('click', handleMarkerClick);
+        markerClusterGroup.on('clusterclick', handleClusterClick);
 
-            onSelectItems(items);
-        });
-    }, [items, center, map, onSelectItems]);
+        return () => {
+            markerClusterGroup.off('click', handleMarkerClick);
+            markerClusterGroup.off('clusterclick', handleClusterClick);
+        };
+    }, [onSelectItems]);
 };
 
 export default Map;
