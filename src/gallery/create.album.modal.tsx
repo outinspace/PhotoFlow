@@ -14,19 +14,13 @@ export const CreateAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Pro
     const [albumName, setAlbumName] = useState('');
     const createAlbumMutation = useCreateAlbum();
 
-    const handleCreate = async () => {
+    const handleCreate = () => {
         const itemIds = items.map(i => i.itemId);
 
-        const albumId = await createAlbumMutation.mutateAsync({
-            name: albumName,
-            itemIds
-        });
-
-        if (!albumId) {
-            return;
-        }
-
-        onAddComplete();
+        createAlbumMutation.mutate(
+            { name: albumName, itemIds },
+            { onSuccess: () => onAddComplete() }
+        );
     };
 
     return (

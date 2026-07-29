@@ -9,7 +9,7 @@ interface CreateAlbumArgs {
 
 export const useCreateAlbum = () => {
     return useMutation({
-        mutationFn: async ({ name, itemIds }: CreateAlbumArgs): Promise<number | null> => {
+        mutationFn: async ({ name, itemIds }: CreateAlbumArgs): Promise<number> => {
             const res = await fetchAuthenticatedRoute('/album', {
                 method: 'POST',
                 body: JSON.stringify({ name, itemIds }),
@@ -18,12 +18,8 @@ export const useCreateAlbum = () => {
                 }
             });
 
-            if (res.ok) {
-                const body = await res.json();
-                return body.albumId;
-            } else {
-                return null;
-            }
+            const body = await res.json();
+            return body.albumId;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['albums'] });

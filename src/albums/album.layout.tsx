@@ -42,7 +42,11 @@ export const AlbumLayout = () => {
             return;
         }
 
-        const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId);
+        // A failed share request is already reported by fetchAuthenticatedRoute.
+        const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId).catch(() => null);
+        if (!shareSecret) {
+            return;
+        }
 
         const link = router.buildLocation({
             to: '/p/a/$shortTenantId/$shortShareSecret',
@@ -59,6 +63,9 @@ export const AlbumLayout = () => {
 
     const sharePublicLink = async () => {
         const url = await getPublicLink();
+        if (!url) {
+            return;
+        }
 
         if (!!navigator.share) {
             navigator.share({ url });
@@ -69,6 +76,10 @@ export const AlbumLayout = () => {
 
     const openPublicLink = async () => {
         const url = await getPublicLink();
+        if (!url) {
+            return;
+        }
+
         window.open(url, '_blank');
     }
 

@@ -26,11 +26,26 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
         throw new Error('Session Invalid');
     }
 
-    // Display user errors
-    if (res.status >= 400 && res.status < 500) {
-        toast.error(await res.json());
+    // Throwing keeps callers on a single path: a returned response is always a successful
+    // one, so the body can be read without checking the status first.
+    if (!res.ok) {
+        toast.error(res.status < 500 ? await readErrorMessage(res) : 'Something went wrong. Please try again.');
+
+        throw new Error(`Request failed (${res.status}): ${path}`);
     }
 
     return res;
 }
 
+// User errors come back as a JSON string, but framework errors can be any shape,
+// so fall back to the raw body.
+const readErrorMessage = async (res: Response) => {
+    const body = await res.text();
+
+    try {
+        const parsed = JSON.parse(body);
+        return typeof parsed === 'string' ? parsed : body;
+    } catch {
+        return body;
+    }
+}

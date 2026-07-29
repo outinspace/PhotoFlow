@@ -12,10 +12,11 @@ interface Props {
 export const DeleteItemsModal = ({ isOpen, onCancel, onDeleteComplete, items }: Props) => {
     const deleteItems = useDeleteItems();
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         const itemIds = items.map(i => i.itemId);
-        await deleteItems.mutateAsync(itemIds);
-        onDeleteComplete?.();
+        deleteItems.mutate(itemIds, {
+            onSuccess: () => onDeleteComplete?.()
+        });
     };
 
     return (

@@ -12,10 +12,10 @@ interface Props {
 export const DeleteAlbumModal = ({ album, isOpen, onCancel, onDeleteComplete }: Props) => {
     const deleteAlbumMutation = useDeleteAlbum();
 
-    const handleDelete = async () => {
-        await deleteAlbumMutation.mutateAsync(album.albumId);
-
-        onDeleteComplete();
+    const handleDelete = () => {
+        deleteAlbumMutation.mutate(album.albumId, {
+            onSuccess: () => onDeleteComplete()
+        });
     };
 
     return (
