@@ -1,18 +1,26 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useGallery } from "./useGallery";
 import { Item } from "../types";
 import { parseISO, format } from "date-fns";
 
-export interface Trip {
+// What clustering produces and what gets cached. It holds item ids rather than the items
+// themselves, so the cached copy stays small and can't go stale against the gallery.
+interface DetectedTrip {
     tripId: string;
     name: string;
-    items: Item[];
+    itemIds: number[];
     startDate: string;
     endDate: string;
     city: string | null;
     region: string | null;
 }
 
+export interface Trip extends Omit<DetectedTrip, 'itemIds'> {
+    items: Item[];
+}
+
+const STALE_TIME_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 const CLUSTERING_TIME_WINDOW_HOURS = 7 * 24; // 1 week
 const MAX_TRIP_DURATION_HOURS = 3 * 30 * 24; // 3 months
 const MIN_TRIP_PHOTOS = 20;
@@ -83,7 +91,7 @@ const formatTripName = (trip: { city: string | null; region: string | null; star
     return `${locationName} - ${format(start, 'MMM d, yyyy')}-${format(end, 'MMM d, yyyy')}`;
 };
 
-const detectTrips = (items: Item[]): Trip[] => {
+const detectTrips = (items: Item[]): DetectedTrip[] => {
     // Filter items with geographic coordinates
     const itemsWithCoords = items.filter(item =>
         item.latitude !== null && item.longitude !== null
@@ -209,7 +217,7 @@ const detectTrips = (items: Item[]): Trip[] => {
         return primaryLocation;
     };
     
-    const trips: Trip[] = [];
+    const trips: DetectedTrip[] = [];
 
     for (const group of cellGroups) {
         // Combine all items from cells in this group
@@ -252,7 +260,7 @@ const detectTrips = (items: Item[]): Trip[] => {
                 startDate,
                 endDate
             }),
-            items: groupItems,
+            itemIds: groupItems.map(item => item.itemId),
             startDate,
             endDate,
             city: primaryLocation.city,
@@ -263,11 +271,35 @@ const detectTrips = (items: Item[]): Trip[] => {
     return trips.sort((a, b) => b.startDate.localeCompare(a.startDate));
 };
 
-// Trips are derived from the gallery rather than fetched, so they recompute whenever the
-// gallery changes instead of living in the query cache.
 export const useTrips = (): Trip[] => {
     const { data: gallery } = useGallery();
 
-    return useMemo(() => gallery ? detectTrips(gallery.items) : [], [gallery]);
+    // Clustering walks the whole gallery, so it runs at most once a week rather than on
+    // every visit to Memories. The key is deliberately constant — keying it on the item
+    // count, as this once did, both missed changes that kept the count the same and left
+    // a separate cache entry behind for every count the gallery ever had.
+    // The trade-off is that photos added since the last run won't join a trip until the
+    // week is up.
+    const { data: detectedTrips } = useQuery({
+        queryKey: ['trips'],
+        staleTime: STALE_TIME_MS,
+        enabled: !!gallery,
+        queryFn: () => gallery ? detectTrips(gallery.items) : []
+    });
+
+    // Only the grouping is cached, so the items themselves are always the current ones
+    // from the gallery. Anything deleted since the last run drops out here.
+    return useMemo(() => {
+        if (!detectedTrips || !gallery) {
+            return [];
+        }
+
+        const itemsById = new Map(gallery.items.map(item => [item.itemId, item]));
+
+        return detectedTrips.map(trip => ({
+            ...trip,
+            items: trip.itemIds.flatMap(itemId => itemsById.get(itemId) ?? [])
+        }));
+    }, [detectedTrips, gallery]);
 };
 
