@@ -1,5 +1,4 @@
 import React, { useRef, useLayoutEffect, useState, useCallback, useMemo, useEffect } from 'react';
-import styled from '@emotion/styled';
 import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
@@ -304,7 +303,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                         </button>
                     )}
                 </div>
-                <ScrollContainer ref={scrollContainerRef}>
+                <div ref={scrollContainerRef} className='flex-auto w-full overflow-y-scroll overflow-x-hidden'>
                     <div
                         style={{
                             height: `${rowVirtualizer.getTotalSize()}px`,
@@ -383,7 +382,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             </div>
                         )}
                     </div>
-                </ScrollContainer>
+                </div>
             </div>
             {!disableFilteringSorting && (
                 <FilterSheet
@@ -432,13 +431,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         </div>
     );
 }
-
-const ScrollContainer = styled.div`
-    flex: 1 1 auto;
-    width: 100%;
-    overflow-y: scroll;
-    overflow-x: hidden;
-`;
 
 export default ItemGrid;
 

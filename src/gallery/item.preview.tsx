@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
-import styled from '@emotion/styled';
 import { InfoCircle, Heart, HeartSolid, Xmark, Play, Pause } from 'iconoir-react';
-import constants from '../design.constants';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
@@ -265,8 +263,15 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
 
     return (
-        <Container ref={containerRef} style={{ opacity: swipeSpring.opacity }}>
-            <SwipeArea {...dragBindings()}>
+        <animated.div
+            ref={containerRef}
+            className='fixed top-0 bottom-0 left-0 right-0 flex z-10 bg-black'
+            style={{ opacity: swipeSpring.opacity }}
+        >
+            <div
+                {...dragBindings()}
+                className='absolute top-0 left-0 w-full h-full touch-manipulation'
+            >
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length) // Only render relevant images
                     .map((i) => (
@@ -287,13 +292,13 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                             />
                         </animated.div>
                     ))}
-            </SwipeArea>
+            </div>
             <div
                 className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 {onClose && (
                     <Xmark
                         onClick={() => onClose?.()}
-                        color={constants.colors.text.level0}
+                        color='white'
                         height={30}
                         width={30}
                         className="mr-3"
@@ -373,7 +378,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 onDismiss={() => setShowInfoSheet(false)}
                 tenantId={tenantId}
             />
-        </Container>
+        </animated.div>
     );
 };
 
@@ -386,25 +391,5 @@ function formatRelativeOrLongDateTime(date: Date | string) {
         return format(date, 'EEEE h:mm a');
     }
 }
-
-const Container = styled(animated.div)`
-    background-color: ${constants.colors.surface.level0};
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    z-index: 10;
-`;
-
-const SwipeArea = styled.div`
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    touch-action: manipulation;
-`;
 
 export default ItemPreview;
