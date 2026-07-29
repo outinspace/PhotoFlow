@@ -1,4 +1,4 @@
-import { getDefaultToMemories } from '../hooks/use.default.to.memories';
+import { getDefaultToMemories } from '../hooks/use.settings';
 
 const SETUP_WIZARD_VERSION = 'v1';
 const SETUP_WIZARD_KEY_PREFIX = 'setupWizardCompleted';

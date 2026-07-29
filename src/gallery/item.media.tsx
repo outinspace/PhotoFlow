@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import { nonSelectable } from '../styles';
 import { useLongPress } from 'use-long-press';
-import { useAutoplayLivePhotos } from '../hooks/use.autoplay.live.photos';
-import { useAutoplayVideos } from '../hooks/use.autoplay.videos';
+import { useAutoplayLivePhotos, useAutoplayVideos } from '../hooks/use.settings';
 
 const zIndex = {
     controls: 10,
@@ -23,8 +22,8 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
     const [showLivePhoto, setShowLivePhoto] = useState(false);
     const [showSmoothAnimation, setShowSmoothAnimation] = useState(false);
     const [isFadingOut, setIsFadingOut] = useState(false);
-    const { enabled: autoplayLivePhotos } = useAutoplayLivePhotos();
-    const { enabled: autoplayVideos } = useAutoplayVideos();
+    const [autoplayLivePhotos] = useAutoplayLivePhotos();
+    const [autoplayVideos] = useAutoplayVideos();
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
