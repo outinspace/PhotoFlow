@@ -1,16 +1,19 @@
 import { TopBar } from '../common/top.bar';
-import { usePhotoAnimations } from '../hooks/use.photo.animations';
-import { useAutoplayLivePhotos } from '../hooks/use.autoplay.live.photos';
-import { useAutoplayVideos } from '../hooks/use.autoplay.videos';
-import { useDefaultToMemories } from '../hooks/use.default.to.memories';
-import { useSlideshowInterval, SLIDESHOW_INTERVAL_OPTIONS_SECONDS } from '../hooks/use.slideshow.interval';
+import {
+    useAutoplayLivePhotos,
+    useAutoplayVideos,
+    useDefaultToMemories,
+    usePhotoAnimations,
+    useSlideshowInterval,
+    SLIDESHOW_INTERVAL_OPTIONS_SECONDS
+} from '../hooks/use.settings';
 
 const Settings = () => {
-    const { enabled: photoAnimationsEnabled, setEnabled: setPhotoAnimationsEnabled } = usePhotoAnimations();
-    const { enabled: autoplayLivePhotosEnabled, setEnabled: setAutoplayLivePhotosEnabled } = useAutoplayLivePhotos();
-    const { enabled: autoplayVideosEnabled, setEnabled: setAutoplayVideosEnabled } = useAutoplayVideos();
-    const { enabled: defaultToMemoriesEnabled, setEnabled: setDefaultToMemoriesEnabled } = useDefaultToMemories();
-    const { seconds: slideshowSeconds, setSeconds: setSlideshowSeconds } = useSlideshowInterval();
+    const [photoAnimationsEnabled, setPhotoAnimationsEnabled] = usePhotoAnimations();
+    const [autoplayLivePhotosEnabled, setAutoplayLivePhotosEnabled] = useAutoplayLivePhotos();
+    const [autoplayVideosEnabled, setAutoplayVideosEnabled] = useAutoplayVideos();
+    const [defaultToMemoriesEnabled, setDefaultToMemoriesEnabled] = useDefaultToMemories();
+    const [slideshowSeconds, setSlideshowSeconds] = useSlideshowInterval();
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>

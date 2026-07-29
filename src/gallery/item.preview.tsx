@@ -13,8 +13,7 @@ import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
-import { usePhotoAnimations } from '../hooks/use.photo.animations';
-import { useSlideshowInterval } from '../hooks/use.slideshow.interval';
+import { usePhotoAnimations, useSlideshowInterval } from '../hooks/use.settings';
 
 interface Props {
     items: Item[];
@@ -37,8 +36,8 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     const containerRef = useRef<HTMLDivElement>(null);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
-    const { enabled: photoAnimationsEnabled } = usePhotoAnimations();
-    const { seconds: slideshowSeconds } = useSlideshowInterval();
+    const [photoAnimationsEnabled] = usePhotoAnimations();
+    const [slideshowSeconds] = useSlideshowInterval();
 
     const item: Item | undefined = items[itemIndex];
 
