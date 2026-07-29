@@ -1,9 +1,10 @@
 import toast from "react-hot-toast";
+import { getTenantId } from './session';
 import { Item } from "../types";
 import constants from "../constants";
 
 export const downloadFile = (fileId: string, tenantId?: string) => {
-    const resolvedTenantId = tenantId || localStorage.getItem('tenantId');
+    const resolvedTenantId = tenantId || getTenantId();
     
     if (!resolvedTenantId) {
         toast.error('Tenant ID not found');
@@ -21,7 +22,7 @@ export const downloadFile = (fileId: string, tenantId?: string) => {
 };
 
 export const downloadFiles = async (items: Item[], tenantId?: string) => {
-    const resolvedTenantId = tenantId || localStorage.getItem('tenantId');
+    const resolvedTenantId = tenantId || getTenantId();
     
     if (!resolvedTenantId) {
         toast.error('Tenant ID not found');

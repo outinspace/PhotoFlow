@@ -3,6 +3,7 @@ import constants from '../constants';
 import { useNavigate } from '@tanstack/react-router';
 import toast from 'react-hot-toast';
 import { isSetupWizardRequired } from '../setup/setup.wizard.state';
+import { getSession, startSession } from '../common/session';
 
 const Login = () => {
     const [tenantValue, setTenantValue] = useState('');
@@ -13,10 +14,7 @@ const Login = () => {
 
     // Check session
     useEffect(() => {
-        const tenantId = localStorage.getItem('tenantId');
-        const sessionId = localStorage.getItem('sessionId');
-
-        if (tenantId && sessionId) {
+        if (getSession()) {
             navigate({ to: '/' });
         }
     }, []);
@@ -35,8 +33,7 @@ const Login = () => {
         if (res.ok) {
             const body = await res.json();
 
-            localStorage.setItem('tenantId', body.tenantId);
-            localStorage.setItem('sessionId', body.sessionId);
+            startSession(body.tenantId, body.sessionId);
 
             navigate({ to: isSetupWizardRequired(body.tenantId) ? '/setup' : '/gallery' });
         } else {

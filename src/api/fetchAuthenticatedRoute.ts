@@ -1,15 +1,16 @@
 import constants from "../constants";
-import { router } from "../routes";
-import { queryClient } from "../app";
+import { endSessionAndGoToLogin, getSession } from "../common/session";
 import toast from "react-hot-toast";
 
 export const fetchAuthenticatedRoute = async (path: string, request?: RequestInit) => {
     request = request ?? {};
 
+    const session = getSession();
+
     request.headers = {
         ...request.headers,
-        'Authorization': 'Session ' + (localStorage.getItem('sessionId') ?? ''),
-        'x-tenant-id': localStorage.getItem('tenantId') ?? ''
+        'Authorization': 'Session ' + (session?.sessionId ?? ''),
+        'x-tenant-id': session?.tenantId ?? ''
     };
 
     const res = await fetch(constants.apiUrl + path, request);
@@ -17,11 +18,7 @@ export const fetchAuthenticatedRoute = async (path: string, request?: RequestIni
     if (res.status === 401) {
         toast.error('You are not logged in.');
 
-        queryClient.clear();
-        localStorage.removeItem('tenantId');
-        localStorage.removeItem('sessionId');
-
-        router.navigate({ to: '/login' });
+        endSessionAndGoToLogin();
 
         throw new Error('Session Invalid');
     }

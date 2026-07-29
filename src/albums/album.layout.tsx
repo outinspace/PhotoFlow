@@ -11,6 +11,7 @@ import { ActionMenu } from '../common/action.menu';
 import { compactGUID } from '../common/format.helpers';
 import { Ellipsis } from '../common/ellipsis';
 import { router } from '../routes';
+import { getTenantId } from '../common/session';
 import toast from 'react-hot-toast';
 
 export const AlbumLayout = () => {
@@ -37,7 +38,7 @@ export const AlbumLayout = () => {
     }
 
     const getPublicLink = async () => {
-        const tenantId = localStorage.getItem('tenantId');
+        const tenantId = getTenantId();
         if (!tenantId) {
             return;
         }

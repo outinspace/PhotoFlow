@@ -6,7 +6,7 @@ import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
 import { useGallery } from '../api/useGallery';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
-import { queryClient } from '../app';
+import { endSessionAndGoToLogin } from '../common/session';
 import UploadButton from './upload.button';
 
 const commonOptions = [
@@ -34,12 +34,7 @@ const commonOptions = [
     {
         name: 'Logout',
         icon: LogOut,
-        onClick: () => {
-            queryClient.clear();
-            localStorage.removeItem('tenantId');
-            localStorage.removeItem('sessionId');
-            router.navigate({ to: '/login' });
-        }
+        onClick: () => endSessionAndGoToLogin()
     },
 ];
 

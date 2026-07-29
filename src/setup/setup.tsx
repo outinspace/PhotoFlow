@@ -5,6 +5,7 @@ import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
 import { S3ConfigForm } from './s3.config.form';
 import { markSetupWizardCompleted, getPostSetupRoute } from './setup.wizard.state';
 import { router } from '../routes';
+import { getTenantId } from '../common/session';
 
 interface ExistingConfig {
     endpointUrl: string | null;
@@ -60,7 +61,7 @@ const Setup = () => {
     const [config, setConfig] = useState<ExistingConfig | null>(null);
     const [stepIndex, setStepIndex] = useState(0);
 
-    const tenantId = localStorage.getItem('tenantId');
+    const tenantId = getTenantId();
 
     useEffect(() => {
         fetchAuthenticatedRoute('/tenant/s3-config')

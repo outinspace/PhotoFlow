@@ -22,20 +22,20 @@ import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.settings";
 import { isSetupWizardRequired } from "./setup/setup.wizard.state";
+import { getSession } from "./common/session";
 export const rootRoute = createRootRoute();
 
 export const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     beforeLoad: () => {
-        const tenantId = localStorage.getItem('tenantId');
-        const sessionId = localStorage.getItem('sessionId');
+        const session = getSession();
 
-        if (!tenantId || !sessionId) {
+        if (!session) {
             throw redirect({ to: '/login' });
         }
 
-        if (isSetupWizardRequired(tenantId)) {
+        if (isSetupWizardRequired(session.tenantId)) {
             throw redirect({ to: '/setup' });
         }
 
