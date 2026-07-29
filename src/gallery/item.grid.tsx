@@ -1,5 +1,4 @@
-import React, { useRef, useLayoutEffect, useState, useCallback, useMemo, useEffect } from 'react';
-import { Range, defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
@@ -12,6 +11,15 @@ import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
+import { GridGesture, GridLayout, clamp, useGridLayout } from './use.grid.layout';
+import { computeAnchor, useGridAnchor } from './use.grid.anchor';
+import { useGridPinch } from './use.grid.pinch';
+import { useItemSelection } from './use.item.selection';
+import { readPreviewItemId, usePreviewItem } from './use.preview.item';
+
+// Each zoom button tap changes the column count by roughly this factor, so a few taps cross
+// the whole range on a phone as well as on a wide desktop.
+const ZOOM_STEP = 1.4;
 
 interface Props {
     items: Item[];
@@ -19,10 +27,11 @@ interface Props {
     readonly?: boolean;
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
+    disablePinch?: boolean;
     tenantId?: string;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, tenantId }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch, tenantId }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -31,151 +40,58 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const { filterProps, filteredItems } = useFilterBar(allItems);
     const items = disableFilteringSorting ? allItems : filteredItems;
 
-    // Unified preview state management
-    const [localPreviewItemId, setLocalPreviewItemId] = useState<number | null>(() => {
-        if (!enableUrlPersistence) return null;
-        const urlParams = new URLSearchParams(window.location.search);
-        const previewItemId = urlParams.get('previewItemId');
-        return previewItemId ? parseInt(previewItemId, 10) : null;
-    });
-
-    const setPreviewItemId = useCallback((itemId: number | null, replace: boolean = false) => {
-        setLocalPreviewItemId(itemId);
-        
-        if (enableUrlPersistence) {
-            const url = new URL(window.location.href);
-            if (itemId === null) {
-                url.searchParams.delete('previewItemId');
-            } else {
-                url.searchParams.set('previewItemId', itemId.toString());
-            }
-            
-            if (replace) {
-                window.history.replaceState({}, '', url.toString());
-            } else {
-                window.history.pushState({}, '', url.toString());
-            }
-        }
-    }, [enableUrlPersistence]);
-    
-    const previewItemIndex = useMemo(() => {
-        if (localPreviewItemId === null) return null;
-        const index = items.findIndex(item => item.itemId === localPreviewItemId);
-        return index >= 0 ? index : null;
-    }, [localPreviewItemId, items]);
-
-    // Listen for URL changes (back/forward navigation) only when URL persistence is enabled
-    useEffect(() => {
-        if (!enableUrlPersistence) return;
-        
-        const handlePopState = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const previewItemId = urlParams.get('previewItemId');
-            setLocalPreviewItemId(previewItemId ? parseInt(previewItemId, 10) : null);
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, [enableUrlPersistence]);
-
-    const visibleRangeRef = useRef({ startIndex: 0, endIndex: 0 });
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const rowsRef = useRef<HTMLDivElement>(null);
 
-    const containerWidth = scrollContainerRef.current?.clientWidth ?? 0;
+    const { previewItemId, setPreviewItemId } = usePreviewItem(enableUrlPersistence);
 
-    const [zoomLevelIndex, setZoomIndex] = useState(() => {
-        const baseIndex = 2;
-        const baseTileSize = 70;
-        const threshold = 300;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const cols = Math.max(1, Math.floor(w / baseTileSize));
-        const tile = w / cols;
-        const rows = Math.ceil(h / tile);
-        const visible = cols * rows;
+    const previewItemIndex = useMemo(() => {
+        if (previewItemId === null) return null;
+        const index = items.findIndex(item => item.itemId === previewItemId);
+        return index >= 0 ? index : null;
+    }, [previewItemId, items]);
 
-        return visible > threshold ? Math.min(baseIndex + 1, 4) : baseIndex;
-    });
-    const zoomLevels = [
-        {
-            idealTileSize: 40,
-            overscanRows: 4
-        },
-        {
-            idealTileSize: 50,
-            overscanRows: 6
-        },
-        {
-            idealTileSize: 70,
-            overscanRows: 10
-        },
-        {
-            idealTileSize: 110,
-            overscanRows: 10
-        },
-        {
-            idealTileSize: Math.min(containerWidth, 300),
-            overscanRows: 10
-        }
-    ];
-    const zoomLevel = zoomLevels[zoomLevelIndex];
+    // Set while a pinch is scaling the rows, so the grid knows how far past the viewport it has
+    // to render to keep the edges filled.
+    const [gesture, setGesture] = useState<GridGesture | null>(null);
 
-    const rangeDateFormat = zoomLevel.idealTileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
+    const layout = useGridLayout(scrollContainerRef, items.length, gesture);
 
-    const columns = Math.max(1, Math.floor(containerWidth / zoomLevel.idealTileSize));
-    const tileSize = containerWidth === 0 ? 0 : containerWidth / columns;
-
-    // Virtualize rows (each holds `columns` tiles) instead of using TanStack's `lanes`
-    // masonry path — for a uniform grid lanes makes measurement scale with count × columns
-    // (getFurthestMeasurement), which dominated the CPU profile. lanes=1 is O(1) per row.
-    const rowCount = Math.ceil(items.length / columns);
-
-    const rowVirtualizer = useVirtualizer({
-        enabled: tileSize > 0,
-        count: rowCount,
-        getScrollElement: () => scrollContainerRef.current,
-        estimateSize: () => tileSize,
-        overscan: zoomLevel.overscanRows,
-        paddingEnd: 100,
-        rangeExtractor: useCallback((range: Range) => {
-            // range is in row indices here.
-            visibleRangeRef.current = {
-                startIndex: range.startIndex,
-                endIndex: range.endIndex
-            };
-
-            return defaultRangeExtractor(range);
-        }, [])
+    const reanchor = useGridAnchor({
+        items,
+        layout,
+        // Read straight from the URL, so a preview opened later in the session doesn't count.
+        fallbackItemId: enableUrlPersistence ? readPreviewItemId() : null,
+        enableUrlPersistence
     });
 
-    // HACK:
-    useLayoutEffect(() => {
-        const updateWidth = () => {
-            rowVirtualizer.measure();
-        };
+    // Declared after useGridAnchor, which owns moving the anchored item back into place.
+    useGridPinch({
+        scrollContainerRef,
+        contentRef: rowsRef,
+        layout,
+        itemCount: items.length,
+        reanchor,
+        setGesture,
+        enabled: !disablePinch && previewItemIndex === null
+    });
 
-        window.addEventListener('resize', updateWidth);
+    const zoomTo = (targetColumns: number) => {
+        const columns = clamp(targetColumns, layout.minColumns, layout.maxColumns);
+        if (columns === layout.columns) return;
 
-        setTimeout(() => {
-            updateWidth();
-        }, 100);
+        const scrollTop = scrollContainerRef.current!.scrollTop;
+        reanchor(computeAnchor(layout, scrollTop, layout.containerWidth / 2, layout.containerHeight / 2, items.length));
+        layout.setColumns(columns);
+    };
 
-        return () => window.removeEventListener('resize', updateWidth);
-    }, []);
-
-
-    const zoomOut = () => {
-        setZoomIndex(zoomLevelIndex === 0 ? 0 : zoomLevelIndex - 1);
-        rowVirtualizer.measure();
-    }
-
-    const zoomIn = () => {
-        setZoomIndex(zoomLevelIndex === zoomLevels.length - 1 ? zoomLevels.length - 1 : zoomLevelIndex + 1);
-        rowVirtualizer.measure();
-    }
+    // Fewer columns means bigger tiles. Stepping past the neighbouring count keeps a tap
+    // moving even where rounding alone wouldn't.
+    const zoomIn = () => zoomTo(Math.min(layout.columns - 1, Math.round(layout.columns / ZOOM_STEP)));
+    const zoomOut = () => zoomTo(Math.max(layout.columns + 1, Math.round(layout.columns * ZOOM_STEP)));
 
     const sort = disableFilteringSorting ? 'capture-date' : filterProps.filters.sort;
-    let formattedRange = useFormattedRange(items, visibleRangeRef.current, columns, rangeDateFormat, sort);
+    const formattedRange = formatVisibleRange(items, layout, sort);
 
     const { selectedItems, selectedItemsById, toggleItemSelection, resetSelection } = useItemSelection(items);
     const [showActionMenu, setShowActionMenu] = useState(false);
@@ -246,6 +162,48 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         }
     };
 
+    const rows = [];
+    for (let row = layout.firstRenderedRow; row <= layout.lastRenderedRow; row++) {
+        const startIndex = row * layout.columns;
+        // While a pinch is scaling the rows down, each one is extended past its own columns so the
+        // space either side is filled rather than left empty. The extra tiles are the items that
+        // neighbour the row in the list, so it reads as more of the same grid.
+        const from = Math.max(0, startIndex - layout.extraTilesLeft);
+        rows.push(
+            <div
+                key={row}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    height: `${layout.tileSize}px`,
+                    width: '100%',
+                    transform: `translate(${(from - startIndex) * layout.tileSize}px, ${row * layout.tileSize}px)`,
+                    display: 'flex',
+                    contain: 'layout',
+                }}
+            >
+                {items.slice(from, startIndex + layout.columns + layout.extraTilesRight).map((item) => (
+                    <div
+                        key={item.itemId}
+                        style={{
+                            height: `${layout.tileSize}px`,
+                            width: `${layout.tileSize}px`,
+                            flex: '0 0 auto',
+                        }}
+                    >
+                        <ItemTile
+                            item={item}
+                            tileSize={layout.tileSize}
+                            onClick={handleItemClick}
+                            isSelected={!!selectedItemsById[item.itemId]}
+                        />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <div className='flex flex-auto overflow-hidden relative' onClickCapture={handleReturnToTopClick}>
@@ -303,56 +261,29 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                         </button>
                     )}
                 </div>
-                <div ref={scrollContainerRef} className='flex-auto w-full overflow-y-scroll overflow-x-hidden'>
+                {/* touch-pan-y leaves one-finger panning to the browser while reserving
+                    pinches for the grid's own zoom, so pinching here never zooms the page. */}
+                <div ref={scrollContainerRef} className='flex-auto w-full overflow-y-scroll overflow-x-hidden touch-pan-y'>
                     <div
                         style={{
-                            height: `${rowVirtualizer.getTotalSize()}px`,
+                            height: `${layout.contentHeight}px`,
                             width: '100%',
                             position: 'relative'
                         }}
                     >
-                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                            const startIndex = virtualRow.index * columns;
-                            const rowItems = items.slice(startIndex, startIndex + columns);
-                            return (
-                                <div
-                                    key={virtualRow.key}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        height: `${tileSize}px`,
-                                        width: '100%',
-                                        transform: `translateY(${virtualRow.start}px)`,
-                                        display: 'flex',
-                                        contain: 'layout',
-                                    }}
-                                >
-                                    {rowItems.map((item) => (
-                                        <div
-                                            key={item.itemId}
-                                            style={{
-                                                height: `${tileSize}px`,
-                                                width: `${tileSize}px`,
-                                                flex: '0 0 auto',
-                                            }}
-                                        >
-                                            <ItemTile
-                                                item={item}
-                                                idealTileSize={zoomLevel.idealTileSize}
-                                                onClick={handleItemClick}
-                                                isSelected={!!selectedItemsById[item.itemId]}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            );
-                        })}
+                        {/* The rows sit in a layer of their own so a pinch can scale them
+                            without changing the scrollable height, which would otherwise
+                            fight the scroll position mid-gesture. */}
+                        <div ref={rowsRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}>
+                            {rows}
+                        </div>
                     </div>
                     <div className='flex absolute bottom-2 left-2'>
                         <ZoomButtons
                             onZoomOut={zoomOut}
                             onZoomIn={zoomIn}
+                            zoomInDisabled={layout.columns === layout.minColumns}
+                            zoomOutDisabled={layout.columns === layout.maxColumns}
                         />
                         {!disableFilteringSorting && (
                             <button
@@ -434,101 +365,16 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
 export default ItemGrid;
 
-function useFormattedRange(items: Item[], visibleRange: { startIndex: number; endIndex: number; }, columns: number, rangeDateFormat: string, sort: string) {
-    if (!columns) return '';
-    // visibleRange is in row indices; convert to item indices.
-    const startItemIndex = visibleRange.startIndex * columns;
-    const endItemIndex = Math.min(items.length, (visibleRange.endIndex + 1) * columns) - 1;
-    const rangeStartItem: Item | undefined = items[startItemIndex];
-    const rangeEndItem: Item | undefined = items[endItemIndex];
+function formatVisibleRange(items: Item[], layout: GridLayout, sort: string) {
+    const rangeStartItem: Item | undefined = items[layout.firstVisibleRow * layout.columns];
+    if (!rangeStartItem) return '';
 
-    let formattedRange = '';
-    if (rangeStartItem && rangeEndItem) {
-        if (sort === 'upload-date') {
-            const start = format(rangeStartItem.primaryFile.uploadTimeUtc, rangeDateFormat);
-            formattedRange = `Uploaded ${start}`;
-        } else {
-            formattedRange = format(rangeStartItem.captureTime, rangeDateFormat);
-        }
+    // Narrow tiles don't leave room for a day.
+    const rangeDateFormat = layout.tileSize >= 50 ? 'MMM d yyyy' : 'MMMM yyyy';
+
+    if (sort === 'upload-date') {
+        return `Uploaded ${format(rangeStartItem.primaryFile.uploadTimeUtc, rangeDateFormat)}`;
     }
-    return formattedRange;
-}
 
-const keysPressed = new Set();
-
-const handleKeyDown = (e: KeyboardEvent) => {
-    keysPressed.add(e.key);
-};
-
-const handleKeyUp = (e: KeyboardEvent) => {
-    keysPressed.delete(e.key);
-};
-
-function useItemSelection(allItems: Item[]) {
-    const [selectedItemsById, setSelectedItemsById] = useState<Record<number, Item>>({});
-    const selectedItems = useMemo(() => Object.values(selectedItemsById), [selectedItemsById]);
-
-    const lastLastSelectedItem = useRef<Item | null>(null);
-    const lastSelectedItem = useRef<Item | null>(null);
-
-    // Refs let toggleItemSelection stay referentially stable (it reaches every memoized
-    // tile via handleItemClick) while still reading the latest selection / item list.
-    const selectedItemsByIdRef = useRef(selectedItemsById);
-    selectedItemsByIdRef.current = selectedItemsById;
-    const allItemsRef = useRef(allItems);
-    allItemsRef.current = allItems;
-
-    useEffect(() => {
-        document.addEventListener("keydown", handleKeyDown);
-        document.addEventListener("keyup", handleKeyUp);
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-            document.removeEventListener("keyup", handleKeyUp);
-        };
-    }, []);
-
-    const toggleItemSelection = useCallback((item: Item, isDoubleClick: boolean) => {
-        const selectedItemsById = selectedItemsByIdRef.current;
-        const allItems = allItemsRef.current;
-        if (!isDoubleClick && selectedItemsById[item.itemId]) {
-            const newItems = { ...selectedItemsById };
-            delete newItems[item.itemId];
-
-            setSelectedItemsById(newItems);
-            lastSelectedItem.current = null;
-        } else {
-            const newSelectedItemsById = { ...selectedItemsById, [item.itemId]: item };
-
-            const lastSelection = item === lastSelectedItem.current ? lastLastSelectedItem.current : lastSelectedItem.current;
-
-            // Select range
-            if ((isDoubleClick || keysPressed.has('Shift')) && lastSelection) {
-                const index1 = allItems.findIndex(i => i === item);
-                const index2 = allItems.findIndex(i => i === lastSelection);
-
-                const minIndex = Math.min(index1, index2);
-                const maxIndex = Math.max(index1, index2);
-
-                const rangeItems = allItems.slice(minIndex, maxIndex);
-                for (const rangeItem of rangeItems) {
-                    newSelectedItemsById[rangeItem.itemId] = rangeItem;
-                }
-            }
-
-            lastLastSelectedItem.current = lastSelectedItem.current;
-            lastSelectedItem.current = item;
-            setSelectedItemsById(newSelectedItemsById);
-        }
-    }, []);
-
-    const resetSelection = useCallback(() => {
-        setSelectedItemsById({});
-    }, []);
-
-    return {
-        selectedItems,
-        selectedItemsById,
-        toggleItemSelection,
-        resetSelection
-    }
+    return format(rangeStartItem.captureTime, rangeDateFormat);
 }

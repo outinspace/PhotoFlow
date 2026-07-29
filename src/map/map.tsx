@@ -56,7 +56,9 @@ const Map = () => {
                 onDismiss={() => setPreviewItems([])}
             >
                 <div className='flex flex-grow rounded-lg overflow-hidden'>
-                    <ItemGrid items={previewItems} albumId={null} />
+                    {/* The sheet has its own drag-to-dismiss gesture, which grid pinches
+                        would contend with. */}
+                    <ItemGrid items={previewItems} albumId={null} disablePinch />
                 </div>
             </BottomSheet>
         </div>
