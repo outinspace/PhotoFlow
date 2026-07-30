@@ -11,7 +11,7 @@ import { Ellipsis } from '../common/ellipsis';
 import { formatBytes } from '../common/format.helpers';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
-import { GridGesture, GridLayout, clamp, useGridLayout } from './use.grid.layout';
+import { GridGesture, GridLayout, useGridLayout } from './use.grid.layout';
 import { computeAnchor, useGridAnchor } from './use.grid.anchor';
 import { useGridPinch } from './use.grid.pinch';
 import { useItemSelection } from './use.item.selection';
@@ -77,7 +77,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     });
 
     const zoomTo = (targetColumns: number) => {
-        const columns = clamp(targetColumns, layout.minColumns, layout.maxColumns);
+        const columns = layout.snapColumns(targetColumns);
         if (columns === layout.columns) return;
 
         const scrollTop = scrollContainerRef.current!.scrollTop;
@@ -85,10 +85,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         layout.setColumns(columns);
     };
 
-    // Fewer columns means bigger tiles. Stepping past the neighbouring count keeps a tap
+    // Fewer columns means bigger tiles. Stepping past the neighbouring odd count keeps a tap
     // moving even where rounding alone wouldn't.
-    const zoomIn = () => zoomTo(Math.min(layout.columns - 1, Math.round(layout.columns / ZOOM_STEP)));
-    const zoomOut = () => zoomTo(Math.max(layout.columns + 1, Math.round(layout.columns * ZOOM_STEP)));
+    const zoomIn = () => zoomTo(Math.min(layout.columns - 2, Math.round(layout.columns / ZOOM_STEP)));
+    const zoomOut = () => zoomTo(Math.max(layout.columns + 2, Math.round(layout.columns * ZOOM_STEP)));
 
     const sort = disableFilteringSorting ? 'capture-date' : filterProps.filters.sort;
     const formattedRange = formatVisibleRange(items, layout, sort);

@@ -10,20 +10,26 @@ const MAX_TILE_SIZE = 300;
 // Rows rendered outside the viewport.
 const OVERSCAN_PIXELS = 400;
 
+// Extra margin around the area a gesture exposes, covering its quantised pan updates and the
+// frame of lag before the scroll state catches up.
+const PAN_SLACK = 150;
+
 // Leaves room below the last row for the floating buttons.
 const PADDING_END = 100;
 
 export const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-// A pinch scales the rows without reflowing them, which puts more of the grid on screen than the
-// viewport would normally hold. This describes how much, so enough rows and columns get rendered
-// to fill it instead of leaving empty space around the edges.
+// A pinch scales the rows without reflowing them, which changes which part of the grid is on
+// screen. These are the transform's own parameters, so the layout can work out exactly what the
+// scaled surface exposes and render it instead of leaving empty space.
 export interface GridGesture {
-    // How much further the grid now reaches on screen: the inverse of the scale being applied.
+    // How much further the grid can reach on screen: at least the inverse of the scale.
     spread: number;
-    // Where the gesture is anchored, relative to the top left of the scroll container.
-    centroidX: number;
-    centroidY: number;
+    // The transform origin, in content coordinates.
+    originX: number;
+    originY: number;
+    // The horizontal pan applied alongside the scale. Vertical panning moves the scroll instead.
+    translateX: number;
 }
 
 export interface GridLayout {
@@ -45,6 +51,8 @@ export interface GridLayout {
     // Rows actually on screen, for the date overlay.
     firstVisibleRow: number;
     lastVisibleRow: number;
+    // The nearest allowed column count: odd, and within bounds.
+    snapColumns: (value: number) => number;
     setColumns: (columns: number) => void;
     scrollTo: (offset: number) => void;
 }
@@ -60,7 +68,6 @@ const defaultColumns = (width: number, height: number) => {
 // Windowing a uniform grid is plain arithmetic, so it's done here rather than with a
 // virtualiser: row offsets and the total height then always match the current tile size
 // within the same render, which is what zoom anchoring and the pinch gesture rely on.
-//
 export const useGridLayout = (
     scrollContainerRef: RefObject<HTMLDivElement>,
     itemCount: number,
@@ -90,9 +97,19 @@ export const useGridLayout = (
     }, [scrollContainerRef]);
 
     const { width, height } = size;
-    const minColumns = Math.max(1, Math.floor(width / MAX_TILE_SIZE));
-    const maxColumns = Math.max(minColumns, Math.floor(width / MIN_TILE_SIZE));
-    const columns = clamp(preferredColumns ?? defaultColumns(width, height), minColumns, maxColumns);
+
+    // Column counts stick to odd numbers, so there is always a single tile at the centre of the
+    // view — easier to keep track of while zooming.
+    const rawMin = Math.max(1, Math.floor(width / MAX_TILE_SIZE));
+    const rawMax = Math.max(rawMin, Math.floor(width / MIN_TILE_SIZE));
+    const minColumns = rawMin % 2 === 1 ? rawMin : Math.min(rawMin + 1, rawMax);
+    const maxColumns = rawMax % 2 === 1 ? rawMax : Math.max(rawMax - 1, minColumns);
+
+    const snapColumns = useCallback((value: number) => {
+        return clamp(2 * Math.round((value - 1) / 2) + 1, minColumns, maxColumns);
+    }, [minColumns, maxColumns]);
+
+    const columns = snapColumns(preferredColumns ?? defaultColumns(width, height));
     const tileSize = width === 0 ? 0 : width / columns;
     const rowCount = Math.ceil(itemCount / columns);
 
@@ -101,18 +118,24 @@ export const useGridLayout = (
     const firstVisibleRow = tileSize === 0 ? 0 : clamp(Math.floor(scrollTop / tileSize), 0, lastRow);
     const lastVisibleRow = tileSize === 0 ? -1 : clamp(Math.floor((scrollTop + height) / tileSize), 0, lastRow);
 
-    // The part of the grid on screen, in layout coordinates. A gesture scales about its centroid,
-    // which is the one point that doesn't move, so the view grows away from there in proportion
-    // to the spread. Off-centre gestures therefore grow further one way than the other.
-    const spread = gesture === null ? 1 : gesture.spread;
-    const viewTop = gesture === null ? scrollTop : scrollTop + gesture.centroidY * (1 - spread);
-    const viewLeft = gesture === null ? 0 : gesture.centroidX * (1 - spread);
-    const viewBottom = viewTop + height * spread;
-    const viewRight = viewLeft + width * spread;
+    // The part of the grid on screen, in layout coordinates. A gesture's transform holds its
+    // origin still, so the view spreads away from that point — further one way than the other
+    // when the gesture is off-centre — and any horizontal pan shifts it sideways on top.
+    let viewTop = scrollTop;
+    let viewBottom = scrollTop + height;
+    let viewLeft = 0;
+    let viewRight = width;
+    if (gesture !== null) {
+        const { spread, originX, originY, translateX } = gesture;
+        viewTop = originY + (scrollTop - originY) * spread - PAN_SLACK;
+        viewBottom = originY + (scrollTop + height - originY) * spread + PAN_SLACK;
+        viewLeft = originX - (originX + translateX) * spread - PAN_SLACK;
+        viewRight = originX + (width - originX - translateX) * spread + PAN_SLACK;
+    }
 
     const setColumns = useCallback((value: number) => {
-        setPreferredColumns(clamp(Math.round(value), minColumns, maxColumns));
-    }, [setPreferredColumns, minColumns, maxColumns]);
+        setPreferredColumns(snapColumns(value));
+    }, [setPreferredColumns, snapColumns]);
 
     const scrollTo = useCallback((offset: number) => {
         const element = scrollContainerRef.current!;
@@ -137,6 +160,7 @@ export const useGridLayout = (
         extraTilesRight: tileSize === 0 ? 0 : Math.max(0, Math.ceil((viewRight - width) / tileSize)),
         firstVisibleRow,
         lastVisibleRow,
+        snapColumns,
         setColumns,
         scrollTo
     };
