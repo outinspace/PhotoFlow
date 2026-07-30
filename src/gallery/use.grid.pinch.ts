@@ -3,13 +3,39 @@ import { usePinch } from '@use-gesture/react';
 import { GridGesture, GridLayout, clamp } from './use.grid.layout';
 import { anchorScrollTop } from './use.grid.anchor';
 
-// How long the reflow transition runs after the fingers lift: the old arrangement's dissolve,
-// the pinched tile's glide into its new slot, and the ease-back when no reflow was needed.
-const RELEASE_MS = 250;
+// How long the old arrangement's dissolve runs after a release that changed the column count.
+const GHOST_FADE_MS = 250;
 
 // Pan movement below this many pixels doesn't re-run the layout; the slack the layout keeps
 // around the rendered tiles covers the difference.
 const PAN_QUANTUM = 100;
+
+// The ease-back after release is a damped spring seeded with the gesture's own velocity, so a
+// fast pinch lands harder and a gentle one drifts in — a fixed-duration curve reads as
+// mechanical next to it. Slightly under critical damping, for a whisper of overshoot.
+const SPRING_STIFFNESS = 300;      // 1/s²
+const SPRING_DAMPING = 31;         // ≈ 0.9 damping ratio at this stiffness
+const SPRING_REST_DELTA = 0.1;     // px
+const SPRING_REST_SPEED = 1;       // px/s
+// If animation frames are starved, land on the end state rather than hanging mid-spring.
+const SPRING_TIMEOUT_MS = 800;
+
+// Pinching past the column limits compresses against increasing resistance instead of stopping
+// dead, and the release spring carries it back — matching how everything in iOS overshoots.
+// The resistance constant is UIScrollView's; the range is how far past the limit the tile size
+// can asymptotically reach, as a fraction of the limit.
+const RUBBER_BAND_RESISTANCE = 0.55;
+const RUBBER_BAND_RANGE = 0.5;
+
+const rubberBand = (value: number, min: number, max: number) => {
+    const give = (excess: number, limit: number) => {
+        const range = limit * RUBBER_BAND_RANGE;
+        return (1 - 1 / ((excess * RUBBER_BAND_RESISTANCE) / range + 1)) * range;
+    };
+    if (value > max) return max + give(value - max, max);
+    if (value < min) return min - give(min - value, min);
+    return value;
+};
 
 // The tile the gesture is centred on: an item, plus how far down its own tile the fingers sit.
 // A fraction, so the same point can be located again in any column count.
@@ -60,6 +86,9 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     const ghostRef = useRef<Ghost | null>(null);
     const commitPendingRef = useRef(false);
     const cancelSettleRef = useRef<(() => void) | null>(null);
+    // How fast the shown tile size is changing, in px/s, to seed the release spring with.
+    const velocityRef = useRef(0);
+    const lastSampleRef = useRef({ tileSize: 0, time: 0 });
 
     // The photo preview zooms with the browser's own page zoom, so multi-touch is left alone
     // whenever the page is already zoomed — otherwise there'd be no way to zoom back out.
@@ -129,60 +158,63 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         setGesture(null);
     };
 
-    // A frame-by-frame animation that still lands on its end state if animation frames are being
-    // starved — the timeout runs whatever the frames didn't get to.
-    const animate = (step: (eased: number) => void, finish: () => void, registerCancel: (cancel: () => void) => void) => {
-        const startTime = performance.now();
+    // Release with no column change: spring the leftover scale and pan back to rest, carrying
+    // the velocity the fingers left behind.
+    const settleBack = () => {
+        const { tileSize } = layout;
+        const values = {
+            tileSize: { x: desiredTileSizeRef.current, v: velocityRef.current, target: tileSize },
+            translateX: { x: translateBaseRef.current + panRef.current.dx, v: 0, target: 0 }
+        };
+        panRef.current = { ...panRef.current, dx: 0 };
+
+        let lastTime = performance.now();
         let frame: number | null = null;
         let done = false;
 
-        const complete = () => {
+        const finish = () => {
             if (done) return;
             done = true;
             if (frame !== null) cancelAnimationFrame(frame);
             clearTimeout(timeout);
-            step(1);
-            finish();
+            cancelSettleRef.current = null;
+            desiredTileSizeRef.current = tileSize;
+            translateBaseRef.current = 0;
+            clearScale();
         };
 
         const tick = () => {
-            const eased = 1 - (1 - Math.min(1, (performance.now() - startTime) / RELEASE_MS)) ** 3;
-            if (eased >= 1) {
-                complete();
-                return;
+            const now = performance.now();
+            // Capped so a dropped frame doesn't destabilise the integration.
+            const dt = Math.min((now - lastTime) / 1000, 0.032);
+            lastTime = now;
+
+            let settled = true;
+            for (const value of Object.values(values)) {
+                value.v += (-SPRING_STIFFNESS * (value.x - value.target) - SPRING_DAMPING * value.v) * dt;
+                value.x += value.v * dt;
+                settled = settled && Math.abs(value.x - value.target) < SPRING_REST_DELTA && Math.abs(value.v) < SPRING_REST_SPEED;
             }
-            step(eased);
-            frame = requestAnimationFrame(tick);
+            desiredTileSizeRef.current = values.tileSize.x;
+            translateBaseRef.current = values.translateX.x;
+            applyTransforms();
+
+            if (settled) {
+                finish();
+            } else {
+                frame = requestAnimationFrame(tick);
+            }
         };
 
-        const timeout = setTimeout(complete, RELEASE_MS + 200);
-        registerCancel(() => {
+        // If animation frames are starved, land on the end state rather than hanging mid-spring.
+        const timeout = setTimeout(finish, SPRING_TIMEOUT_MS);
+        cancelSettleRef.current = () => {
             done = true;
             if (frame !== null) cancelAnimationFrame(frame);
             clearTimeout(timeout);
-        });
+            cancelSettleRef.current = null;
+        };
         frame = requestAnimationFrame(tick);
-    };
-
-    // Release with no column change: ease the leftover scale and pan back to rest.
-    const settleBack = () => {
-        const { tileSize } = layout;
-        const fromTileSize = desiredTileSizeRef.current;
-        const fromTranslateX = translateBaseRef.current + panRef.current.dx;
-        panRef.current = { ...panRef.current, dx: 0 };
-
-        animate(
-            (eased) => {
-                desiredTileSizeRef.current = fromTileSize + (tileSize - fromTileSize) * eased;
-                translateBaseRef.current = fromTranslateX * (1 - eased);
-                applyTransforms();
-            },
-            () => {
-                cancelSettleRef.current = null;
-                clearScale();
-            },
-            (cancel) => { cancelSettleRef.current = cancel; }
-        );
     };
 
     // Paints the visible tiles into a bitmap. A bitmap shows on the very first frame, unlike a
@@ -264,9 +296,9 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
 
             // Flush the starting opacity so the transition has something to animate from.
             void element.offsetHeight;
-            element.style.transition = `opacity ${RELEASE_MS}ms linear`;
+            element.style.transition = `opacity ${GHOST_FADE_MS}ms linear`;
             element.style.opacity = '0';
-            ghost.removeTimer = window.setTimeout(removeGhost, RELEASE_MS + 80);
+            ghost.removeTimer = window.setTimeout(removeGhost, GHOST_FADE_MS + 80);
         }
 
         // The new arrangement itself renders in place, untransformed.
@@ -317,6 +349,8 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         startOffsetYRef.current = centroidY;
         translateBaseRef.current = centroidX - contentX;
         panRef.current = { dx: 0, dy: 0 };
+        velocityRef.current = 0;
+        lastSampleRef.current = { tileSize: desiredTileSizeRef.current, time: performance.now() };
 
         // Anchor vertically through the scroll position, so the rows chosen for rendering always
         // match what is actually on screen.
@@ -343,11 +377,21 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
 
             const { containerWidth, minColumns, maxColumns } = layout;
 
-            desiredTileSizeRef.current = clamp(
+            desiredTileSizeRef.current = rubberBand(
                 startTileSizeRef.current * movement[0],
                 containerWidth / maxColumns,
                 containerWidth / minColumns
             );
+
+            // Sampled here rather than taken from the gesture library, so the units are the
+            // same for fingers and for a trackpad's wheel events.
+            const now = performance.now();
+            const sample = lastSampleRef.current;
+            if (now - sample.time >= 8) {
+                const velocity = (desiredTileSizeRef.current - sample.tileSize) / (now - sample.time) * 1000;
+                velocityRef.current = velocityRef.current * 0.4 + velocity * 0.6;
+                lastSampleRef.current = { tileSize: desiredTileSizeRef.current, time: now };
+            }
 
             // Two-finger drift pans while the pinch zooms: vertically through the scroll position,
             // horizontally through the transform.
