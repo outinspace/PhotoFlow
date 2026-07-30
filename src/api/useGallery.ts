@@ -76,7 +76,9 @@ export const useGallery = () => useQuery({
             }
         }
 
-        const mergedItems = Object.values(mergedItemsMap);
+        // Deleted items arrive in the update so they can be dropped from the cache here. They
+        // belong only to Recently Deleted, which loads them from its own endpoint.
+        const mergedItems = Object.values(mergedItemsMap).filter(item => !item.deletedTimeUtc);
 
         // Computed properties
         for (const item of mergedItems) {
