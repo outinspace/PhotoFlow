@@ -21,6 +21,18 @@ import { readPreviewItemId, usePreviewItem } from './use.preview.item';
 // the whole range on a phone as well as on a wide desktop.
 const ZOOM_STEP = 1.4;
 
+// Prototype: `?liveReflow` makes a pinch reflow at every column step, dissolving between
+// arrangements, instead of holding one layout until the fingers lift. An explicit
+// `?liveReflow=250` sets the dissolve length so the feel can be tuned from the address bar.
+const DEFAULT_LIVE_REFLOW_FADE_MS = 160;
+
+const readLiveReflowFadeMs = () => {
+    const value = new URLSearchParams(window.location.search).get('liveReflow');
+    if (value === null) return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_LIVE_REFLOW_FADE_MS;
+};
+
 interface Props {
     items: Item[];
     albumId: number | null;
@@ -54,6 +66,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     // Set while a pinch is scaling the rows, so the grid knows how far past the viewport it has
     // to render to keep the edges filled.
     const [gesture, setGesture] = useState<GridGesture | null>(null);
+    const [liveReflowFadeMs] = useState(readLiveReflowFadeMs);
 
     const layout = useGridLayout(scrollContainerRef, items.length, gesture);
 
@@ -73,6 +86,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         itemCount: items.length,
         reanchor,
         setGesture,
+        liveReflowFadeMs,
         enabled: !disablePinch && previewItemIndex === null
     });
 
