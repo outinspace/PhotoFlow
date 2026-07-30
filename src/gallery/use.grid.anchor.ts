@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Item } from '../types';
 import { GridLayout, clamp } from './use.grid.layout';
 
@@ -48,15 +48,9 @@ interface Options {
 }
 
 export const useGridAnchor = ({ items, layout, fallbackItemId, enableUrlPersistence }: Options) => {
-    const pendingAnchorRef = useRef<GridAnchor | null>(null);
     const centreAnchorRef = useRef<GridAnchor | null>(null);
     const didRestoreRef = useRef(false);
-    const appliedRef = useRef({ columns: layout.columns, width: layout.containerWidth });
-
-    // Called just before a zoom change so the item it names can be put back afterwards.
-    const reanchor = useCallback((anchor: GridAnchor) => {
-        pendingAnchorRef.current = anchor;
-    }, []);
+    const appliedWidthRef = useRef(layout.containerWidth);
 
     // Scroll straight to the item the URL names, once the grid has been measured and the
     // items have loaded. Runs before the browser paints, so the grid doesn't flash at the top.
@@ -79,24 +73,17 @@ export const useGridAnchor = ({ items, layout, fallbackItemId, enableUrlPersiste
         layout.scrollTo((row + 0.5) * layout.tileSize - layout.containerHeight / 2);
     });
 
-    // Put the anchored item back as soon as the new layout is in the DOM but before the
-    // browser paints, so neither a zoom nor a rotation shows a scroll jump.
+    // After a container resize (rotation, sidebar), put whatever was in the middle of the
+    // viewport back there before the browser paints. Zoom changes don't come through here —
+    // setColumns takes the corrected scroll position in the same update.
     useLayoutEffect(() => {
-        const applied = appliedRef.current;
-        if (applied.columns === layout.columns && applied.width === layout.containerWidth) return;
-        appliedRef.current = { columns: layout.columns, width: layout.containerWidth };
-
-        // An explicit zoom names the point to hold still — the middle of the viewport for the
-        // buttons, or wherever the fingers are for a pinch. Anything else is a container
-        // resize, which just keeps whatever was in the middle where it was.
-        const pending = pendingAnchorRef.current;
-        pendingAnchorRef.current = null;
+        if (appliedWidthRef.current === layout.containerWidth) return;
+        appliedWidthRef.current = layout.containerWidth;
 
         const centre = centreAnchorRef.current;
-        const anchor = pending ?? (centre && { ...centre, offsetY: layout.containerHeight / 2 });
-        if (!anchor || layout.tileSize === 0) return;
+        if (centre === null || layout.tileSize === 0) return;
 
-        layout.scrollTo(anchorScrollTop(anchor, layout.tileSize, layout.columns));
+        layout.scrollTo(anchorScrollTop({ ...centre, offsetY: layout.containerHeight / 2 }, layout.tileSize, layout.columns));
     });
 
     useEffect(() => {
@@ -123,6 +110,4 @@ export const useGridAnchor = ({ items, layout, fallbackItemId, enableUrlPersiste
         layout.containerWidth,
         layout.containerHeight
     ]);
-
-    return reanchor;
 };

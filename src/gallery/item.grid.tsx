@@ -12,7 +12,7 @@ import { formatBytes } from '../common/format.helpers';
 import { useKeyBindings } from '../hooks/use.key.bindings';
 import { DeleteItemsModal } from './delete.items.modal';
 import { GridGesture, GridLayout, useGridLayout } from './use.grid.layout';
-import { computeAnchor, useGridAnchor } from './use.grid.anchor';
+import { anchorScrollTop, computeAnchor, useGridAnchor } from './use.grid.anchor';
 import { useGridPinch } from './use.grid.pinch';
 import { useItemSelection } from './use.item.selection';
 import { readPreviewItemId, usePreviewItem } from './use.preview.item';
@@ -57,7 +57,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const layout = useGridLayout(scrollContainerRef, items.length, gesture);
 
-    const reanchor = useGridAnchor({
+    useGridAnchor({
         items,
         layout,
         // Read straight from the URL, so a preview opened later in the session doesn't count.
@@ -65,13 +65,11 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         enableUrlPersistence
     });
 
-    // Declared after useGridAnchor, which owns moving the anchored item back into place.
     useGridPinch({
         scrollContainerRef,
         contentRef: rowsRef,
         layout,
         itemCount: items.length,
-        reanchor,
         setGesture,
         enabled: !disablePinch && previewItemIndex === null
     });
@@ -81,8 +79,8 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         if (columns === layout.columns) return;
 
         const scrollTop = scrollContainerRef.current!.scrollTop;
-        reanchor(computeAnchor(layout, scrollTop, layout.containerWidth / 2, layout.containerHeight / 2, items.length));
-        layout.setColumns(columns);
+        const anchor = computeAnchor(layout, scrollTop, layout.containerWidth / 2, layout.containerHeight / 2, items.length);
+        layout.setColumns(columns, (tileSize, newColumns) => anchorScrollTop(anchor, tileSize, newColumns));
     };
 
     // Fewer columns means bigger tiles. Stepping past the neighbouring odd count keeps a tap
@@ -162,46 +160,43 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         }
     };
 
-    const rows = [];
+    // One flat list of tiles, positioned individually and keyed by item. Keeping the key stable
+    // across layout changes makes React move each existing element — and its already-decoded
+    // image — to its new spot when the column count changes, instead of remounting everything,
+    // which flashes every tile's dark placeholder on iOS while the images decode again.
+    const tiles = [];
     for (let row = layout.firstRenderedRow; row <= layout.lastRenderedRow; row++) {
-        const startIndex = row * layout.columns;
-        // While a pinch is scaling the rows down, each one is extended past its own columns so the
-        // space either side is filled rather than left empty. The extra tiles are the items that
-        // neighbour the row in the list, so it reads as more of the same grid.
-        const from = Math.max(0, startIndex - layout.extraTilesLeft);
-        rows.push(
-            <div
-                key={row}
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: `${layout.tileSize}px`,
-                    width: '100%',
-                    transform: `translate(${(from - startIndex) * layout.tileSize}px, ${row * layout.tileSize}px)`,
-                    display: 'flex',
-                    contain: 'layout',
-                }}
-            >
-                {items.slice(from, startIndex + layout.columns + layout.extraTilesRight).map((item) => (
-                    <div
-                        key={item.itemId}
-                        style={{
-                            height: `${layout.tileSize}px`,
-                            width: `${layout.tileSize}px`,
-                            flex: '0 0 auto',
-                        }}
-                    >
-                        <ItemTile
-                            item={item}
-                            tileSize={layout.tileSize}
-                            onClick={handleItemClick}
-                            isSelected={!!selectedItemsById[item.itemId]}
-                        />
-                    </div>
-                ))}
-            </div>
-        );
+        const rowStart = row * layout.columns;
+        // While a pinch is scaling the rows down, each one is extended past its own columns so
+        // the space either side is filled rather than left empty. Those edge fillers duplicate
+        // items from the neighbouring rows, so they get row-scoped keys of their own.
+        const from = Math.max(0, rowStart - layout.extraTilesLeft);
+        const to = Math.min(items.length, rowStart + layout.columns + layout.extraTilesRight);
+        for (let index = from; index < to; index++) {
+            const item = items[index];
+            const inRow = index >= rowStart && index < rowStart + layout.columns;
+            tiles.push(
+                <div
+                    key={inRow ? item.itemId : `${row}:${item.itemId}`}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        height: `${layout.tileSize}px`,
+                        width: `${layout.tileSize}px`,
+                        transform: `translate(${(index - rowStart) * layout.tileSize}px, ${row * layout.tileSize}px)`,
+                        contain: 'layout',
+                    }}
+                >
+                    <ItemTile
+                        item={item}
+                        tileSize={layout.tileSize}
+                        onClick={handleItemClick}
+                        isSelected={!!selectedItemsById[item.itemId]}
+                    />
+                </div>
+            );
+        }
     }
 
     return (
@@ -275,7 +270,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             without changing the scrollable height, which would otherwise
                             fight the scroll position mid-gesture. */}
                         <div ref={rowsRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}>
-                            {rows}
+                            {tiles}
                         </div>
                     </div>
                     <div className='flex absolute bottom-2 left-2'>

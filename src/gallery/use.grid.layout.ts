@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useLayoutEffect, useState } from 'react';
+import { RefObject, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useGridColumns } from '../hooks/use.settings';
 
 // Tiles are square and together fill the container width exactly, so the container size and
@@ -53,7 +53,11 @@ export interface GridLayout {
     lastVisibleRow: number;
     // The nearest allowed column count: odd, and within bounds.
     snapColumns: (value: number) => number;
-    setColumns: (columns: number) => void;
+    // Changes the column count, with the scroll position for the new layout supplied in the
+    // same update. Without that, the first render of the new layout would use the old scroll
+    // offset — a different part of the list entirely — and React would tear down every tile
+    // just to rebuild the right ones a frame later, flashing placeholders on iOS.
+    setColumns: (columns: number, scrollTopAt?: (tileSize: number, columns: number) => number) => void;
     scrollTo: (offset: number) => void;
 }
 
@@ -76,6 +80,8 @@ export const useGridLayout = (
     const [size, setSize] = useState({ width: 0, height: 0 });
     const [scrollTop, setScrollTop] = useState(0);
     const [preferredColumns, setPreferredColumns] = useGridColumns();
+    // A scroll offset decided alongside a column change, waiting to be applied to the element.
+    const pendingScrollRef = useRef<number | null>(null);
 
     useLayoutEffect(() => {
         const element = scrollContainerRef.current!;
@@ -133,9 +139,27 @@ export const useGridLayout = (
         viewRight = originX + (width - originX - translateX) * spread + PAN_SLACK;
     }
 
-    const setColumns = useCallback((value: number) => {
-        setPreferredColumns(snapColumns(value));
-    }, [setPreferredColumns, snapColumns]);
+    const setColumns = useCallback((value: number, scrollTopAt?: (tileSize: number, columns: number) => number) => {
+        const columns = snapColumns(value);
+        setPreferredColumns(columns);
+
+        if (scrollTopAt !== undefined) {
+            const target = scrollTopAt(width / columns, columns);
+            pendingScrollRef.current = target;
+            // The state leads the element by one effect, so the very first render of the new
+            // layout already windows the right rows. The element catches up below, before paint.
+            setScrollTop(Math.max(0, target));
+        }
+    }, [setPreferredColumns, snapColumns, width]);
+
+    useLayoutEffect(() => {
+        if (pendingScrollRef.current === null) return;
+        const element = scrollContainerRef.current!;
+        element.scrollTop = pendingScrollRef.current;
+        pendingScrollRef.current = null;
+        // Read back, so the state matches whatever the browser clamped the offset to.
+        setScrollTop(element.scrollTop);
+    });
 
     const scrollTo = useCallback((offset: number) => {
         const element = scrollContainerRef.current!;
