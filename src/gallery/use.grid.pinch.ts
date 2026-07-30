@@ -1,7 +1,7 @@
 import { RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 import { usePinch } from '@use-gesture/react';
 import { GridGesture, GridLayout, clamp } from './use.grid.layout';
-import { GridAnchor } from './use.grid.anchor';
+import { anchorScrollTop } from './use.grid.anchor';
 
 // How long the reflow transition runs after the fingers lift: the old arrangement's dissolve,
 // the pinched tile's glide into its new slot, and the ease-back when no reflow was needed.
@@ -19,9 +19,7 @@ interface PinchAnchor {
 }
 
 interface Ghost {
-    element: HTMLDivElement;
-    columns: number;
-    tileSize: number;
+    element: HTMLCanvasElement;
     removeTimer: number | null;
 }
 
@@ -31,9 +29,6 @@ interface Options {
     contentRef: RefObject<HTMLDivElement>;
     layout: GridLayout;
     itemCount: number;
-    // Must be the same function the grid uses for its zoom buttons: it owns putting the
-    // anchored item back once the new column count is in the DOM.
-    reanchor: (anchor: GridAnchor) => void;
     setGesture: (gesture: GridGesture | null) => void;
     enabled: boolean;
 }
@@ -43,7 +38,7 @@ interface Options {
 // reflows once, to the nearest odd column count, positioned so the pinched tile's new slot sits
 // at the pinch point — the tile holds still while the old arrangement dissolves into the new
 // one around it.
-export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount, reanchor, setGesture, enabled }: Options) => {
+export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount, setGesture, enabled }: Options) => {
     const activeRef = useRef(false);
     const startTileSizeRef = useRef(0);
     // The tile size the gesture is currently asking for, which is what the scale shows.
@@ -84,31 +79,20 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         return (Math.floor(itemIndex / columns) + fractionY) * tileSize;
     };
 
-    // Positions one layer — the live rows, or the fading ghost of the old arrangement — so its
-    // copy of the anchored point sits exactly under the fingers.
-    const applyLayer = (element: HTMLElement, columns: number, tileSize: number) => {
-        const anchorY = anchorPointY(columns, tileSize);
-        const scale = desiredTileSizeRef.current / tileSize;
-        const scrollTop = scrollContainerRef.current!.scrollTop;
-
-        const translateX = translateBaseRef.current + panRef.current.dx;
-        // Zero for the live layer, whose scroll position is already anchored; the ghost uses it
-        // to stay put when the reflow moves the scroll out from under it.
-        const translateY = centroidRef.current.y + scrollTop - anchorY;
-
-        element.style.transformOrigin = `${originXRef.current}px ${anchorY}px`;
-        element.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    };
-
     const applyTransforms = () => {
-        applyLayer(contentRef.current!, layout.columns, layout.tileSize);
+        // Position the tile layer so the anchored point sits exactly under the fingers. The
+        // vertical hold comes from the scroll position, so no translateY is needed here.
+        const anchorY = anchorPointY(layout.columns, layout.tileSize);
+        const scale = desiredTileSizeRef.current / layout.tileSize;
+        const content = contentRef.current!;
+        content.style.transformOrigin = `${originXRef.current}px ${anchorY}px`;
+        content.style.transform = `translate(${translateBaseRef.current + panRef.current.dx}px, 0px) scale(${scale})`;
 
         // Tell the layout what the transform exposes, but only when it meaningfully changes — the
         // slack it keeps around the rendered tiles covers the quantised remainder.
-        const scale = desiredTileSizeRef.current / layout.tileSize;
         const spread = Math.max(1, Math.ceil(4 / scale) / 4);
         const translateX = Math.round((translateBaseRef.current + panRef.current.dx) / PAN_QUANTUM) * PAN_QUANTUM;
-        const originY = anchorPointY(layout.columns, layout.tileSize);
+        const originY = anchorY;
         const last = lastGestureRef.current;
 
         if (spread === 1 && translateX === 0) {
@@ -201,25 +185,60 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         );
     };
 
-    // Release with a reflow: keep the old arrangement on screen to dissolve out of, and commit
-    // the new column count immediately.
-    const commitRelease = (targetColumns: number) => {
-        const source = contentRef.current!;
+    // Paints the visible tiles into a bitmap. A bitmap shows on the very first frame, unlike a
+    // DOM clone, whose fresh image elements iOS repaints as dark placeholders while it decodes
+    // their sources again — which read as the whole grid flashing black on release.
+    const snapshotViewport = () => {
+        const bounds = scrollContainerRef.current!.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bounds.width * ratio);
+        canvas.height = Math.round(bounds.height * ratio);
+        const context = canvas.getContext('2d');
+        if (context === null) return null;
+        context.scale(ratio, ratio);
 
-        // Cloning keeps the outgoing tiles' own image elements, so the dissolve never waits on
-        // a decode; React renders the incoming arrangement underneath.
-        const ghostElement = source.cloneNode(true) as HTMLDivElement;
-        ghostElement.style.pointerEvents = 'none';
-        source.parentElement!.appendChild(ghostElement);
-        ghostRef.current = { element: ghostElement, columns: layout.columns, tileSize: layout.tileSize, removeTimer: null };
+        for (const tile of contentRef.current!.children) {
+            const rect = tile.getBoundingClientRect();
+            if (rect.right < bounds.left || rect.left > bounds.right ||
+                rect.bottom < bounds.top || rect.top > bounds.bottom) continue;
+
+            const x = rect.left - bounds.left;
+            const y = rect.top - bounds.top;
+            context.fillStyle = (tile.firstElementChild as HTMLElement).style.backgroundColor;
+            context.fillRect(x, y, rect.width, rect.height);
+
+            for (const image of tile.querySelectorAll('img')) {
+                if (!image.complete || image.naturalWidth === 0 || !image.getAttribute('src')) continue;
+                // The tiles crop with object-fit cover; drawing the same centred square keeps
+                // the snapshot pixel-identical to what was on screen.
+                const side = Math.min(image.naturalWidth, image.naturalHeight);
+                context.drawImage(
+                    image,
+                    (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side,
+                    x, y, rect.width, rect.height
+                );
+            }
+        }
+        return canvas;
+    };
+
+    // Release with a reflow: keep a snapshot of the old arrangement on screen to dissolve out
+    // of, and commit the new column count immediately.
+    const commitRelease = (targetColumns: number) => {
+        const canvas = snapshotViewport();
+        if (canvas !== null) {
+            ghostRef.current = { element: canvas, removeTimer: null };
+        }
 
         commitPendingRef.current = true;
-        reanchor({
+        const anchor = {
             itemIndex: anchorRef.current!.itemIndex,
             rowFraction: anchorRef.current!.fractionY,
+            // The pinched tile's slot goes where the fingers finished, not where they started.
             offsetY: centroidRef.current.y
-        });
-        layout.setColumns(targetColumns);
+        };
+        layout.setColumns(targetColumns, (tileSize, columns) => anchorScrollTop(anchor, tileSize, columns));
     };
 
     // Runs once the reflow is in the DOM and the anchor hook has scrolled the pinched tile's new
@@ -228,16 +247,25 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         if (!commitPendingRef.current) return;
         commitPendingRef.current = false;
 
-        // The ghost holds the old arrangement exactly where it was, compensating for the scroll
-        // jump the reflow just made, then dissolves into the new arrangement — whose copy of the
-        // pinched tile sits at the same spot, so the tile itself reads as never moving.
+        // The snapshot covers the viewport exactly where it was, then dissolves into the new
+        // arrangement — whose copy of the pinched tile sits at the same spot, so the tile itself
+        // reads as never moving.
         const ghost = ghostRef.current;
         if (ghost !== null) {
-            applyLayer(ghost.element, ghost.columns, ghost.tileSize);
+            const scroller = scrollContainerRef.current!;
+            const element = ghost.element;
+            element.style.position = 'absolute';
+            element.style.left = '0';
+            element.style.top = `${scroller.scrollTop}px`;
+            element.style.width = `${scroller.clientWidth}px`;
+            element.style.height = `${scroller.clientHeight}px`;
+            element.style.pointerEvents = 'none';
+            contentRef.current!.parentElement!.appendChild(element);
+
             // Flush the starting opacity so the transition has something to animate from.
-            void ghost.element.offsetHeight;
-            ghost.element.style.transition = `opacity ${RELEASE_MS}ms linear`;
-            ghost.element.style.opacity = '0';
+            void element.offsetHeight;
+            element.style.transition = `opacity ${RELEASE_MS}ms linear`;
+            element.style.opacity = '0';
             ghost.removeTimer = window.setTimeout(removeGhost, RELEASE_MS + 80);
         }
 
