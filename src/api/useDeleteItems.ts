@@ -14,7 +14,7 @@ export const useDeleteItems = () => {
             });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }

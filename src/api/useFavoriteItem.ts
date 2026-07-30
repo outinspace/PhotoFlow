@@ -10,7 +10,7 @@ export const useFavoriteItem = () => {
             });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }

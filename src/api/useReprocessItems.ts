@@ -21,7 +21,7 @@ export const useReprocessItems = () => {
             });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }

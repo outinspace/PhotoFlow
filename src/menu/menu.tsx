@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { endSessionAndGoToLogin } from '../common/session';
@@ -129,8 +129,8 @@ const Menu = () => {
 };
 
 const GalleryStats = () => {
-    const { data: gallery } = useGallery();
-    const items = gallery?.items ?? [];
+    const { data } = useItems();
+    const items = data ?? [];
 
     const photosCount = useMemo(() => {
         return items

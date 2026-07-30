@@ -25,7 +25,7 @@ export function createIDBPersister(idbValidKey: IDBValidKey) {
 }
 
 const cacheMaxAgeMs = 24 * 24 * 60 * 60 * 1000; // 24 days is max supported: https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
-const cacheVersion = 'v3'; // Changing this string will clear existing persisted cache
+const cacheVersion = 'v4'; // Changing this string will clear existing persisted cache
 
 const persister = createIDBPersister('react-query');
 

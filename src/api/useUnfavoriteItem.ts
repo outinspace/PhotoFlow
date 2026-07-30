@@ -10,7 +10,7 @@ export const useUnfavoriteItem = () => {
             });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }
