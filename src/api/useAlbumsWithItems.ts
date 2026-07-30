@@ -23,7 +23,6 @@ export const useAlbumsWithItems = (): AlbumWithItems[] | undefined => {
             items: album.itemIds
                 .map(itemId => itemsById[itemId])
                 .filter(item => !!item)
-                .filter(item => !item.deletedTimeUtc)
         }));
     }, [gallery, albums]);
 
