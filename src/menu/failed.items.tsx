@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
-import { useGallery } from "../api/useGallery";
+import { useItems } from "../api/useItems";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
 
 
 export const FailedItems = () => {
-    const { data: gallery } = useGallery();
+    const { data } = useItems();
 
     const items = useMemo(() => {
-        const input = gallery?.items ?? [];
+        const input = data ?? [];
 
         return input.filter(item => item.files.some(file => !!file.failedProcessingTimeUtc));
-    }, [gallery?.items]);
+    }, [data]);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>

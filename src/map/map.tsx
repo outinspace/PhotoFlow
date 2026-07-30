@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Leaflet, { Icon, LatLngExpression } from 'leaflet';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import 'leaflet.markercluster/dist/leaflet.markercluster.js';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -28,10 +28,10 @@ const Map = () => {
         }
     }, [params.latitude, params.longitude]);
 
-    const { data: gallery } = useGallery();
+    const { data: items } = useItems();
 
     useItemMarkers({
-        items: gallery?.items ?? null,
+        items: items ?? null,
         map,
         center,
         onSelectItems: setPreviewItems

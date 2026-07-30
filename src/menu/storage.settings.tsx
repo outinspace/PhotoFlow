@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { TopBar } from '../common/top.bar';
 import { S3ConfigForm, ExistingConfig } from '../setup/s3.config.form';
 
 const StorageSettings = () => {
     const [config, setConfig] = useState<ExistingConfig | null>(null);
-    const { data: galleryData } = useGallery();
-    const hasPhotos = (galleryData?.items.length ?? 0) > 0;
+    const { data: items } = useItems();
+    const hasPhotos = (items?.length ?? 0) > 0;
 
     useEffect(() => {
         fetchAuthenticatedRoute('/tenant/s3-config')

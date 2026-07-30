@@ -1,15 +1,15 @@
 import { useMemo, useState, useCallback } from 'react';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { subYears, subDays, addDays, subMonths, addMonths, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import ItemPreview from '../gallery/item.preview';
 import { ItemStack } from './item.stack';
 
 export const OneYearAgoToday = () => {
-    const { data: gallery } = useGallery();
+    const { data: libraryItems } = useItems();
     const [previewItemIndex, setPreviewItemIndex] = useState<number | null>(null);
 
     const matchingItems = useMemo(() => {
-        if (!gallery?.items) return [];
+        if (!libraryItems) return [];
 
         const today = new Date();
         const oneYearAgo = subYears(today, 1);
@@ -17,7 +17,7 @@ export const OneYearAgoToday = () => {
         const oneYearAgoEnd = endOfDay(oneYearAgo);
 
         // First try: exact date (one year ago today)
-        let items = gallery.items.filter(item => {
+        let items = libraryItems.filter(item => {
             const captureDate = parseISO(item.captureTime);
             return isWithinInterval(captureDate, { start: oneYearAgoStart, end: oneYearAgoEnd });
         });
@@ -26,7 +26,7 @@ export const OneYearAgoToday = () => {
         if (items.length === 0) {
             const sevenDaysBefore = startOfDay(subDays(oneYearAgo, 7));
             const sevenDaysAfter = endOfDay(addDays(oneYearAgo, 7));
-            items = gallery.items.filter(item => {
+            items = libraryItems.filter(item => {
                 const captureDate = parseISO(item.captureTime);
                 return isWithinInterval(captureDate, { start: sevenDaysBefore, end: sevenDaysAfter });
             });
@@ -36,7 +36,7 @@ export const OneYearAgoToday = () => {
         if (items.length === 0) {
             const oneMonthBefore = startOfDay(subMonths(oneYearAgo, 1));
             const oneMonthAfter = endOfDay(addMonths(oneYearAgo, 1));
-            items = gallery.items.filter(item => {
+            items = libraryItems.filter(item => {
                 const captureDate = parseISO(item.captureTime);
                 return isWithinInterval(captureDate, { start: oneMonthBefore, end: oneMonthAfter });
             });
@@ -49,7 +49,7 @@ export const OneYearAgoToday = () => {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         return shuffled;
-    }, [gallery?.items]);
+    }, [libraryItems]);
 
     const handleClick = useCallback((currentIndex: number) => {
         if (matchingItems.length > 0) {

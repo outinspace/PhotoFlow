@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Search as SearchIcon, Xmark, Clock } from 'iconoir-react';
 import PageHeader from '../common/page.header';
 import ItemGrid from '../gallery/item.grid';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { useSearch } from '../api/useSearch';
 import { useDebouncedValue } from '../hooks/use.debounced.value';
 import { useRecentSearches } from '../hooks/use.recent.searches';
@@ -14,18 +14,18 @@ const Search = () => {
     const [query, setQuery] = useState('');
     const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
-    const { data: gallery } = useGallery();
+    const { data: libraryItems } = useItems();
     const { data: results, isFetching, error } = useSearch(debouncedQuery);
     const { recent, addRecent, clearRecent } = useRecentSearches();
 
     const items = useMemo<Item[]>(() => {
-        if (!results || !gallery) return [];
+        if (!results || !libraryItems) return [];
         const itemsById: Record<number, Item> = {};
-        for (const item of gallery.items) itemsById[item.itemId] = item;
+        for (const item of libraryItems) itemsById[item.itemId] = item;
         return results
             .map(r => itemsById[r.itemId])
             .filter((i): i is Item => Boolean(i));
-    }, [results, gallery]);
+    }, [results, libraryItems]);
     const deferredItems = useDeferredValue(items);
 
     // Record a search once it returns results, so we don't store every keystroke.

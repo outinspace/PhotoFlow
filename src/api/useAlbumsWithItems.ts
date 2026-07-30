@@ -1,20 +1,20 @@
 import { useMemo } from "react";
 import { AlbumWithItems, Item } from "../types";
-import { useGallery } from "./useGallery";
+import { useItems } from "./useItems";
 import { useAlbums } from "./useAlbums";
 
 export const useAlbumsWithItems = (): AlbumWithItems[] | undefined => {
-    const { data: gallery } = useGallery();
+    const { data: items } = useItems();
     const { data: albums } = useAlbums();
 
     const albumsWithItems = useMemo(() => {
-        if (!gallery || !albums) {
+        if (!items || !albums) {
             return;
         }
 
         // Link items to albums
         const itemsById: Record<string, Item> = {};
-        for (const item of gallery.items) {
+        for (const item of items) {
             itemsById[item.itemId] = item;
         }
 
@@ -24,7 +24,7 @@ export const useAlbumsWithItems = (): AlbumWithItems[] | undefined => {
                 .map(itemId => itemsById[itemId])
                 .filter(item => !!item)
         }));
-    }, [gallery, albums]);
+    }, [items, albums]);
 
     return albumsWithItems;
 }

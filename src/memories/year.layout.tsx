@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { parseISO, getYear } from 'date-fns';
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
@@ -13,12 +13,12 @@ export const YearLayout = () => {
         throw new Error('Invalid year');
     }
 
-    const { data: gallery } = useGallery();
+    const { data: items } = useItems();
 
     const yearItems = useMemo(() => {
-        if (!gallery?.items) return [];
+        if (!items) return [];
 
-        return gallery.items
+        return items
             .filter(item => {
                 const itemYear = getYear(parseISO(item.captureTime));
                 return itemYear === yearNumber;
@@ -28,7 +28,7 @@ export const YearLayout = () => {
                 const dateB = parseISO(b.captureTime).getTime();
                 return dateB - dateA;
             });
-    }, [gallery?.items, yearNumber]);
+    }, [items, yearNumber]);
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>

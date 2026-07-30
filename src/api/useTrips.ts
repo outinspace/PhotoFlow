@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useGallery } from "./useGallery";
+import { useItems } from "./useItems";
 import { Item } from "../types";
 import { parseISO, format } from "date-fns";
 
@@ -272,34 +272,34 @@ const detectTrips = (items: Item[]): DetectedTrip[] => {
 };
 
 export const useTrips = (): Trip[] => {
-    const { data: gallery } = useGallery();
+    const { data: items } = useItems();
 
-    // Clustering walks the whole gallery, so it runs at most once a week rather than on
+    // Clustering walks the whole library, so it runs at most once a week rather than on
     // every visit to Memories. The key is deliberately constant — keying it on the item
     // count, as this once did, both missed changes that kept the count the same and left
-    // a separate cache entry behind for every count the gallery ever had.
+    // a separate cache entry behind for every count the library ever had.
     // The trade-off is that photos added since the last run won't join a trip until the
     // week is up.
     const { data: detectedTrips } = useQuery({
         queryKey: ['trips'],
         staleTime: STALE_TIME_MS,
-        enabled: !!gallery,
-        queryFn: () => gallery ? detectTrips(gallery.items) : []
+        enabled: !!items,
+        queryFn: () => items ? detectTrips(items) : []
     });
 
     // Only the grouping is cached, so the items themselves are always the current ones
-    // from the gallery. Anything deleted since the last run drops out here.
+    // from the library. Anything deleted since the last run drops out here.
     return useMemo(() => {
-        if (!detectedTrips || !gallery) {
+        if (!detectedTrips || !items) {
             return [];
         }
 
-        const itemsById = new Map(gallery.items.map(item => [item.itemId, item]));
+        const itemsById = new Map(items.map(item => [item.itemId, item]));
 
         return detectedTrips.map(trip => ({
             ...trip,
             items: trip.itemIds.flatMap(itemId => itemsById.get(itemId) ?? [])
         }));
-    }, [detectedTrips, gallery]);
+    }, [detectedTrips, items]);
 };
 

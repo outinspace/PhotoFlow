@@ -1,11 +1,11 @@
 import ItemGrid from "./item.grid";
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { UploadDropZone } from '../common/upload.drop.zone';
 
 const Gallery = () => {
-    const { data: gallery } = useGallery();
+    const { data } = useItems();
 
-    const items = gallery?.items ?? [];
+    const items = data ?? [];
 
     return (
         <UploadDropZone className='flex flex-auto flex-col overflow-hidden'>

@@ -14,7 +14,7 @@ export const useRestoreItems = () => {
             });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }

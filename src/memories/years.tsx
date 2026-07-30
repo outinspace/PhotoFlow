@@ -1,20 +1,20 @@
 import { useMemo } from 'react';
-import { useGallery } from '../api/useGallery';
+import { useItems } from '../api/useItems';
 import { parseISO, getYear } from 'date-fns';
 import { ItemStack } from './item.stack';
 import { useNavigate } from '@tanstack/react-router';
 import { type Item } from '../types';
 
 export const Years = () => {
-    const { data: gallery } = useGallery();
+    const { data: items } = useItems();
     const navigate = useNavigate();
 
     const itemsByYear = useMemo(() => {
-        if (!gallery?.items) return {};
+        if (!items) return {};
 
         const grouped: Record<number, Item[]> = {};
 
-        for (const item of gallery.items) {
+        for (const item of items) {
             const year = getYear(parseISO(item.captureTime));
             if (!grouped[year]) {
                 grouped[year] = [];
@@ -23,7 +23,7 @@ export const Years = () => {
         }
 
         return grouped;
-    }, [gallery?.items]);
+    }, [items]);
 
     const years = useMemo(() => {
         return Object.keys(itemsByYear)

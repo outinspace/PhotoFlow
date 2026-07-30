@@ -136,7 +136,7 @@ const onTaskSettled = () => {
         toast.error(`${failed}/${total} file${total === 1 ? '' : 's'} failed to upload`);
     }
 
-    queryClient.invalidateQueries({ queryKey: ['gallery'] });
+    queryClient.invalidateQueries({ queryKey: ['items'] });
 };
 
 const updateProgressToast = () => {
