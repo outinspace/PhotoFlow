@@ -3,19 +3,18 @@ import { usePinch } from '@use-gesture/react';
 import { GridGesture, GridLayout, clamp } from './use.grid.layout';
 import { GridAnchor } from './use.grid.anchor';
 
-// How long the released grid takes to glide from wherever the fingers left it onto the snapped
-// column count, before the reflow swaps the real layout in.
-const SETTLE_MS = 250;
+// How long the reflow transition runs after the fingers lift: the old arrangement's dissolve,
+// the pinched tile's glide into its new slot, and the ease-back when no reflow was needed.
+const RELEASE_MS = 250;
 
 // Pan movement below this many pixels doesn't re-run the layout; the slack the layout keeps
 // around the rendered tiles covers the difference.
 const PAN_QUANTUM = 100;
 
-// The tile the gesture is centred on, as an item plus where in that tile the fingers sit. Kept as
-// fractions so the same point can be located again in any column count.
+// The tile the gesture is centred on: an item, plus how far down its own tile the fingers sit.
+// A fraction, so the same point can be located again in any column count.
 interface PinchAnchor {
     itemIndex: number;
-    fractionX: number;
     fractionY: number;
 }
 
@@ -24,6 +23,13 @@ interface Ghost {
     columns: number;
     tileSize: number;
     removeTimer: number | null;
+}
+
+interface Hero {
+    element: HTMLDivElement;
+    // The same item's tile in the reflowed layout, hidden while the floating copy glides in.
+    realTile: HTMLElement | null;
+    cancel: () => void;
 }
 
 interface Options {
@@ -36,40 +42,37 @@ interface Options {
     // anchored item back once the new column count is in the DOM.
     reanchor: (anchor: GridAnchor) => void;
     setGesture: (gesture: GridGesture | null) => void;
-    // Prototype: reflow at every column step during the gesture, dissolving from the old
-    // arrangement into the new one, rather than holding one layout until the fingers lift.
-    // Zero keeps the hold-until-release behaviour; otherwise it's the dissolve length in ms.
-    liveReflowFadeMs: number;
     enabled: boolean;
 }
 
-// A pinch scales the rows as one surface, and moving both fingers together pans at the same time:
-// vertically through the scroll position, horizontally through the transform. Letting go glides
-// smoothly onto the nearest allowed column count. Whether the reflow happens continuously during
-// the gesture or once at the end is the one thing liveReflowFadeMs changes.
-export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount, reanchor, setGesture, liveReflowFadeMs, enabled }: Options) => {
-    const liveReflow = liveReflowFadeMs > 0;
-
+// A pinch scales the rows as one surface and reflows nothing, so the grid never rearranges
+// itself under the fingers; moving both fingers together pans at the same time. Letting go
+// reflows once, to the nearest odd column count, centred on the pinched tile: that tile floats
+// above the change and glides into its new slot while the old arrangement dissolves into the
+// new one beneath it.
+export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount, reanchor, setGesture, enabled }: Options) => {
     const activeRef = useRef(false);
     const startTileSizeRef = useRef(0);
     // The tile size the gesture is currently asking for, which is what the scale shows.
     const desiredTileSizeRef = useRef(0);
     const anchorRef = useRef<PinchAnchor | null>(null);
-    // Content x the fingers started over. Horizontal scaling stays centred here, so the grid
-    // never slides sideways when the anchor item lands in a different column.
+    // Content x the fingers started over — the fixed point of the horizontal scaling.
     const originXRef = useRef(0);
     // Where the fingers are now, relative to the scroll container.
     const centroidRef = useRef({ x: 0, y: 0 });
     const startClientRef = useRef({ x: 0, y: 0 });
     const startOffsetYRef = useRef(0);
     const scrollStartRef = useRef(0);
-    // Horizontal offset, carried over when a new pinch takes over mid-glide so nothing jumps.
+    // Horizontal offset, carried over when a new pinch takes over mid-transition so nothing jumps.
     const translateBaseRef = useRef(0);
     const panRef = useRef({ dx: 0, dy: 0 });
-    // True from gesture start until the transform is cleared, including the glide after release.
+    // True from gesture start until the transform is cleared, including the ease after release.
     const transformLiveRef = useRef(false);
     const lastGestureRef = useRef<GridGesture | null>(null);
     const ghostRef = useRef<Ghost | null>(null);
+    const heroRef = useRef<Hero | null>(null);
+    // The pinched tile's element and position, captured just before the reflow replaces the DOM.
+    const pendingHeroRef = useRef<{ element: HTMLDivElement; rect: DOMRect } | null>(null);
     const commitPendingRef = useRef(false);
     const cancelSettleRef = useRef<(() => void) | null>(null);
 
@@ -85,22 +88,22 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     const canPinchRef = useRef(canPinch);
     canPinchRef.current = canPinch;
 
-    // Where the anchor tile's chosen point sits in a given column count, in content coordinates.
+    // Where the anchored point sits in a given column count, in content coordinates.
     const anchorPointY = (columns: number, tileSize: number) => {
         const { itemIndex, fractionY } = anchorRef.current!;
         return (Math.floor(itemIndex / columns) + fractionY) * tileSize;
     };
 
-    // Positions one layer — the live rows, or a fading ghost of an older arrangement — so its
-    // copy of the anchor point sits exactly under the fingers.
+    // Positions one layer — the live rows, or the fading ghost of the old arrangement — so its
+    // copy of the anchored point sits exactly under the fingers.
     const applyLayer = (element: HTMLElement, columns: number, tileSize: number) => {
         const anchorY = anchorPointY(columns, tileSize);
         const scale = desiredTileSizeRef.current / tileSize;
         const scrollTop = scrollContainerRef.current!.scrollTop;
 
         const translateX = translateBaseRef.current + panRef.current.dx;
-        // Zero for the live layer, whose scroll position is already anchored; a ghost uses it to
-        // stay put while the scroll moves out from under it.
+        // Zero for the live layer, whose scroll position is already anchored; the ghost uses it
+        // to stay put when the reflow moves the scroll out from under it.
         const translateY = centroidRef.current.y + scrollTop - anchorY;
 
         element.style.transformOrigin = `${originXRef.current}px ${anchorY}px`;
@@ -109,11 +112,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
 
     const applyTransforms = () => {
         applyLayer(contentRef.current!, layout.columns, layout.tileSize);
-
-        const ghost = ghostRef.current;
-        if (ghost !== null) {
-            applyLayer(ghost.element, ghost.columns, ghost.tileSize);
-        }
 
         // Tell the layout what the transform exposes, but only when it meaningfully changes — the
         // slack it keeps around the rendered tiles covers the quantised remainder.
@@ -144,29 +142,13 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         ghostRef.current = null;
     };
 
-    // Snapshots the arrangement about to be replaced. Cloning keeps the outgoing tiles' own image
-    // elements, so the dissolve never waits on a decode; the incoming layer is what React renders.
-    const spawnGhost = () => {
-        removeGhost();
-
-        const source = contentRef.current!;
-        const element = source.cloneNode(true) as HTMLDivElement;
-        element.style.pointerEvents = 'none';
-        element.style.opacity = '1';
-        source.parentElement!.appendChild(element);
-
-        ghostRef.current = { element, columns: layout.columns, tileSize: layout.tileSize, removeTimer: null };
-    };
-
-    const startGhostFade = () => {
-        const ghost = ghostRef.current;
-        if (ghost === null || ghost.removeTimer !== null) return;
-
-        // Flush the starting opacity so the transition has something to animate from.
-        void ghost.element.offsetHeight;
-        ghost.element.style.transition = `opacity ${liveReflowFadeMs}ms linear`;
-        ghost.element.style.opacity = '0';
-        ghost.removeTimer = window.setTimeout(removeGhost, liveReflowFadeMs + 80);
+    const removeHero = () => {
+        const hero = heroRef.current;
+        if (hero === null) return;
+        hero.cancel();
+        hero.realTile?.style.removeProperty('opacity');
+        hero.element.remove();
+        heroRef.current = null;
     };
 
     const clearScale = () => {
@@ -175,7 +157,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         content.style.transformOrigin = '';
         content.style.willChange = '';
 
-        removeGhost();
         translateBaseRef.current = 0;
         panRef.current = { dx: 0, dy: 0 };
         transformLiveRef.current = false;
@@ -183,79 +164,166 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         setGesture(null);
     };
 
-    // Reflows to a new column count, holding the anchor tile where it is. The anchor hook does the
-    // scrolling; the layout effect below re-places the transforms once the new rows are in the DOM.
-    const commitColumns = (targetColumns: number) => {
-        const { itemIndex, fractionY } = anchorRef.current!;
-        commitPendingRef.current = true;
-        reanchor({ itemIndex, rowFraction: fractionY, offsetY: centroidRef.current.y });
-        layout.setColumns(targetColumns);
-    };
-
-    // Glides the scale, and any horizontal pan, onto the snapped column count. The animation ends
-    // at exactly the target tile size, so handing over to the real layout never changes size.
-    const settle = (targetColumns: number) => {
-        const { containerWidth, columns, tileSize } = layout;
-        const fromTileSize = desiredTileSizeRef.current;
-        const targetTileSize = containerWidth / targetColumns;
-        const fromTranslateX = translateBaseRef.current + panRef.current.dx;
-
-        // The glide ends still scaled — at the target tile size, but scaled about the pinch point,
-        // which leaves the columns sitting off the container edges. This is the offset that
-        // cancels that out, so the glide lands flush and the reflow only regroups the tiles
-        // instead of also sliding them sideways.
-        const toTranslateX = originXRef.current * (targetTileSize / tileSize - 1);
-        panRef.current = { ...panRef.current, dx: 0 };
+    // A frame-by-frame animation that still lands on its end state if animation frames are being
+    // starved — the timeout runs whatever the frames didn't get to.
+    const animate = (step: (eased: number) => void, finish: () => void, registerCancel: (cancel: () => void) => void) => {
         const startTime = performance.now();
         let frame: number | null = null;
         let done = false;
 
-        // Runs exactly once — when the animation finishes, or from the timeout below if animation
-        // frames are being starved.
-        const finish = () => {
+        const complete = () => {
             if (done) return;
             done = true;
             if (frame !== null) cancelAnimationFrame(frame);
             clearTimeout(timeout);
-            cancelSettleRef.current = null;
-            desiredTileSizeRef.current = targetTileSize;
-            translateBaseRef.current = 0;
+            step(1);
+            finish();
+        };
 
-            if (targetColumns === columns) {
-                clearScale();
+        const tick = () => {
+            const eased = 1 - (1 - Math.min(1, (performance.now() - startTime) / RELEASE_MS)) ** 3;
+            if (eased >= 1) {
+                complete();
                 return;
             }
-
-            commitColumns(targetColumns);
+            step(eased);
+            frame = requestAnimationFrame(tick);
         };
 
-        const step = () => {
-            const eased = 1 - (1 - Math.min(1, (performance.now() - startTime) / SETTLE_MS)) ** 3;
-            desiredTileSizeRef.current = fromTileSize + (targetTileSize - fromTileSize) * eased;
-            translateBaseRef.current = fromTranslateX + (toTranslateX - fromTranslateX) * eased;
-            applyTransforms();
-
-            if (eased < 1) {
-                frame = requestAnimationFrame(step);
-            } else {
-                finish();
-            }
-        };
-
-        const timeout = setTimeout(finish, SETTLE_MS + 200);
-        cancelSettleRef.current = () => {
+        const timeout = setTimeout(complete, RELEASE_MS + 200);
+        registerCancel(() => {
             done = true;
             if (frame !== null) cancelAnimationFrame(frame);
             clearTimeout(timeout);
-            cancelSettleRef.current = null;
-        };
-        frame = requestAnimationFrame(step);
+        });
+        frame = requestAnimationFrame(tick);
     };
+
+    // Release with no column change: ease the leftover scale and pan back to rest.
+    const settleBack = () => {
+        const { tileSize } = layout;
+        const fromTileSize = desiredTileSizeRef.current;
+        const fromTranslateX = translateBaseRef.current + panRef.current.dx;
+        panRef.current = { ...panRef.current, dx: 0 };
+
+        animate(
+            (eased) => {
+                desiredTileSizeRef.current = fromTileSize + (tileSize - fromTileSize) * eased;
+                translateBaseRef.current = fromTranslateX * (1 - eased);
+                applyTransforms();
+            },
+            () => {
+                cancelSettleRef.current = null;
+                clearScale();
+            },
+            (cancel) => { cancelSettleRef.current = cancel; }
+        );
+    };
+
+    // Release with a reflow: keep the old arrangement on screen to dissolve out of, capture the
+    // pinched tile to float above the change, and commit the new column count immediately.
+    const commitRelease = (targetColumns: number) => {
+        const source = contentRef.current!;
+
+        const tile = source.querySelector<HTMLDivElement>(`[data-index="${anchorRef.current!.itemIndex}"]`);
+        pendingHeroRef.current = tile === null ? null : {
+            element: tile.cloneNode(true) as HTMLDivElement,
+            rect: tile.getBoundingClientRect()
+        };
+
+        // Cloning keeps the outgoing tiles' own image elements, so the dissolve never waits on
+        // a decode; React renders the incoming arrangement underneath.
+        const ghostElement = source.cloneNode(true) as HTMLDivElement;
+        ghostElement.style.pointerEvents = 'none';
+        source.parentElement!.appendChild(ghostElement);
+        ghostRef.current = { element: ghostElement, columns: layout.columns, tileSize: layout.tileSize, removeTimer: null };
+
+        commitPendingRef.current = true;
+        reanchor({
+            itemIndex: anchorRef.current!.itemIndex,
+            rowFraction: anchorRef.current!.fractionY,
+            offsetY: centroidRef.current.y
+        });
+        layout.setColumns(targetColumns);
+    };
+
+    // Runs once the reflow is in the DOM and the anchor hook has scrolled the pinched tile's new
+    // slot into place — so it must be used after useGridAnchor.
+    useLayoutEffect(() => {
+        if (!commitPendingRef.current) return;
+        commitPendingRef.current = false;
+
+        const scroller = scrollContainerRef.current!;
+        const spacer = contentRef.current!.parentElement!;
+
+        // The ghost holds the old arrangement exactly where it was, compensating for the scroll
+        // jump the reflow just made, then dissolves.
+        const ghost = ghostRef.current;
+        if (ghost !== null) {
+            applyLayer(ghost.element, ghost.columns, ghost.tileSize);
+            // Flush the starting opacity so the transition has something to animate from.
+            void ghost.element.offsetHeight;
+            ghost.element.style.transition = `opacity ${RELEASE_MS}ms linear`;
+            ghost.element.style.opacity = '0';
+            ghost.removeTimer = window.setTimeout(removeGhost, RELEASE_MS + 80);
+        }
+
+        // The new arrangement itself renders in place, untransformed.
+        clearScale();
+
+        // Float the pinched tile from where the fingers left it into its slot in the new layout.
+        const pending = pendingHeroRef.current;
+        pendingHeroRef.current = null;
+        if (pending !== null) {
+            const { itemIndex } = anchorRef.current!;
+            const { columns, tileSize } = layout;
+            const containerRect = scroller.getBoundingClientRect();
+
+            const from = {
+                left: pending.rect.left - containerRect.left,
+                top: pending.rect.top - containerRect.top + scroller.scrollTop,
+                size: pending.rect.width
+            };
+            const to = {
+                left: (itemIndex % columns) * tileSize,
+                top: Math.floor(itemIndex / columns) * tileSize,
+                size: tileSize
+            };
+
+            const element = pending.element;
+            element.style.position = 'absolute';
+            element.style.flex = '';
+            element.style.pointerEvents = 'none';
+            spacer.appendChild(element);
+
+            const hero: Hero = { element, realTile: null, cancel: () => {} };
+
+            const place = (eased: number) => {
+                element.style.left = `${from.left + (to.left - from.left) * eased}px`;
+                element.style.top = `${from.top + (to.top - from.top) * eased}px`;
+                element.style.width = `${from.size + (to.size - from.size) * eased}px`;
+                element.style.height = `${from.size + (to.size - from.size) * eased}px`;
+
+                // The reflowed layout's own copy of this tile only enters the DOM a frame later,
+                // once the scroll settles — keep looking for it so it isn't shown twice.
+                if (hero.realTile === null) {
+                    hero.realTile = contentRef.current!.querySelector<HTMLElement>(`[data-index="${itemIndex}"]`);
+                    hero.realTile?.style.setProperty('opacity', '0');
+                }
+            };
+            place(0);
+
+            heroRef.current = hero;
+            animate(place, removeHero, (cancel) => { hero.cancel = cancel; });
+        }
+    });
 
     const begin = (origin: [number, number]) => {
         const takingOver = transformLiveRef.current;
         cancelSettleRef.current?.();
+        cancelSettleRef.current = null;
         removeGhost();
+        removeHero();
 
         const element = scrollContainerRef.current!;
         const bounds = element.getBoundingClientRect();
@@ -286,7 +354,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         const column = clamp(Math.floor(contentX / tileSize), 0, columns - 1);
         anchorRef.current = {
             itemIndex: Math.min(itemCount - 1, row * columns + column),
-            fractionX: contentX / tileSize - column,
             fractionY: contentY / tileSize - row
         };
 
@@ -340,18 +407,14 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
             };
             scrollContainerRef.current!.scrollTop = scrollStartRef.current - panRef.current.dy;
 
-            const targetColumns = layout.snapColumns(containerWidth / desiredTileSizeRef.current);
-
             if (last) {
                 activeRef.current = false;
-                settle(targetColumns);
-                return;
-            }
-
-            if (liveReflow && targetColumns !== layout.columns) {
-                // Keep the outgoing arrangement on screen to dissolve out of, then reflow.
-                spawnGhost();
-                commitColumns(targetColumns);
+                const targetColumns = layout.snapColumns(containerWidth / desiredTileSizeRef.current);
+                if (targetColumns === layout.columns) {
+                    settleBack();
+                } else {
+                    commitRelease(targetColumns);
+                }
                 return;
             }
 
@@ -365,27 +428,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
             enabled
         }
     );
-
-    // Runs after the anchor hook has put the anchored tile back, so it must be used after
-    // useGridAnchor.
-    useLayoutEffect(() => {
-        if (!commitPendingRef.current) return;
-        commitPendingRef.current = false;
-
-        if (!activeRef.current && cancelSettleRef.current === null) {
-            // The gesture is over and this was its final reflow.
-            clearScale();
-            return;
-        }
-
-        // The reflow moved the scroll position to hold the anchor tile, so panning has to measure
-        // from there — otherwise the next frame would drag the grid back to where it started.
-        scrollStartRef.current = scrollContainerRef.current!.scrollTop + panRef.current.dy;
-
-        // Re-place both layers against the new column count, then dissolve the old one away.
-        applyTransforms();
-        startGhostFade();
-    });
 
     // iOS decides at the start of a gesture whether it will pan or zoom the page. The
     // container's `touch-action: pan-y` rules out the page zoom, and claiming multi-touch
@@ -422,5 +464,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     useEffect(() => () => {
         cancelSettleRef.current?.();
         removeGhost();
+        removeHero();
     }, []);
 };
