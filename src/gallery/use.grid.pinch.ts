@@ -25,13 +25,6 @@ interface Ghost {
     removeTimer: number | null;
 }
 
-interface Hero {
-    element: HTMLDivElement;
-    // The same item's tile in the reflowed layout, hidden while the floating copy glides in.
-    realTile: HTMLElement | null;
-    cancel: () => void;
-}
-
 interface Options {
     scrollContainerRef: RefObject<HTMLDivElement>;
     // The layer holding the rows, which is scaled during the gesture.
@@ -47,9 +40,9 @@ interface Options {
 
 // A pinch scales the rows as one surface and reflows nothing, so the grid never rearranges
 // itself under the fingers; moving both fingers together pans at the same time. Letting go
-// reflows once, to the nearest odd column count, centred on the pinched tile: that tile floats
-// above the change and glides into its new slot while the old arrangement dissolves into the
-// new one beneath it.
+// reflows once, to the nearest odd column count, positioned so the pinched tile's new slot sits
+// at the pinch point — the tile holds still while the old arrangement dissolves into the new
+// one around it.
 export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount, reanchor, setGesture, enabled }: Options) => {
     const activeRef = useRef(false);
     const startTileSizeRef = useRef(0);
@@ -70,9 +63,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     const transformLiveRef = useRef(false);
     const lastGestureRef = useRef<GridGesture | null>(null);
     const ghostRef = useRef<Ghost | null>(null);
-    const heroRef = useRef<Hero | null>(null);
-    // The pinched tile's element and position, captured just before the reflow replaces the DOM.
-    const pendingHeroRef = useRef<{ element: HTMLDivElement; rect: DOMRect } | null>(null);
     const commitPendingRef = useRef(false);
     const cancelSettleRef = useRef<(() => void) | null>(null);
 
@@ -140,15 +130,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         if (ghost.removeTimer !== null) clearTimeout(ghost.removeTimer);
         ghost.element.remove();
         ghostRef.current = null;
-    };
-
-    const removeHero = () => {
-        const hero = heroRef.current;
-        if (hero === null) return;
-        hero.cancel();
-        hero.realTile?.style.removeProperty('opacity');
-        hero.element.remove();
-        heroRef.current = null;
     };
 
     const clearScale = () => {
@@ -220,16 +201,10 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         );
     };
 
-    // Release with a reflow: keep the old arrangement on screen to dissolve out of, capture the
-    // pinched tile to float above the change, and commit the new column count immediately.
+    // Release with a reflow: keep the old arrangement on screen to dissolve out of, and commit
+    // the new column count immediately.
     const commitRelease = (targetColumns: number) => {
         const source = contentRef.current!;
-
-        const tile = source.querySelector<HTMLDivElement>(`[data-index="${anchorRef.current!.itemIndex}"]`);
-        pendingHeroRef.current = tile === null ? null : {
-            element: tile.cloneNode(true) as HTMLDivElement,
-            rect: tile.getBoundingClientRect()
-        };
 
         // Cloning keeps the outgoing tiles' own image elements, so the dissolve never waits on
         // a decode; React renders the incoming arrangement underneath.
@@ -253,11 +228,9 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         if (!commitPendingRef.current) return;
         commitPendingRef.current = false;
 
-        const scroller = scrollContainerRef.current!;
-        const spacer = contentRef.current!.parentElement!;
-
         // The ghost holds the old arrangement exactly where it was, compensating for the scroll
-        // jump the reflow just made, then dissolves.
+        // jump the reflow just made, then dissolves into the new arrangement — whose copy of the
+        // pinched tile sits at the same spot, so the tile itself reads as never moving.
         const ghost = ghostRef.current;
         if (ghost !== null) {
             applyLayer(ghost.element, ghost.columns, ghost.tileSize);
@@ -270,52 +243,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
 
         // The new arrangement itself renders in place, untransformed.
         clearScale();
-
-        // Float the pinched tile from where the fingers left it into its slot in the new layout.
-        const pending = pendingHeroRef.current;
-        pendingHeroRef.current = null;
-        if (pending !== null) {
-            const { itemIndex } = anchorRef.current!;
-            const { columns, tileSize } = layout;
-            const containerRect = scroller.getBoundingClientRect();
-
-            const from = {
-                left: pending.rect.left - containerRect.left,
-                top: pending.rect.top - containerRect.top + scroller.scrollTop,
-                size: pending.rect.width
-            };
-            const to = {
-                left: (itemIndex % columns) * tileSize,
-                top: Math.floor(itemIndex / columns) * tileSize,
-                size: tileSize
-            };
-
-            const element = pending.element;
-            element.style.position = 'absolute';
-            element.style.flex = '';
-            element.style.pointerEvents = 'none';
-            spacer.appendChild(element);
-
-            const hero: Hero = { element, realTile: null, cancel: () => {} };
-
-            const place = (eased: number) => {
-                element.style.left = `${from.left + (to.left - from.left) * eased}px`;
-                element.style.top = `${from.top + (to.top - from.top) * eased}px`;
-                element.style.width = `${from.size + (to.size - from.size) * eased}px`;
-                element.style.height = `${from.size + (to.size - from.size) * eased}px`;
-
-                // The reflowed layout's own copy of this tile only enters the DOM a frame later,
-                // once the scroll settles — keep looking for it so it isn't shown twice.
-                if (hero.realTile === null) {
-                    hero.realTile = contentRef.current!.querySelector<HTMLElement>(`[data-index="${itemIndex}"]`);
-                    hero.realTile?.style.setProperty('opacity', '0');
-                }
-            };
-            place(0);
-
-            heroRef.current = hero;
-            animate(place, removeHero, (cancel) => { hero.cancel = cancel; });
-        }
     });
 
     const begin = (origin: [number, number]) => {
@@ -323,7 +250,6 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
         cancelSettleRef.current?.();
         cancelSettleRef.current = null;
         removeGhost();
-        removeHero();
 
         const element = scrollContainerRef.current!;
         const bounds = element.getBoundingClientRect();
@@ -464,6 +390,5 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     useEffect(() => () => {
         cancelSettleRef.current?.();
         removeGhost();
-        removeHero();
     }, []);
 };
