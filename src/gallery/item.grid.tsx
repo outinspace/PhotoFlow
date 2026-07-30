@@ -183,12 +183,9 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     contain: 'layout',
                 }}
             >
-                {items.slice(from, startIndex + layout.columns + layout.extraTilesRight).map((item, sliceIndex) => (
+                {items.slice(from, startIndex + layout.columns + layout.extraTilesRight).map((item) => (
                     <div
                         key={item.itemId}
-                        // Lets the pinch gesture find the tile under the fingers, to float it
-                        // above the reflow.
-                        data-index={from + sliceIndex}
                         style={{
                             height: `${layout.tileSize}px`,
                             width: `${layout.tileSize}px`,
