@@ -15,7 +15,19 @@ export const useKeyBindings = (props: KeyBinding[], deps: any[]) => {
     return true;
   }
 
+  const isTextEntryTarget = (e: KeyboardEvent) => {
+    const el = e.target;
+    return el instanceof HTMLElement && (
+      el.isContentEditable ||
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLTextAreaElement ||
+      el instanceof HTMLSelectElement
+    );
+  }
+
   const bindingsKeyDown = (e: KeyboardEvent) => {
+    // Keystrokes belong to a focused text field, not to shortcuts.
+    if (isTextEntryTarget(e)) return;
     currentlyPressedKeys.add(e.key);
     props.forEach((binding) => {
       if (areAllKeyPressed(binding.cmd)) {
