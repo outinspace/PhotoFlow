@@ -10,13 +10,36 @@ import { Item } from '../types';
 
 const EXAMPLE_QUERIES = ['beach', 'birthday cake', 'boats on a lake', 'documents', 'pets', 'sunsets'];
 
+// Searching happens entirely on this device, which means fetching the language
+// model once. Saying so is better than an unexplained wait on the first search.
+//
+// This appears only while model weights are actually crossing the network. The
+// short wait before that — importing the search code itself — gets the ordinary
+// "Searching…" text, since a progress bar with nothing to measure reads as a stall.
+const ModelDownload = ({ percent }: { percent: number }) => (
+    <div className='space-y-1.5'>
+        <span>Setting up search on this device — {percent}%</span>
+        <div className='h-1 w-full max-w-xs overflow-hidden rounded-full bg-gray-200'>
+            <div
+                className='h-full rounded-full bg-sky-500 transition-[width] duration-300'
+                style={{ width: `${percent}%` }}
+            />
+        </div>
+        <span className='block text-xs text-gray-400'>One-time download, then it works offline.</span>
+    </div>
+);
+
 const Search = () => {
     const [query, setQuery] = useState('');
     const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
     const { data: libraryItems } = useItems();
-    const { data: results, isFetching, error } = useSearch(debouncedQuery);
+    const { data: results, isFetching, error, isLoadingVectors, model } = useSearch(debouncedQuery);
     const { recent, addRecent, clearRecent } = useRecentSearches();
+
+    // Only the first search of a session pays for this; afterwards the browser has
+    // the model cached and it never appears.
+    const isDownloadingModel = model.status === 'downloading';
 
     const items = useMemo<Item[]>(() => {
         if (!results || !libraryItems) return [];
@@ -60,9 +83,13 @@ const Search = () => {
                         </button>
                     )}
                 </div>
-                <div className='mt-2 text-sm text-gray-500 h-5'>
+                <div className='mt-2 text-sm text-gray-500 min-h-5'>
                     {error && <span className='text-red-600'>Search failed.</span>}
-                    {!error && debouncedQuery && isFetching && <span>Searching…</span>}
+                    {!error && debouncedQuery && isLoadingVectors && <span>Loading search index…</span>}
+                    {!error && debouncedQuery && !isLoadingVectors && isDownloadingModel && (
+                        <ModelDownload percent={model.percent} />
+                    )}
+                    {!error && debouncedQuery && !isLoadingVectors && !isDownloadingModel && isFetching && <span>Searching…</span>}
                     {!error && debouncedQuery && !isFetching && results && (
                         <span>{items.length} result{items.length === 1 ? '' : 's'}</span>
                     )}

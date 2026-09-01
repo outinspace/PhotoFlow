@@ -1,19 +1,20 @@
 import { publicAlbumRoute } from '../routes';
-import { expandGUID } from '../common/format.helpers';
 import { usePublicAlbum } from '../api/usePublicAlbum';
 import { TopBar } from '../common/top.bar';
 import ItemGrid from '../gallery/item.grid';
+import { ShareUnavailable } from '../common/share.unavailable';
 
 export const PublicAlbumLayout = () => {
-    const { shortTenantId, shortShareSecret } = publicAlbumRoute.useParams();
+    const { shortShareSecret } = publicAlbumRoute.useParams();
 
-    const tenantId = expandGUID(shortTenantId);
-    const shareSecret = expandGUID(shortShareSecret);
+    const { data: album, isLoading, isError } = usePublicAlbum(shortShareSecret);
 
-    const { data: album } = usePublicAlbum(tenantId, shareSecret);
+    if (isLoading) {
+        return null;
+    }
 
-    if (!album) {
-        return;
+    if (isError || !album) {
+        return <ShareUnavailable kind='album' />;
     }
 
     return (
@@ -26,7 +27,6 @@ export const PublicAlbumLayout = () => {
                 readonly
                 items={album.items}
                 albumId={null}
-                tenantId={tenantId}
             />
         </div>
     );

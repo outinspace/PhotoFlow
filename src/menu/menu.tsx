@@ -1,12 +1,13 @@
-import { Activity, Database, Download, Learning, LogOut, Refresh, RefreshDouble, Settings, Trash, WarningTriangle } from 'iconoir-react';
+import { Database, LogOut, QrCode, Settings, Trash, WarningTriangle } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
-import { fetchAuthenticatedRoute } from '../api/fetchAuthenticatedRoute';
 import { useItems } from '../api/useItems';
 import { formatBytes } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
-import { endSessionAndGoToLogin } from '../common/session';
+import { clearStorageConfig } from '../storage/config';
+import { clearCachedCatalog } from '../storage/catalog';
+import { queryClient } from '../app';
 import UploadButton from './upload.button';
 
 const commonOptions = [
@@ -25,36 +26,28 @@ const commonOptions = [
         }
     },
     {
-        name: 'Setup Tutorial',
-        icon: Learning,
+        name: 'Link Device',
+        icon: QrCode,
         onClick: () => {
-            router.navigate({ to: '/setup' });
+            router.navigate({ to: '/link-device' });
         }
     },
     {
         name: 'Logout',
         icon: LogOut,
-        onClick: () => endSessionAndGoToLogin()
+        onClick: async () => {
+            // The caches hold the library of whoever was connected, and they outlive
+            // the credentials, so clearing them matters as much as clearing the keys.
+            clearStorageConfig();
+            await clearCachedCatalog();
+            queryClient.clear();
+
+            router.navigate({ to: '/connect' });
+        }
     },
 ];
 
 const advancedOptions = [
-    {
-        name: 'Items In-Process',
-        icon: RefreshDouble,
-        debug: false,
-        onClick: () => {
-            router.navigate({ to: '/items-in-process' });
-        }
-    },
-    {
-        name: 'Failed Items',
-        icon: WarningTriangle,
-        debug: false,
-        onClick: () => {
-            router.navigate({ to: '/failed-items' });
-        }
-    },
     {
         name: 'Storage Settings',
         icon: Database,
@@ -64,31 +57,11 @@ const advancedOptions = [
         }
     },
     {
-        name: 'Export Your Data',
-        icon: Download,
+        name: 'Failed Items',
+        icon: WarningTriangle,
         debug: false,
         onClick: () => {
-            router.navigate({ to: '/export-data' });
-        }
-    },
-    {
-        name: 'Reprocess Failed Items',
-        icon: Refresh,
-        debug: true,
-        onClick: async () => {
-            const res = await fetchAuthenticatedRoute(`/debug/reprocess-failed`, {
-                method: 'POST'
-            });
-
-            alert(res.status + ' ' + res.statusText);
-        }
-    },
-    {
-        name: 'System Status',
-        icon: Activity,
-        debug: false,
-        onClick: () => {
-            router.navigate({ to: '/system-status' });
+            router.navigate({ to: '/failed-items' });
         }
     }
 ];

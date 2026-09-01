@@ -1,0 +1,109 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { decodeHandoff, encodeHandoff } from '../handoff';
+import { StorageConfig } from '../config';
+
+const full: StorageConfig = {
+    endpoint: 'https://s3.us-west-004.backblazeb2.com',
+    bucket: 'my-photos',
+    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    region: 'us-west-004',
+    publicBaseUrl: 'https://photos.example.com/'
+};
+
+const minimal: StorageConfig = {
+    endpoint: 'https://s3.example.com',
+    bucket: 'b',
+    accessKeyId: 'k',
+    secretAccessKey: 's'
+};
+
+describe('handing a connection to another device', () => {
+    it('round-trips every field', () => {
+        expect(decodeHandoff(encodeHandoff(full))).toEqual(full);
+    });
+
+    it('round-trips when the optional fields are absent', () => {
+        // Empty strings must come back as undefined, or they would win over the
+        // values normally derived from the endpoint.
+        const decoded = decodeHandoff(encodeHandoff(minimal));
+
+        expect(decoded).toEqual(minimal);
+        expect(decoded?.region).toBeUndefined();
+        expect(decoded?.publicBaseUrl).toBeUndefined();
+    });
+
+    it('survives secrets containing characters that are unsafe in a URL', () => {
+        const awkward = { ...minimal, secretAccessKey: 'a+b/c=d&e?f#g yz' };
+
+        expect(decodeHandoff(encodeHandoff(awkward))?.secretAccessKey).toBe('a+b/c=d&e?f#g yz');
+    });
+
+    it('produces a payload with no characters that need escaping in a fragment', () => {
+        expect(encodeHandoff(full)).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
+
+    it('rejects a malformed payload rather than half-applying it', () => {
+        expect(decodeHandoff('not-base64!!')).toBeNull();
+        expect(decodeHandoff(btoa('{"a":1}'))).toBeNull();
+        expect(decodeHandoff(btoa('["https://s3.example.com","bucket"]'))).toBeNull();
+    });
+
+    it('rejects a payload missing the secret', () => {
+        expect(decodeHandoff(btoa(JSON.stringify(['https://s3.example.com', 'b', 'k', ''])))).toBeNull();
+    });
+});
+
+describe('taking the handoff out of the URL', () => {
+    beforeEach(() => {
+        vi.resetModules();
+    });
+
+    it('removes the credentials from the address bar as it reads them', async () => {
+        const replaceState = vi.fn();
+        vi.stubGlobal('window', {
+            history: { replaceState },
+            location: { hash: `#c=${encodeHandoff(minimal)}`, pathname: '/connect', search: '' }
+        });
+
+        const { takeHandoffFromUrl } = await import('../handoff');
+        const config = takeHandoffFromUrl();
+
+        expect(config?.bucket).toBe('b');
+        // Leaving it in place would put the key in history and the back button.
+        expect(replaceState).toHaveBeenCalledWith(null, '', '/connect');
+    });
+
+    it('returns the same handoff when read more than once', async () => {
+        // React mounts components twice in development. A read that consumed the
+        // fragment on the first mount would leave the surviving mount with nothing,
+        // which is exactly how this failed the first time.
+        const replaceState = vi.fn();
+        vi.stubGlobal('window', {
+            history: { replaceState },
+            location: { hash: `#c=${encodeHandoff(minimal)}`, pathname: '/connect', search: '' }
+        });
+
+        const { takeHandoffFromUrl } = await import('../handoff');
+
+        const first = takeHandoffFromUrl();
+        // Mimic the fragment having been stripped by the first call.
+        (globalThis as any).window.location.hash = '';
+        const second = takeHandoffFromUrl();
+
+        expect(first).not.toBeNull();
+        expect(second).toEqual(first);
+        expect(replaceState).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns null when there is no handoff', async () => {
+        vi.stubGlobal('window', {
+            history: { replaceState: vi.fn() },
+            location: { hash: '', pathname: '/connect', search: '' }
+        });
+
+        const { takeHandoffFromUrl } = await import('../handoff');
+
+        expect(takeHandoffFromUrl()).toBeNull();
+    });
+});

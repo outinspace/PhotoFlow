@@ -1,14 +1,17 @@
 import pLimit from 'p-limit';
 import toast from 'react-hot-toast';
-import constants from '../constants';
 import { queryClient } from '../app';
-import { fetchAuthenticatedRoute } from './fetchAuthenticatedRoute';
+import * as keys from '../storage/keys';
+import { writeObject } from '../storage/bucket';
+import { requireStorageConfig } from '../storage/config';
+import { Catalog } from '../storage/catalog';
+
+// Uploads go straight from the browser into the bucket's incoming/ folder, signed
+// with the user's own key. The nightly worker picks them up from there, which is
+// the same path a phone backup app like PhotoSync uses.
 
 const CONCURRENCY = 4;
 const MAX_ATTEMPTS = 3;
-// The upload aborts only after this long with zero bytes sent, so slow-but-alive
-// connections are never cut off — only genuinely stalled ones.
-const STALL_TIMEOUT_MS = 60_000;
 // Hashing reads the whole file into memory, so skip dedup for very large files.
 const HASH_SIZE_LIMIT_BYTES = 512 * 1024 * 1024;
 
@@ -37,12 +40,6 @@ const isMediaFile = (file: File) => {
     return !NON_MEDIA_EXTENSIONS.has(extension);
 };
 
-class HttpStatusError extends Error {
-    constructor(public readonly status: number, message: string) {
-        super(message);
-    }
-}
-
 const limit = pLimit(CONCURRENCY);
 
 // Progress for the current run. Counts reset once a run fully settles.
@@ -63,6 +60,13 @@ export const enqueueFiles = (files: Iterable<File>) => {
         if (allFiles.length > 0) {
             toast.error('No photos or videos found in the selection.');
         }
+        return;
+    }
+
+    try {
+        requireStorageConfig();
+    } catch {
+        toast.error('Connect your storage before uploading.');
         return;
     }
 
@@ -93,13 +97,11 @@ const runTask = async (file: File) => {
 
         for (let attempt = 1; ; attempt++) {
             try {
-                await putFileToServer(file);
+                await putFileToBucket(file);
                 succeeded++;
                 return;
             } catch (error) {
-                // 4xx responses (e.g. unsupported file type) won't succeed on retry.
-                const isPermanent = error instanceof HttpStatusError && error.status < 500;
-                if (isPermanent || attempt >= MAX_ATTEMPTS) {
+                if (attempt >= MAX_ATTEMPTS) {
                     throw error;
                 }
 
@@ -136,7 +138,7 @@ const onTaskSettled = () => {
         toast.error(`${failed}/${total} file${total === 1 ? '' : 's'} failed to upload`);
     }
 
-    queryClient.invalidateQueries({ queryKey: ['items'] });
+    queryClient.invalidateQueries({ queryKey: ['catalog'] });
 };
 
 const updateProgressToast = () => {
@@ -146,6 +148,8 @@ const updateProgressToast = () => {
     toastId = toast.loading(`Uploading ${settledCount()}/${total} files`, { id: toastId });
 };
 
+// Every catalog entry carries the content hash of its file, and the catalog is
+// already in memory, so re-uploading a photo is caught without a single request.
 const isAlreadyImported = async (file: File): Promise<boolean> => {
     if (!crypto.subtle || file.size > HASH_SIZE_LIMIT_BYTES) {
         return false;
@@ -154,73 +158,35 @@ const isAlreadyImported = async (file: File): Promise<boolean> => {
     try {
         const fileBuffer = await file.arrayBuffer();
         const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        const hashHex = Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
 
-        const res = await fetchAuthenticatedRoute(`/import/files/${hashHex}`);
-        if (!res.ok) {
-            return false;
-        }
-
-        const body = await res.json();
-        return body.exists === true;
+        return knownHashes().has(hashHex);
     } catch {
         // Dedup is an optimization — on any failure, just upload.
         return false;
     }
 };
 
-// Uses XHR instead of fetch for upload progress events, which drive the stall
-// detector: the timeout only fires after STALL_TIMEOUT_MS with zero bytes sent.
-const putFileToServer = (file: File) => new Promise<void>((resolve, reject) => {
-    const tenantId = localStorage.getItem('tenantId') ?? '';
+const knownHashes = () => {
+    const catalog = queryClient.getQueryData<Catalog>(['catalog']);
 
+    return new Set(
+        (catalog?.items ?? []).flatMap(item => item.files.map(file => file.hashSha256))
+    );
+};
+
+const putFileToBucket = async (file: File) => {
     // iOS uses the same filename for multiple images when selecting from camera roll.
     // Adding a timestamp ensures unique filenames and prevents conflicts with existing files.
     const timestamp = new Date().getTime();
     const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
     const fileNameWithTimestamp = `${file.name.replace(/\.[^/.]+$/, '')}_${timestamp}${fileExtension}`;
 
-    const xhr = new XMLHttpRequest();
-    let stallTimer: ReturnType<typeof setTimeout> | undefined;
-    let stalled = false;
-
-    const resetStallTimer = () => {
-        clearTimeout(stallTimer);
-        stallTimer = setTimeout(() => {
-            stalled = true;
-            xhr.abort();
-        }, STALL_TIMEOUT_MS);
-    };
-
-    xhr.open('PUT', `${constants.apiUrl}/import/s3/${tenantId}/${encodeURIComponent(fileNameWithTimestamp)}`);
-    xhr.setRequestHeader('Authorization', 'Session ' + (localStorage.getItem('sessionId') ?? ''));
-    xhr.setRequestHeader('x-tenant-id', tenantId);
-    if (file.type) {
-        xhr.setRequestHeader('Content-Type', file.type);
-    }
-
-    xhr.upload.onprogress = () => resetStallTimer();
-
-    xhr.onload = () => {
-        clearTimeout(stallTimer);
-        if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-        } else {
-            reject(new HttpStatusError(xhr.status, `Server responded with ${xhr.status}`));
-        }
-    };
-
-    xhr.onerror = () => {
-        clearTimeout(stallTimer);
-        reject(new Error('Network error'));
-    };
-
-    xhr.onabort = () => {
-        clearTimeout(stallTimer);
-        reject(new Error(stalled ? 'Stalled — no progress for 60s' : 'Upload aborted'));
-    };
-
-    resetStallTimer();
-    xhr.send(file);
-});
+    await writeObject(
+        keys.INCOMING + fileNameWithTimestamp,
+        file,
+        file.type || 'application/octet-stream'
+    );
+};

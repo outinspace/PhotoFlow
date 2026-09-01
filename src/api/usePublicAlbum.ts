@@ -1,37 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { Item } from "../types";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
 import { computeItemProperties } from "./computeItemProperties";
+import { readJson } from "../storage/bucket";
+import { loadRuntimeConfig } from "../storage/runtime.config";
+import { albumShareKey, SharedAlbum } from "../storage/sharing";
 
-interface GetPublicAlbumResponse {
-    name: string;
-    createdTimeUtc: string;
-    updatedTimeUtc: string;
-    items: Item[];
-    originalUrlPrefix: string;
-    tileImageUrlPrefix: string;
-    previewUrlPrefix: string;
-}
-
-export const usePublicAlbum = (tenantId: string, shareSecret: string) => useQuery({
-    queryKey: ['public', 'album', tenantId, shareSecret],
+export const usePublicAlbum = (shareSecret: string) => useQuery({
+    queryKey: ['public', 'album', shareSecret],
     queryFn: async () => {
-        const res = await fetchAuthenticatedRoute(`/public/album/${tenantId}/${shareSecret}`);
+        await loadRuntimeConfig();
 
-        const body = await res.json();
-        const response = body as GetPublicAlbumResponse;
-
-        // Computed properties
-        for (const item of response.items) {
-            computeItemProperties(
-                item,
-                response.originalUrlPrefix,
-                response.tileImageUrlPrefix,
-                response.previewUrlPrefix
-            );
+        const album = await readJson<SharedAlbum>(albumShareKey(shareSecret));
+        if (!album) {
+            throw new Error('This shared album is no longer available.');
         }
 
-        return response;
+        for (const item of album.items) {
+            computeItemProperties(item, album.urls.originalPrefix, album.urls.tileImagePrefix, album.urls.previewPrefix);
+        }
+
+        return album;
     }
 });
-

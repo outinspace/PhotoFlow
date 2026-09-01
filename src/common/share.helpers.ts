@@ -1,72 +1,35 @@
 import toast from "react-hot-toast";
-import { getTenantId } from './session';
-import { Item } from "../types";
-import constants from "../constants";
+import { File, Item } from "../types";
 
-export const downloadFile = (fileId: string, tenantId?: string) => {
-    const resolvedTenantId = tenantId || getTenantId();
-    
-    if (!resolvedTenantId) {
-        toast.error('Tenant ID not found');
-        return;
-    }
-
-    const downloadUrl = `${constants.apiUrl}/files/${fileId}/download?tenantId=${resolvedTenantId}`;
-
+// Downloads point straight at the object in storage. There is no server to
+// proxy them through, and the CDN serves the original bytes just as well.
+export const downloadFile = (file: File) => {
     const link = document.createElement("a");
-    link.href = downloadUrl;
+    link.href = file.originalUrl;
+    link.download = file.originalFileName;
     link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 };
 
-export const downloadFiles = async (items: Item[], tenantId?: string) => {
-    const resolvedTenantId = tenantId || getTenantId();
-    
-    if (!resolvedTenantId) {
-        toast.error('Tenant ID not found');
-        return;
-    }
-
-    // For multiple files, we can't use the direct URL approach with toast.promise
-    // since the downloads happen immediately. Instead, we'll trigger them sequentially
-    // with a small delay to avoid overwhelming the browser
-    
-    let successCount = 0;
-    let errorCount = 0;
-    
-    const downloadPromises = items.map(async (item, index) => {
-        // Add a small delay between downloads to avoid browser limits
-        await new Promise(resolve => setTimeout(resolve, index * 100));
-        
-        try {
-            downloadFile(item.primaryFile.fileId, resolvedTenantId);
-            successCount++;
-        } catch (error) {
-            console.error(`Failed to download ${item.primaryFile.originalFileName}:`, error);
-            errorCount++;
-        }
-    });
-
+export const downloadFiles = async (items: Item[]) => {
     const loadingToast = toast.loading(`Downloading ${items.length} file${items.length > 1 ? 's' : ''}...`);
-    
-    await Promise.all(downloadPromises);
-    
-    toast.dismiss(loadingToast);
-    
-    if (errorCount === 0) {
-        toast.success(`Downloaded ${successCount} file${successCount > 1 ? 's' : ''}`);
-    } else if (successCount > 0) {
-        toast(`Downloaded ${successCount} file${successCount > 1 ? 's' : ''}, ${errorCount} failed`);
-    } else {
-        toast.error('All downloads failed');
+
+    // Spaced out so the browser does not treat a burst of downloads as a popup.
+    for (const [index, item] of items.entries()) {
+        if (index > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        downloadFile(item.primaryFile);
     }
+
+    toast.dismiss(loadingToast);
+    toast.success(`Downloaded ${items.length} file${items.length > 1 ? 's' : ''}`);
 };
 
-
 export const shareFiles = async (items: Item[]) => {
-    const files: File[] = [];
+    const files: globalThis.File[] = [];
 
     const promises = items.map(async item => {
         const res = await fetch(item.primaryFile.originalUrl);
@@ -76,7 +39,7 @@ export const shareFiles = async (items: Item[]) => {
         }
 
         const blob = await res.blob();
-        const file = new File([blob], item.primaryFile.originalFileName, { type: blob.type });
+        const file = new globalThis.File([blob], item.primaryFile.originalFileName, { type: blob.type });
 
         files.push(file);
     });

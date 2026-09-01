@@ -13,10 +13,9 @@ interface Props {
     item: Item;
     isOpen: boolean;
     onDismiss: () => any;
-    tenantId?: string;
 }
 
-const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
+const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
     return (
         <BottomSheet
             isOpen={isOpen}
@@ -26,7 +25,7 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
                 <BasicInfo item={item} />
                 <CameraMetadata item={item} />
                 <LocationMetadata item={item} />
-                <FileMetadata item={item} tenantId={tenantId} />
+                <FileMetadata item={item} />
             </div>
         </BottomSheet>
     );
@@ -117,7 +116,7 @@ const LocationMetadata = ({ item }: { item: Item }) => {
     );
 };
 
-const FileMetadata = ({ item, tenantId }: { item: Item, tenantId?: string }) => {
+const FileMetadata = ({ item }: { item: Item }) => {
     return (
         <div>
             <div className='flex items-center gap-2 mb-2'>
@@ -141,7 +140,7 @@ const FileMetadata = ({ item, tenantId }: { item: Item, tenantId?: string }) => 
                             {formatBytes(file.sizeBytes)}
                         </div>
                         <div className='border-l border-slate-200 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => downloadFile(file.fileId, tenantId)} />
+                            <Download onClick={() => downloadFile(file)} />
                         </div>
                     </div>
                 ))}
