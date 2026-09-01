@@ -1,7 +1,7 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
 import { Map, Menu, ViewGrid, Flower, Search } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
-import { getSession } from './common/session';
+import { isConfigured } from './storage/config';
 import { ReactNode, useEffect } from 'react';
 
 const options = [
@@ -39,8 +39,8 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
     const safeAreaPadding = IS_STANDALONE ? 'pb-10 md:pb-2' : '';
 
     useEffect(() => {
-        if (!getSession()) {
-            router.navigate({ to: '/login' });
+        if (!isConfigured()) {
+            router.navigate({ to: '/connect' });
         }
     }, []);
 

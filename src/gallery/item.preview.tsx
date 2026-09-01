@@ -21,12 +21,11 @@ interface Props {
     onMovePrevious?: Function;
     onClose?: Function;
     readonly?: boolean;
-    tenantId?: string;
 }
 
 const SLIDESHOW_VIDEO_MAX_SECONDS = 15;
 
-const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly, tenantId }: Props) => {
+const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -369,14 +368,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onItemsRemoved={() => onClose?.()}
                     position='bottom'
                     readonly={!!readonly}
-                    tenantId={tenantId}
                 />
             </div>
             <ItemInfoSheet
                 item={item}
                 isOpen={showInfoSheet}
                 onDismiss={() => setShowInfoSheet(false)}
-                tenantId={tenantId}
             />
         </animated.div>
     );

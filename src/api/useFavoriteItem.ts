@@ -1,17 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "../app";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
+import { appendOperations, invalidateAfterMutation } from "../storage/mutation.log";
 
 export const useFavoriteItem = () => {
     return useMutation({
         mutationFn: async (itemId: number) => {
-            await fetchAuthenticatedRoute(`/items/${itemId}/favorite`, {
-                method: 'POST'
-            });
+            appendOperations([{ op: 'item.favorite', itemId, value: true }]);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['items'] });
-        }
+        onSuccess: invalidateAfterMutation
     });
 }
-

@@ -28,10 +28,9 @@ interface Props {
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
     disablePinch?: boolean;
-    tenantId?: string;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch, tenantId }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -238,7 +237,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onActionCompleted={() => closeSelectionMode()}
                                 position='top'
                                 readonly={!!readonly}
-                                tenantId={tenantId}
                             />
                         </>
                     )}
@@ -325,7 +323,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     items={items}
                     itemIndex={previewItemIndex}
                     albumId={albumId}
-                    tenantId={tenantId}
                     onMovePrevious={() => {
                         const newIndex = previewItemIndex === 0 ? items.length - 1 : previewItemIndex - 1;
                         const newItem = items[newIndex];

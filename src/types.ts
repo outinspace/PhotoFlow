@@ -32,6 +32,7 @@ export interface Item {
 export interface File {
     fileId: string;
     contentType: string;
+    hashSha256: string;
     originalFileName: string;
     sizeBytes: number;
     uploadTimeUtc: string;
@@ -40,6 +41,9 @@ export interface File {
     tileVersion: number | null;
     previewVersion: number | null;
     thumbHash: string | null;
+    // True when the original is already browser-playable and is served as its own
+    // preview, so the worker stored no near-duplicate transcode.
+    previewIsOriginal: boolean;
 
     // Computed
     originalUrl: string;

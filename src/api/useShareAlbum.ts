@@ -1,21 +1,20 @@
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "../app";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
+import { appendOperations, invalidateAfterMutation } from "../storage/mutation.log";
+import { publishAlbumShare } from "../storage/sharing";
 
 export const useShareAlbum = () => {
     return useMutation({
         mutationFn: async (albumId: number): Promise<string> => {
-            const res = await fetchAuthenticatedRoute(`/album/share/${albumId}`, {
-                method: 'POST'
-            });
+            const secret = crypto.randomUUID();
 
-            const shareSecret = await res.json();
+            // The shared copy is written as its own object so anyone with the link
+            // can read it without the app or any credentials.
+            await publishAlbumShare(albumId, secret);
 
-            return shareSecret as string;
+            appendOperations([{ op: 'album.share', albumId, secret }]);
+
+            return secret;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['albums'] });
-        }
+        onSuccess: invalidateAfterMutation
     });
 }
-

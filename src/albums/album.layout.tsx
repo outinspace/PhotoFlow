@@ -8,10 +8,8 @@ import { EditPencil, Link, ShareIos, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
-import { compactGUID } from '../common/format.helpers';
 import { Ellipsis } from '../common/ellipsis';
 import { router } from '../routes';
-import { getTenantId } from '../common/session';
 import toast from 'react-hot-toast';
 
 export const AlbumLayout = () => {
@@ -38,28 +36,17 @@ export const AlbumLayout = () => {
     }
 
     const getPublicLink = async () => {
-        const tenantId = getTenantId();
-        if (!tenantId) {
-            return;
-        }
-
-        // A failed share request is already reported by fetchAuthenticatedRoute.
         const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId).catch(() => null);
         if (!shareSecret) {
             return;
         }
 
         const link = router.buildLocation({
-            to: '/p/a/$shortTenantId/$shortShareSecret',
-            params: {
-                shortTenantId: compactGUID(tenantId),
-                shortShareSecret: compactGUID(shareSecret)
-            }
+            to: '/p/a/$shortShareSecret',
+            params: { shortShareSecret: shareSecret }
         });
 
-        const url = window.location.origin + link.href;
-
-        return url;
+        return window.location.origin + link.href;
     }
 
     const sharePublicLink = async () => {

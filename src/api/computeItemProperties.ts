@@ -6,9 +6,13 @@ export const computeItemProperties = (item: Item, originalUrlPrefix: string, til
 
         file.tileImageUrl = file.tileVersion ? `${tileImageUrlPrefix}${file.fileId}.jpeg?t=${file.lastProcessedTimeUtc}` : null;
 
-        const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
-        file.previewUrl = file.previewVersion ? `${previewUrlPrefix}${file.fileId}${previewExtension}?t=${file.lastProcessedTimeUtc}` : null;
+        file.previewUrl = computePreviewUrl(file, previewUrlPrefix);
     }
+
+    // Favourites and deletions live in meta/, not in the catalog, so a fresh item
+    // starts from these defaults until the mutation overlay is applied.
+    item.isFavorite = item.isFavorite ?? false;
+    item.deletedTimeUtc = item.deletedTimeUtc ?? null;
 
     item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
     item.captureTime = item.captureTime ?? item.primaryFile.uploadTimeUtc;
@@ -18,6 +22,21 @@ export const computeItemProperties = (item: Item, originalUrlPrefix: string, til
     item.device = item.cameraMake !== null && item.cameraModel !== null ? `${item.cameraMake} ${item.cameraModel}` : null;
 
     item.type = getType(item);
+}
+
+const computePreviewUrl = (file: Item['files'][number], previewUrlPrefix: string) => {
+    if (!file.previewVersion) {
+        return null;
+    }
+
+    // A clip that was already browser-playable has no separate preview file; the
+    // original is the preview, which is why no transcode was stored for it.
+    if (file.previewIsOriginal) {
+        return file.originalUrl;
+    }
+
+    const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
+    return `${previewUrlPrefix}${file.fileId}${previewExtension}?t=${file.lastProcessedTimeUtc}`;
 }
 
 const getType = (item: Item) => {

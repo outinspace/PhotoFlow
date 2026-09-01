@@ -1,0 +1,25 @@
+# A local S3 server for play-testing, so you can exercise the whole app without
+# touching a real bucket or spending anything.
+#
+#   docker compose -f dev/docker-compose.yml up -d
+#   uv run --project worker python dev/seed.py
+#
+# MINIO_API_CORS_ALLOW_ORIGIN matters: the app signs its own requests from the
+# browser, so the server has to answer CORS preflights or every write fails.
+services:
+  minio:
+    image: minio/minio
+    container_name: photoflow-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    environment:
+      MINIO_ROOT_USER: photoflowdev
+      MINIO_ROOT_PASSWORD: photoflowdev123
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    volumes:
+      - photoflow-minio-data:/data
+
+volumes:
+  photoflow-minio-data:

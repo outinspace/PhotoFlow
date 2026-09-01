@@ -1,20 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "../app";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
+import { appendOperations, invalidateAfterMutation } from "../storage/mutation.log";
 
 export const useDeleteAlbum = () => {
     return useMutation({
         mutationFn: async (albumId: number) => {
-            await fetchAuthenticatedRoute(`/album/${albumId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            appendOperations([{ op: 'album.delete', albumId }]);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['albums'] });
-        }
+        onSuccess: invalidateAfterMutation
     });
 }
-

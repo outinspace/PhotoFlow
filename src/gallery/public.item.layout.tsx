@@ -1,18 +1,22 @@
 import { publicItemRoute } from '../routes';
 import ItemPreview from './item.preview';
-import { expandGUID } from '../common/format.helpers';
 import { usePublicItem } from '../api/usePublicItem';
+import { ShareUnavailable } from '../common/share.unavailable';
 
 export const PublicItemLayout = () => {
-    const { shortTenantId, shortPrimaryFileId } = publicItemRoute.useParams();
+    // The share id is the file's content hash, used verbatim. It was briefly
+    // decoded as a compacted GUID here, which silently produced a key that
+    // matched nothing.
+    const { shortPrimaryFileId } = publicItemRoute.useParams();
 
-    const tenantId = expandGUID(shortTenantId);
-    const primaryFileId = expandGUID(shortPrimaryFileId);
+    const { data: item, isLoading, isError } = usePublicItem(shortPrimaryFileId);
 
-    const { data: item } = usePublicItem(tenantId, primaryFileId);
+    if (isLoading) {
+        return null;
+    }
 
-    if (!item) {
-        return;
+    if (isError || !item) {
+        return <ShareUnavailable kind='photo' />;
     }
 
     return (
@@ -21,7 +25,6 @@ export const PublicItemLayout = () => {
             itemIndex={0}
             items={[item]}
             albumId={null}
-            tenantId={tenantId}
         />
     );
 }
