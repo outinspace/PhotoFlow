@@ -13,7 +13,7 @@ to rebuild files a fraction of their size.
 
 import os
 
-from .. import keys
+from .. import keys, progress
 from .ingest import Ingested
 from .derive import TILE_VERSION
 from .embed import EMBEDDING_VERSION
@@ -49,7 +49,7 @@ def run(context) -> None:
     limit = context.config.max_backfill_per_run
     queued: dict[str, Ingested] = {}
 
-    for item, file in needs_tile[:limit]:
+    for item, file in progress.track(needs_tile[:limit], "fetching sources for tiles"):
         entry = _fetch(context, item, file, needs_tile=True, needs_embedding=False)
         if entry:
             queued[file.fileId] = entry
@@ -57,7 +57,7 @@ def run(context) -> None:
     # Embedding is per item, and the tile it reads is produced above, so an item
     # already queued for a tile only needs its flag set rather than a second fetch.
     remaining = limit - len(queued)
-    for item in list(needs_embedding.values()):
+    for item in progress.track(list(needs_embedding.values()), "fetching sources for embeddings"):
         if remaining <= 0:
             break
 

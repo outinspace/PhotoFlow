@@ -7,7 +7,7 @@ manifest is the one small file the app must always revalidate.
 
 from datetime import datetime, timezone
 
-from .. import keys
+from .. import keys, progress
 from ..models import (
     Counts,
     EmbeddingsInfo,
@@ -59,7 +59,7 @@ def run(context) -> None:
     entries: dict[tuple[str, int], ShardEntry] = dict(previous_entries)
     written = 0
 
-    for month in sorted(by_month):
+    for month in progress.track(sorted(by_month), "publishing"):
         if month not in context.dirty_months:
             # Nothing in it changed, so its parts are exactly as they were.
             continue

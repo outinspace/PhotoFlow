@@ -7,7 +7,7 @@ Work comes from two places: new uploads in incoming/, and reprocess requests the
 app leaves in meta/reprocess/ for files already in the catalog.
 """
 
-from .. import keys
+from .. import keys, progress
 from ..models import ManifestDocument, ShardDocument
 
 
@@ -15,7 +15,7 @@ def run(context) -> None:
     manifest = context.storage.get_model(keys.CATALOG_MANIFEST, ManifestDocument)
     entries = manifest.shards if manifest else []
 
-    for entry in entries:
+    for entry in progress.track(entries, "loading shards"):
         shard = context.storage.get_model(keys.shard(entry.month, entry.part), ShardDocument)
         if not shard:
             continue

@@ -10,7 +10,7 @@ import subprocess
 
 from PIL import Image, ImageOps
 
-from .. import keys, video
+from .. import keys, progress, video
 from ..timestamps import now_iso
 from ..thumbhash import rgba_to_thumb_hash
 
@@ -32,7 +32,7 @@ def run(context) -> None:
 
     work = list(context.ingested) + list(context.backfill)
 
-    for entry in work:
+    for entry in progress.track(work, "deriving"):
         item = context.items.get(getattr(entry, "item_id", None))
         if item is None:
             continue

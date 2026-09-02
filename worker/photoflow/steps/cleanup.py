@@ -6,6 +6,8 @@ again rather than stranding it with no catalog entry. Reprocess requests are
 cleared on the same terms.
 """
 
+from .. import progress
+
 
 def run(context) -> None:
     published = {item.itemId for item in context.items.values()}
@@ -13,7 +15,7 @@ def run(context) -> None:
     uploads = 0
     rebuilds = 0
 
-    for entry in getattr(context, "ingested", []):
+    for entry in progress.track(getattr(context, "ingested", []), "clearing"):
         if entry.item_id not in published:
             continue
 
