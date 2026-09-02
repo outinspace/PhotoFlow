@@ -45,6 +45,7 @@ from .models import (
 from .steps.derive import PREVIEW_VERSION, TILE_VERSION
 from .steps.embed import EMBEDDING_DIM, EMBEDDING_VERSION
 from .steps.extract import METADATA_VERSION
+from .steps.publish import split_into_parts
 from .storage import S3Storage, Storage
 from .timestamps import normalize, now_iso
 
@@ -236,11 +237,17 @@ def write(storage: Storage, config: Config, items: dict[int, ItemRecord], state:
     generated = now_iso()
     by_month = shard_items(items)
 
+    entries: list[ShardEntry] = []
+
     for month, month_items in sorted(by_month.items()):
-        storage.put_model(
-            keys.shard(month),
-            ShardDocument(month=month, items=sorted(month_items, key=lambda item: item.captureTime)),
-        )
+        # Importing a back catalogue puts a whole library into one month, which is
+        # precisely the case shard parts exist for.
+        for index, part_items in enumerate(split_into_parts(month_items), start=1):
+            storage.put_model(
+                keys.shard(month, index),
+                ShardDocument(month=month, part=index, items=part_items),
+            )
+            entries.append(ShardEntry(month=month, part=index, items=len(part_items), updatedAt=generated))
 
     manifest = ManifestDocument(
         manifestVersion=MANIFEST_VERSION,
@@ -256,10 +263,7 @@ def write(storage: Storage, config: Config, items: dict[int, ItemRecord], state:
             tileImagePrefix=f"{config.public_base_url}tile-image/{config.path_prefix}",
             previewPrefix=f"{config.public_base_url}preview/{config.path_prefix}",
         ),
-        shards=[
-            ShardEntry(month=month, items=len(month_items), updatedAt=generated)
-            for month, month_items in sorted(by_month.items())
-        ],
+        shards=entries,
         # None yet; the next worker run computes them.
         embeddings=EmbeddingsInfo(dim=EMBEDDING_DIM, dtype="int8", modelRepo=config.clip_model_repo, months=[]),
         counts=Counts(items=len(items), files=sum(len(item.files) for item in items.values())),

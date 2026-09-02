@@ -30,8 +30,14 @@ def reprocess_request(file_id: str) -> str:
     return f"{META_REPROCESS}{file_id}.json"
 
 
-def shard(month: str) -> str:
-    return f"{CATALOG_SHARDS}{month}.json"
+def shard(month: str, part: int = 1) -> str:
+    """A month's shard, or one part of it when the month is too big for one file.
+
+    The first part keeps the plain name, so a catalog written before months could
+    be split still reads correctly.
+    """
+    suffix = "" if part <= 1 else f".p{part}"
+    return f"{CATALOG_SHARDS}{month}{suffix}.json"
 
 
 def embeddings(month: str) -> str:

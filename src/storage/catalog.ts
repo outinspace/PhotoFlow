@@ -9,9 +9,15 @@ import { readJson } from './bucket';
 // Sharding on upload month (not capture month) means a month stops changing once
 // it is over, so the browser keeps it forever and each visit only fetches the
 // manifest and whatever month is current.
+//
+// A month holding more than a few thousand items is split into parts, which is
+// what stops an imported back catalogue becoming one enormous download that every
+// client repeats whenever a single photo in that month changes.
 
 export interface ShardEntry {
     month: string;
+    // Present once a month is large enough to be split; absent in older catalogs.
+    part?: number;
     items: number;
     updatedAt: string;
 }
@@ -39,7 +45,7 @@ interface CachedShard {
     items: Item[];
 }
 
-const shardCacheKey = (month: string) => `photoflow.shard.${month}`;
+const shardCacheKey = (entry: ShardEntry) => `photoflow.shard.${entry.month}.${entry.part ?? 1}`;
 
 export const fetchCatalog = async (signal?: AbortSignal): Promise<Catalog> => {
     const manifest = await readJson<Manifest>(keys.CATALOG_MANIFEST, signal);
@@ -58,15 +64,15 @@ export const fetchCatalog = async (signal?: AbortSignal): Promise<Catalog> => {
 };
 
 const loadShard = async (entry: ShardEntry, signal?: AbortSignal): Promise<Item[]> => {
-    const cached = await get<CachedShard>(shardCacheKey(entry.month));
+    const cached = await get<CachedShard>(shardCacheKey(entry));
     if (cached?.updatedAt === entry.updatedAt) {
         return cached.items;
     }
 
-    const shard = await readJson<{ items: Item[] }>(keys.shard(entry.month), signal);
+    const shard = await readJson<{ items: Item[] }>(keys.shard(entry.month, entry.part), signal);
     const items = shard?.items ?? [];
 
-    await set(shardCacheKey(entry.month), { updatedAt: entry.updatedAt, items } satisfies CachedShard);
+    await set(shardCacheKey(entry), { updatedAt: entry.updatedAt, items } satisfies CachedShard);
 
     return items;
 };
