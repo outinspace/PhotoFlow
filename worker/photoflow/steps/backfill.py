@@ -126,14 +126,12 @@ def _fetch(context, item, file, needs_tile: bool, needs_embedding: bool) -> Inge
 
 
 def _smallest_source(context, file) -> tuple[str, str]:
-    prefix = context.config.path_prefix
-
     if file.previewVersion and not file.previewIsOriginal:
         if file.contentType.startswith("image/"):
-            return keys.preview(prefix, file.fileId, ".jpeg"), ".jpeg"
-        return keys.preview(prefix, file.fileId, ".mp4"), ".mp4"
+            return keys.preview(file.fileId, ".jpeg"), ".jpeg"
+        return keys.preview(file.fileId, ".mp4"), ".mp4"
 
-    return keys.original(prefix, file.fileId), os.path.splitext(file.originalFileName)[1] or ""
+    return keys.original(file.fileId), os.path.splitext(file.originalFileName)[1] or ""
 
 
 def _download(context, key: str, destination: str) -> None:

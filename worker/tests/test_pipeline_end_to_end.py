@@ -66,9 +66,9 @@ def test_a_photo_becomes_a_catalog_item_with_a_tile_and_preview(tmp_path):
     assert item.widthPixels == 800 and item.heightPixels == 600
     assert item.megapixels == 0.5
 
-    assert storage.exists(keys.tile("", file.fileId))
-    assert storage.exists(keys.preview("", file.fileId, ".jpeg"))
-    assert storage.exists(keys.original("", file.fileId))
+    assert storage.exists(keys.tile(file.fileId))
+    assert storage.exists(keys.preview(file.fileId, ".jpeg"))
+    assert storage.exists(keys.original(file.fileId))
 
 
 @requires_media_tools
@@ -120,7 +120,7 @@ def test_a_small_h264_clip_is_served_as_its_own_preview(tmp_path):
     assert file.previewIsOriginal is True
     assert file.tileVersion == derive.TILE_VERSION
     # No transcoded near-duplicate was stored, which is the point of passthrough.
-    assert not storage.exists(keys.preview("", file.fileId, ".mp4"))
+    assert not storage.exists(keys.preview(file.fileId, ".mp4"))
 
 
 @requires_media_tools
@@ -131,7 +131,7 @@ def test_an_oversized_clip_is_transcoded_into_a_preview(tmp_path):
     file = next(iter(context.items.values())).files[0]
 
     assert file.previewIsOriginal is False
-    assert storage.exists(keys.preview("", file.fileId, ".mp4"))
+    assert storage.exists(keys.preview(file.fileId, ".mp4"))
 
 
 @requires_media_tools
@@ -172,12 +172,12 @@ def test_a_reprocess_request_rebuilds_the_file_in_place(tmp_path):
     month = _only_month(storage)
 
     # Throw away a derived file the way a failed or outdated run would leave it.
-    storage.delete(keys.tile("", file.fileId))
+    storage.delete(keys.tile(file.fileId))
     storage.put_json(keys.reprocess_request(file.fileId), {"fileId": file.fileId})
 
     second = run_pipeline(storage, tmp_path)
 
-    assert storage.exists(keys.tile("", file.fileId))
+    assert storage.exists(keys.tile(file.fileId))
     # The request is consumed, so the next run does not repeat the work.
     assert not storage.list(keys.META_REPROCESS)
     # No second item, and it stayed in the month it was uploaded in.
@@ -191,12 +191,12 @@ def test_reprocessing_does_not_duplicate_or_re_upload_the_original(tmp_path):
     first = run_pipeline(storage, tmp_path)
 
     file = next(iter(first.items.values())).files[0]
-    original_before = storage.get(keys.original("", file.fileId))
+    original_before = storage.get(keys.original(file.fileId))
 
     storage.put_json(keys.reprocess_request(file.fileId), {"fileId": file.fileId})
     second = run_pipeline(storage, tmp_path)
 
-    assert storage.get(keys.original("", file.fileId)) == original_before
+    assert storage.get(keys.original(file.fileId)) == original_before
     assert len(next(iter(second.items.values())).files) == 1
 
 
@@ -235,13 +235,13 @@ def test_a_missing_thumbnail_is_rebuilt_on_the_next_run(tmp_path):
     first = run_full_pipeline(storage, tmp_path)
 
     file = next(iter(first.items.values())).files[0]
-    storage.delete(keys.tile("", file.fileId))
+    storage.delete(keys.tile(file.fileId))
     file.tileVersion = None
     _rewrite_shard(storage, first)
 
     second = run_full_pipeline(storage, tmp_path)
 
-    assert storage.exists(keys.tile("", file.fileId))
+    assert storage.exists(keys.tile(file.fileId))
     assert next(iter(second.items.values())).files[0].tileVersion == derive.TILE_VERSION
 
 
@@ -256,10 +256,10 @@ def test_the_rebuild_reads_the_preview_rather_than_the_original(tmp_path):
 
     # Pulling whole originals back out of storage to rebuild files a fraction of
     # their size is the thing this must not do.
-    storage.delete(keys.original("", file.fileId))
+    storage.delete(keys.original(file.fileId))
     second = run_full_pipeline(storage, tmp_path)
 
-    assert storage.exists(keys.tile("", file.fileId))
+    assert storage.exists(keys.tile(file.fileId))
     assert next(iter(second.items.values())).files[0].tileVersion == derive.TILE_VERSION
 
 
@@ -269,13 +269,13 @@ def test_a_rebuild_does_not_re_transcode_the_video(tmp_path):
     first = run_full_pipeline(storage, tmp_path)
 
     file = next(iter(first.items.values())).files[0]
-    preview_before = storage.get(keys.preview("", file.fileId, ".mp4"))
+    preview_before = storage.get(keys.preview(file.fileId, ".mp4"))
 
     file.tileVersion = None
     _rewrite_shard(storage, first)
     run_full_pipeline(storage, tmp_path)
 
-    assert storage.get(keys.preview("", file.fileId, ".mp4")) == preview_before
+    assert storage.get(keys.preview(file.fileId, ".mp4")) == preview_before
 
 
 @requires_media_tools

@@ -14,16 +14,20 @@ META_HEARTBEAT = "meta/heartbeat.json"
 META_REPROCESS = "meta/reprocess/"
 
 
-def original(prefix: str, file_id: str) -> str:
-    return f"original/{prefix}{file_id}"
+def original(file_id: str) -> str:
+    return f"original/{file_id}"
 
 
-def tile(prefix: str, file_id: str) -> str:
-    return f"tile-image/{prefix}{file_id}.jpeg"
+def tile(file_id: str) -> str:
+    return f"tile-image/{file_id}.jpeg"
 
 
-def preview(prefix: str, file_id: str, extension: str) -> str:
-    return f"preview/{prefix}{file_id}{extension}"
+def preview(file_id: str, extension: str) -> str:
+    return f"preview/{file_id}{extension}"
+
+
+def device_log(device_id: str) -> str:
+    return f"{META_LOGS}{device_id}.json"
 
 
 def reprocess_request(file_id: str) -> str:

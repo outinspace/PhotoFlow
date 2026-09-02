@@ -32,10 +32,6 @@ class Config:
     # strongly preferred, so the gallery gets HTTP/2+3 multiplexing instead of the
     # browser's per-host connection cap; without one it falls back to the bucket.
     public_base_url: str
-    # Optional path segment inserted after each media folder, e.g. "some-tenant-id/".
-    # Empty for new installs; set it to point the worker at a bucket laid out by the
-    # legacy API, which nested media under a tenant id.
-    path_prefix: str
     # Cap per run so a first run over a huge library cannot exhaust CI minutes.
     max_files_per_run: int
     # Separate cap for repairing already-catalogued files, so a large backlog is
@@ -56,10 +52,6 @@ class Config:
         public_base_url = os.environ.get("PHOTOFLOW_PUBLIC_BASE_URL", "").strip()
         public_base_url = (public_base_url or f"{endpoint_url}/{bucket}").rstrip("/") + "/"
 
-        path_prefix = os.environ.get("PHOTOFLOW_PATH_PREFIX", "").strip().strip("/")
-        if path_prefix:
-            path_prefix += "/"
-
         return Config(
             endpoint_url=endpoint_url,
             bucket=bucket,
@@ -67,7 +59,6 @@ class Config:
             secret_access_key=_required("PHOTOFLOW_S3_SECRET_ACCESS_KEY"),
             region=os.environ.get("PHOTOFLOW_S3_REGION", "us-east-1"),
             public_base_url=public_base_url,
-            path_prefix=path_prefix,
             max_files_per_run=int(os.environ.get("PHOTOFLOW_MAX_FILES_PER_RUN", "2000")),
             max_backfill_per_run=int(os.environ.get("PHOTOFLOW_MAX_BACKFILL_PER_RUN", "500")),
             passthrough_max_height=int(os.environ.get("PHOTOFLOW_PASSTHROUGH_MAX_HEIGHT", "1080")),

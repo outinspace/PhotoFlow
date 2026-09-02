@@ -1,283 +1,159 @@
-"""Import a library from the old API's SQLite database.
+"""Carry favourites, deletions and albums over from the old API's database.
 
-The photos themselves never move. Their object keys are unchanged, so this reads
-the old metadata and writes the catalog and mutable state that replace it:
+The photos themselves are not migrated by this script. They are copied into the
+new bucket's incoming/ folder and the worker catalogues them exactly as it would
+any upload — new ids, fresh thumbnails, fresh search vectors. That keeps one code
+path for how a file enters the library.
 
-    tb_Items + tb_Files   -> catalog/shards/<upload month>.json
-    IsFavorite, Deleted   -> meta/state.json
-    tb_Albums + joins     -> meta/state.json albums
+What that path cannot know is what you did to those photos in the old app. This
+reads that from the old SQLite database and writes it as a mutation log — the
+same kind of file a phone or laptop writes when you favourite something — so the
+worker's ordinary compaction merges it in with no special handling.
 
-Two fields are deliberately dropped rather than carried across:
+Old and new ids differ, so the join is the content hash: the old database stored
+one per file, and the new catalog stores the same hash as the file's id.
 
-  * Thumbnails are not brought over. The old API kept them in one bucket shared
-    between tenants; they belong in the owner's own bucket now, so tileVersion is
-    left empty and the next worker run rebuilds each one from the preview.
-  * Search vectors are not brought over. They came from a different model to the
-    one the browser now uses, and comparing across the two returns nonsense.
-    embeddingVersion is left empty and the same run recomputes them.
-
-Previews are kept: they already live in the owner's bucket, and re-transcoding a
-library's worth of video to reproduce files that already exist would cost a day
-of CPU for no change.
-
-    uv run photoflow-migrate path/to/photoflow.db --dry-run
-    uv run photoflow-migrate path/to/photoflow.db
+    uv run photoflow-migrate photoflow.db --dry-run
+    uv run photoflow-migrate photoflow.db
 """
 
 import argparse
 import sqlite3
 import sys
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 from . import keys
 from .config import Config, ConfigError
-from .models import (
-    Counts,
-    EmbeddingsInfo,
-    FileRecord,
-    ItemRecord,
-    ManifestDocument,
-    ShardDocument,
-    ShardEntry,
-    StateDocument,
-    UrlPrefixes,
-)
-from .steps.derive import PREVIEW_VERSION, TILE_VERSION
-from .steps.embed import EMBEDDING_DIM, EMBEDDING_VERSION
-from .steps.extract import METADATA_VERSION
-from .steps.publish import split_into_parts
+from .models import DeviceLogDocument, ManifestDocument, ShardDocument, StateDocument
 from .storage import S3Storage, Storage
 from .timestamps import normalize, now_iso
 
-MANIFEST_VERSION = 1
+# Every run writes the same log, so re-running after more photos have been
+# catalogued extends it rather than leaving a trail of one-off device files.
+DEVICE_ID = "migration"
 
 
-def _video_length(raw) -> float | None:
-    """Seconds, from .NET's TimeSpan text.
-
-    The old schema stored durations as "00:00:02.8316666" rather than a number,
-    so this is the one column that cannot simply be handed to the model.
-    """
-    if raw is None:
-        return None
-
-    if isinstance(raw, (int, float)):
-        return float(raw)
-
-    text = str(raw).strip()
-    if not text:
-        return None
-
-    # A duration over a day is written "d.hh:mm:ss".
-    days = 0.0
-    if "." in text.split(":")[0]:
-        day_part, _, text = text.partition(".")
-        days = float(day_part)
-
-    try:
-        hours, minutes, seconds = text.split(":")
-        return days * 86400 + int(hours) * 3600 + int(minutes) * 60 + float(seconds)
-    except ValueError:
-        return None
+@dataclass
+class Report:
+    favourites: int = 0
+    deletions: int = 0
+    albums: int = 0
+    memberships: int = 0
+    # Old items whose files were not found in the catalog — not re-uploaded yet,
+    # or deliberately left behind.
+    unmatched_items: int = 0
+    # Old items whose files ended up in more than one new item, usually a Live
+    # Photo the new grouping paired differently. Their edits apply to every part.
+    split_items: int = 0
+    shared_albums_not_carried: list[str] = field(default_factory=list)
 
 
-def _exposure(numerator, denominator) -> str | None:
-    """Rebuild the shutter speed string the gallery shows.
+def load_catalog_index(storage: Storage) -> dict[str, set[int]]:
+    """Content hash -> the new item(s) holding a file with that hash."""
+    manifest = storage.get_model(keys.CATALOG_MANIFEST, ManifestDocument)
+    index: dict[str, set[int]] = defaultdict(set)
 
-    The old schema kept it as a fraction in two columns, which is why the info
-    panel could not render it; here it becomes "1/250" or "2.5".
-    """
-    if not numerator or not denominator:
-        return None
+    for entry in manifest.shards if manifest else []:
+        shard = storage.get_model(keys.shard(entry.month, entry.part), ShardDocument)
+        for item in shard.items if shard else []:
+            for file in item.files:
+                index[file.hashSha256.lower()].add(item.itemId)
 
-    if numerator >= denominator:
-        return f"{numerator / denominator:g}"
-
-    return f"{numerator}/{denominator}" if numerator == 1 else f"1/{round(denominator / numerator)}"
+    return index
 
 
-def read_catalog(connection: sqlite3.Connection) -> tuple[dict[int, ItemRecord], list[str]]:
-    """Build item records from the old tables, reporting anything left behind."""
+def plan_operations(connection: sqlite3.Connection, index: dict[str, set[int]], first_seq: int = 1):
+    """Turn the old database's state into mutation-log operations."""
     connection.row_factory = sqlite3.Row
-    warnings: list[str] = []
-
-    files_by_item: dict[int, list[FileRecord]] = defaultdict(list)
-    for row in connection.execute("SELECT * FROM tb_Files"):
-        upload_time = normalize(row["UploadTimeUtc"])
-        if not upload_time:
-            warnings.append(f"file {row['FileId']} has no upload time, skipped")
-            continue
-
-        files_by_item[row["ItemId"]].append(
-            FileRecord(
-                # Kept exactly as it is: the id is half of an object key, and the
-                # objects are not being rewritten.
-                fileId=row["FileId"],
-                contentType=row["ContentType"],
-                originalFileName=row["OriginalFileName"],
-                sizeBytes=row["SizeBytes"],
-                uploadTimeUtc=upload_time,
-                hashSha256=row["HashSha256"],
-                lastProcessedTimeUtc=normalize(row["LastProcessedTimeUtc"]),
-                failedProcessingTimeUtc=normalize(row["FailedProcessingTimeUtc"]),
-                # Left empty on purpose; see the note at the top of this file.
-                tileVersion=None,
-                previewVersion=PREVIEW_VERSION if row["PreviewVersion"] else None,
-                thumbHash=row["ThumbHash"],
-                # The old API always wrote a separate preview file.
-                previewIsOriginal=False,
-            )
-        )
-
-    items: dict[int, ItemRecord] = {}
-    for row in connection.execute("SELECT * FROM tb_Items"):
-        files = files_by_item.get(row["ItemId"])
-        if not files:
-            warnings.append(f"item {row['ItemId']} has no files, skipped")
-            continue
-
-        # The old schema stored .NET's DateTime.MinValue for an unknown capture
-        # time; the gallery sorts on this, so fall back to when it was uploaded.
-        capture_time = normalize(row["CaptureTimeUtc"]) or min(f.uploadTimeUtc for f in files)
-
-        items[row["ItemId"]] = ItemRecord(
-            itemId=row["ItemId"],
-            captureTime=capture_time,
-            files=sorted(files, key=lambda f: f.originalFileName),
-            videoLength=_video_length(row["VideoLength"]),
-            widthPixels=row["WidthPixels"],
-            heightPixels=row["HeightPixels"],
-            longitude=row["Longitude"],
-            latitude=row["Latitude"],
-            altitude=row["Altitude"],
-            city=row["City"],
-            region=row["Region"],
-            megapixels=row["Megapixels"],
-            exposureTime=_exposure(row["ExposureTimeNumerator"], row["ExposureTimeDenominator"]),
-            # The new model carries the old spelling of this field.
-            aperature=row["Aperture"],
-            fNumber=row["FNumber"],
-            iso=row["ISO"],
-            cameraMake=row["CameraMake"],
-            cameraModel=row["CameraModel"],
-            embeddingVersion=None,
-        )
-
-    return items, warnings
-
-
-def read_state(connection: sqlite3.Connection, items: dict[int, ItemRecord]) -> StateDocument:
-    """Favourites, deletions and albums, in the shape the merge expects.
-
-    Every value carries the timestamp it was last changed, because that is what
-    later edits from a device are compared against. Using the row's own modified
-    time rather than now means a device's pending change still wins if it is newer.
-    """
-    connection.row_factory = sqlite3.Row
+    report = Report()
     fallback = now_iso()
 
-    item_state: dict[str, dict] = {}
-    for row in connection.execute("SELECT * FROM tb_Items"):
-        if row["ItemId"] not in items:
+    hashes_by_old_item: dict[int, list[str]] = defaultdict(list)
+    for row in connection.execute("SELECT ItemId, HashSha256 FROM tb_Files"):
+        hashes_by_old_item[row["ItemId"]].append(row["HashSha256"].lower())
+
+    def new_items_for(old_item_id: int) -> set[int]:
+        found: set[int] = set()
+        for content_hash in hashes_by_old_item.get(old_item_id, []):
+            found |= index.get(content_hash, set())
+        return found
+
+    operations: list[dict] = []
+    seq = first_seq
+
+    def emit(ts: str, **fields) -> None:
+        nonlocal seq
+        operations.append({"seq": seq, "ts": ts, **fields})
+        seq += 1
+
+    for row in connection.execute("SELECT * FROM tb_Items WHERE IsFavorite = 1 OR DeletedTimeUtc IS NOT NULL"):
+        targets = new_items_for(row["ItemId"])
+        if not targets:
+            report.unmatched_items += 1
             continue
+        if len(targets) > 1:
+            report.split_items += 1
 
+        # The row's own change time, not now: an edit made in the new app before
+        # this ran is newer and should still win the merge.
         changed = normalize(row["ModifiedTimeUtc"]) or fallback
-        fields = {}
-
-        if row["IsFavorite"]:
-            fields["favorite"] = {"value": True, "ts": changed}
-
         deleted = normalize(row["DeletedTimeUtc"])
-        if deleted:
-            fields["deleted"] = {"value": deleted, "ts": changed}
 
-        if fields:
-            item_state[str(row["ItemId"])] = fields
+        for item_id in sorted(targets):
+            if row["IsFavorite"]:
+                emit(changed, op="item.favorite", itemId=item_id, value=True)
+            if deleted:
+                emit(changed, op="item.deleted", itemId=item_id, value=deleted)
 
-    members: dict[int, dict] = defaultdict(dict)
-    for row in connection.execute("SELECT * FROM tb_ItemAlbum"):
-        if row["ItemId"] in items:
-            members[row["AlbumId"]][str(row["ItemId"])] = {}
+        report.favourites += bool(row["IsFavorite"])
+        report.deletions += bool(deleted)
 
-    albums: dict[str, dict] = {}
+    members: dict[int, list[int]] = defaultdict(list)
+    for row in connection.execute("SELECT AlbumId, ItemId FROM tb_ItemAlbum"):
+        members[row["AlbumId"]].append(row["ItemId"])
+
     for row in connection.execute("SELECT * FROM tb_Albums"):
         created = normalize(row["CreatedTimeUtc"]) or fallback
         updated = normalize(row["UpdatedTimeUtc"]) or created
 
-        album: dict = {
-            "albumId": row["AlbumId"],
-            "createdTimeUtc": created,
-            "name": {"value": row["Name"], "ts": updated},
-        }
+        # Old ids are kept so a second run addresses the same album, not a new one.
+        emit(created, op="album.create", albumId=row["AlbumId"], name=row["Name"])
+        report.albums += 1
 
+        for old_item_id in members.get(row["AlbumId"], []):
+            targets = new_items_for(old_item_id)
+            if not targets:
+                report.unmatched_items += 1
+                continue
+            for item_id in sorted(targets):
+                emit(updated, op="album.member", albumId=row["AlbumId"], itemId=item_id, value=True)
+            report.memberships += 1
+
+        # A share link is a document the app writes when you share; carrying only
+        # the secret would show a link that leads nowhere. Re-share from the app.
         if row["ShareSecret"]:
-            album["shareSecret"] = {"value": row["ShareSecret"], "ts": updated}
+            report.shared_albums_not_carried.append(row["Name"])
 
-        # Membership is per photo rather than one list, so a later addition from
-        # another device merges instead of replacing the whole album.
-        album["members"] = {
-            item_id: {"in": {"value": True, "ts": updated}}
-            for item_id in members.get(row["AlbumId"], {})
-        }
-
-        albums[str(row["AlbumId"])] = album
-
-    return StateDocument(compactedAt=fallback, cursors={}, items=item_state, albums=albums)
+    return operations, report
 
 
-def shard_items(items: dict[int, ItemRecord]) -> dict[str, list[ItemRecord]]:
-    """Group by upload month, matching how the worker publishes."""
-    by_month: dict[str, list[ItemRecord]] = defaultdict(list)
-    for item in items.values():
-        by_month[min(file.uploadTimeUtc for file in item.files)[:7]].append(item)
-    return by_month
+def next_seq(storage: Storage) -> int:
+    """Continue after whatever the worker has already compacted from this log."""
+    state = storage.get_model(keys.META_STATE, StateDocument)
+    return (state.cursors.get(DEVICE_ID, 0) if state else 0) + 1
 
 
-def write(storage: Storage, config: Config, items: dict[int, ItemRecord], state: StateDocument) -> ManifestDocument:
-    generated = now_iso()
-    by_month = shard_items(items)
-
-    entries: list[ShardEntry] = []
-
-    for month, month_items in sorted(by_month.items()):
-        # Importing a back catalogue puts a whole library into one month, which is
-        # precisely the case shard parts exist for.
-        for index, part_items in enumerate(split_into_parts(month_items), start=1):
-            storage.put_model(
-                keys.shard(month, index),
-                ShardDocument(month=month, part=index, items=part_items),
-            )
-            entries.append(ShardEntry(month=month, part=index, items=len(part_items), updatedAt=generated))
-
-    manifest = ManifestDocument(
-        manifestVersion=MANIFEST_VERSION,
-        generatedAt=generated,
-        versions={
-            "tile": TILE_VERSION,
-            "preview": PREVIEW_VERSION,
-            "metadata": METADATA_VERSION,
-            "embedding": EMBEDDING_VERSION,
-        },
-        urls=UrlPrefixes(
-            originalPrefix=f"{config.public_base_url}original/{config.path_prefix}",
-            tileImagePrefix=f"{config.public_base_url}tile-image/{config.path_prefix}",
-            previewPrefix=f"{config.public_base_url}preview/{config.path_prefix}",
-        ),
-        shards=entries,
-        # None yet; the next worker run computes them.
-        embeddings=EmbeddingsInfo(dim=EMBEDDING_DIM, dtype="int8", modelRepo=config.clip_model_repo, months=[]),
-        counts=Counts(items=len(items), files=sum(len(item.files) for item in items.values())),
+def write_log(storage: Storage, operations: list[dict]) -> None:
+    storage.put_model(
+        keys.device_log(DEVICE_ID),
+        DeviceLogDocument.model_validate({"deviceId": DEVICE_ID, "ops": operations}),
     )
-
-    storage.put_model(keys.CATALOG_MANIFEST, manifest)
-    storage.put_model(keys.META_STATE, state)
-
-    return manifest
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Import an old Photoflow SQLite database into the catalog.")
-    parser.add_argument("database", help="tenant .db file, as downloaded from Export Data")
+    parser = argparse.ArgumentParser(description="Carry favourites, deletions and albums over from an old Photoflow database.")
+    parser.add_argument("database", help="tenant .db file, as downloaded from Export Data in the old app")
     parser.add_argument("--dry-run", action="store_true", help="report what would be written and stop")
     arguments = parser.parse_args()
 
@@ -287,38 +163,39 @@ def main() -> int:
         print(f"Configuration error: {error}", file=sys.stderr)
         return 2
 
+    storage = S3Storage(config)
     connection = sqlite3.connect(f"file:{arguments.database}?mode=ro", uri=True)
 
-    items, warnings = read_catalog(connection)
-    state = read_state(connection, items)
-    by_month = shard_items(items)
+    index = load_catalog_index(storage)
+    if not index:
+        print("The catalog is empty. Copy the photos into incoming/ and run the worker first.", file=sys.stderr)
+        return 1
 
-    for warning in warnings[:20]:
-        print(f"  warning: {warning}")
-    if len(warnings) > 20:
-        print(f"  ...and {len(warnings) - 20} more warnings")
+    operations, report = plan_operations(connection, index, first_seq=next_seq(storage))
 
-    videos = sum(1 for item in items.values() for f in item.files if f.contentType.startswith("video/"))
+    print(f"\n{'Would carry over' if arguments.dry_run else 'Carrying over'} from {arguments.database}:")
+    print(f"  favourites        {report.favourites}")
+    print(f"  deletions         {report.deletions}")
+    print(f"  albums            {report.albums}")
+    print(f"  album members     {report.memberships}")
+    print(f"  operations        {len(operations)}")
 
-    print(f"\n{'Would import' if arguments.dry_run else 'Importing'} from {arguments.database}:")
-    print(f"  items            {len(items)}")
-    print(f"  files            {sum(len(item.files) for item in items.values())} ({videos} video)")
-    print(f"  shards           {len(by_month)} months, {min(by_month, default='-')} to {max(by_month, default='-')}")
-    print(f"  favourites       {sum(1 for v in state.items.values() if 'favorite' in v)}")
-    print(f"  deleted          {sum(1 for v in state.items.values() if 'deleted' in v)}")
-    print(f"  albums           {len(state.albums)}")
-    print(f"  album members    {sum(len(a.get('members', {})) for a in state.albums.values())}")
-    print("\n  thumbnails and search vectors are rebuilt by the worker, a batch per run")
+    if report.unmatched_items:
+        print(f"\n  {report.unmatched_items} old items were not found in the catalog. If their photos have not")
+        print("  been copied and processed yet, run this again once they have.")
+    if report.split_items:
+        print(f"  {report.split_items} old items now span more than one item; their edits apply to each part.")
+    if report.shared_albums_not_carried:
+        names = ", ".join(report.shared_albums_not_carried)
+        print(f"  share links are not carried over; re-share from the app: {names}")
 
     if arguments.dry_run:
         print("\nDry run, nothing written.")
         return 0
 
-    print(f"\nWriting to {config.bucket}...")
-    manifest = write(S3Storage(config), config, items, state)
-    print(f"Wrote {len(manifest.shards)} shards, the manifest, and meta/state.json.")
-    print("Run photoflow-worker next to build the thumbnails.")
-
+    write_log(storage, operations)
+    print(f"\nWrote {len(operations)} operations to meta/log/{DEVICE_ID}.json.")
+    print("They take effect in the app immediately, and the next worker run compacts them.")
     return 0
 
 

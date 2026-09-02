@@ -76,7 +76,7 @@ def _derive_image(context, entry, record) -> None:
 
             tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
             _save_resized(image, tile_path, TILE_WIDTH)
-            _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
+            _upload(context, tile_path, keys.tile(entry.file_id), "image/jpeg")
             record.tileVersion = TILE_VERSION
 
         if entry.needs_preview:
@@ -85,7 +85,7 @@ def _derive_image(context, entry, record) -> None:
             _upload(
                 context,
                 preview_path,
-                keys.preview(context.config.path_prefix, entry.file_id, ".jpeg"),
+                keys.preview(entry.file_id, ".jpeg"),
                 "image/jpeg",
             )
             record.previewVersion = PREVIEW_VERSION
@@ -103,7 +103,7 @@ def _derive_video(context, entry, record) -> bool:
 
             tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
             _save_resized(frame, tile_path, TILE_WIDTH)
-            _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
+            _upload(context, tile_path, keys.tile(entry.file_id), "image/jpeg")
             record.tileVersion = TILE_VERSION
 
     if not entry.needs_preview:
@@ -121,7 +121,7 @@ def _derive_video(context, entry, record) -> bool:
     _upload(
         context,
         preview_path,
-        keys.preview(context.config.path_prefix, entry.file_id, ".mp4"),
+        keys.preview(entry.file_id, ".mp4"),
         "video/mp4",
     )
     record.previewIsOriginal = False

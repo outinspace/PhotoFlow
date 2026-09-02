@@ -190,9 +190,8 @@ def _month_for(item) -> str:
 
 def _url_prefixes(config) -> UrlPrefixes:
     base = config.public_base_url
-    prefix = config.path_prefix
     return UrlPrefixes(
-        originalPrefix=f"{base}original/{prefix}",
-        tileImagePrefix=f"{base}tile-image/{prefix}",
-        previewPrefix=f"{base}preview/{prefix}",
+        originalPrefix=f"{base}original/",
+        tileImagePrefix=f"{base}tile-image/",
+        previewPrefix=f"{base}preview/",
     )
