@@ -30,6 +30,8 @@ class Context:
     known_hashes: set[str] = field(default_factory=set)
     # incoming/ objects this run will process.
     pending: list = field(default_factory=list)
+    # fileId -> request key, for files the app asked to have rebuilt.
+    reprocess: dict = field(default_factory=dict)
     # Items touched this run, so publish only rewrites the shards that changed.
     dirty_months: set[str] = field(default_factory=set)
     # Embeddings produced this run, keyed by itemId.

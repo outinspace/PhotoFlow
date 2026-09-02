@@ -39,7 +39,14 @@ class Ingested:
     content_type: str
     size_bytes: int
     local_path: str
-    incoming_key: str
+    # Set for a new upload, absent when the file is already stored and is only
+    # being rebuilt.
+    incoming_key: str | None = None
+    reprocess_key: str | None = None
+    # Set when the file already belongs to an item, so extract updates that item
+    # instead of grouping the file into a new one.
+    item_id: int | None = None
+    upload_time_utc: str | None = None
 
 
 def content_type_for(file_name: str) -> str:
@@ -99,8 +106,60 @@ def run(context) -> None:
             )
         )
 
-    context.ingested = ingested
+    context.ingested = ingested + _fetch_for_reprocessing(context)
     context.note(f"ingested {len(ingested)}, skipped {skipped} duplicates, ignored {ignored} non-media")
+
+
+def _fetch_for_reprocessing(context) -> list[Ingested]:
+    """Pull down originals the app asked to have rebuilt.
+
+    These are already stored and already in the catalog, so nothing is uploaded or
+    grouped again — only the derived files are made afresh.
+    """
+    requested = []
+
+    for file_id, request_key in context.reprocess.items():
+        found = next(
+            ((item, file) for item in context.items.values()
+             for file in item.files if file.fileId == file_id),
+            None,
+        )
+
+        if found is None:
+            # The file is gone from the catalog, so the request cannot be honoured.
+            context.note(f"reprocess request for unknown file {file_id}, dropping it")
+            context.storage.delete(request_key)
+            continue
+
+        item, file = found
+        local_path = os.path.join(context.work_dir, file.originalFileName)
+
+        try:
+            _download(context, keys.original(context.config.path_prefix, file_id), local_path)
+        except Exception as error:
+            context.note(f"could not fetch {file.originalFileName} to reprocess: {error}")
+            continue
+
+        requested.append(
+            Ingested(
+                file_id=file_id,
+                hash_sha256=file.hashSha256,
+                original_file_name=file.originalFileName,
+                content_type=file.contentType,
+                size_bytes=file.sizeBytes,
+                local_path=local_path,
+                reprocess_key=request_key,
+                item_id=item.itemId,
+                # Kept as it was, or the item would move into this month's shard
+                # and the month it actually belongs to would lose it.
+                upload_time_utc=file.uploadTimeUtc,
+            )
+        )
+
+    if requested:
+        context.note(f"fetched {len(requested)} files to reprocess")
+
+    return requested
 
 
 def _download(context, key: str, destination: str) -> None:

@@ -41,33 +41,44 @@ def run(context) -> None:
 
         capture_time = _capture_time(tags) or _parse_iso(now)
 
-        file_record = FileRecord(
-            fileId=entry.file_id,
-            contentType=entry.content_type,
-            originalFileName=entry.original_file_name,
-            sizeBytes=entry.size_bytes,
-            uploadTimeUtc=now,
-            hashSha256=entry.hash_sha256,
-        )
-
-        candidates = group_keys_for(entry.original_file_name, capture_time)
-        item_id = next((group_index[key] for key in candidates if key in group_index), None)
-
-        if item_id is None:
-            item_id = item_id_from_group_key(candidates[0])
-            context.items[item_id] = ItemRecord(
-                itemId=item_id,
-                captureTime=capture_time.isoformat(),
+        if entry.item_id is not None:
+            # A rebuild of a file that is already catalogued. Its existing record is
+            # kept rather than replaced, so a rebuild that fails leaves the tile it
+            # already had in place instead of blanking it.
+            item = context.items[entry.item_id]
+            file_record = next(f for f in item.files if f.fileId == entry.file_id)
+        else:
+            file_record = FileRecord(
+                fileId=entry.file_id,
+                contentType=entry.content_type,
+                originalFileName=entry.original_file_name,
+                sizeBytes=entry.size_bytes,
+                uploadTimeUtc=now,
+                hashSha256=entry.hash_sha256,
             )
 
-        item = context.items[item_id]
-        item.files = [f for f in item.files if f.fileId != file_record.fileId] + [file_record]
+            candidates = group_keys_for(entry.original_file_name, capture_time)
+            item_id = next((group_index[key] for key in candidates if key in group_index), None)
+
+            if item_id is None:
+                item_id = item_id_from_group_key(candidates[0])
+                context.items[item_id] = ItemRecord(
+                    itemId=item_id,
+                    captureTime=capture_time.isoformat(),
+                )
+
+            item = context.items[item_id]
+            item.files = [f for f in item.files if f.fileId != file_record.fileId] + [file_record]
+
+            for key in candidates:
+                group_index[key] = item_id
+
+            entry.item_id = item_id
+
         _apply_tags(item, tags)
 
-        for key in candidates:
-            group_index[key] = item_id
-
-        entry.item_id = item_id
+        # The upload month, not this month: a rebuilt file stays in the shard it
+        # already belongs to.
         context.dirty_months.add(month_of(file_record.uploadTimeUtc))
 
     context.note(f"extracted metadata for {len(getattr(context, 'ingested', []))} files ({failures} failed)")
