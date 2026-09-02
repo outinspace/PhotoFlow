@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "../app";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
+import { appendOperations, invalidateAfterMutation } from "../storage/mutation.log";
 
 interface UpdateAlbumArgs {
     albumId: number;
@@ -10,19 +9,11 @@ interface UpdateAlbumArgs {
 export const useUpdateAlbum = () => {
     return useMutation({
         mutationFn: async ({ albumId, name }: UpdateAlbumArgs) => {
-            await fetchAuthenticatedRoute(`/album/${albumId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    name
-                }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            if (name === null) {
+                return;
+            }
+            appendOperations([{ op: 'album.rename', albumId, name }]);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['albums'] });
-        }
+        onSuccess: invalidateAfterMutation
     });
 }
-

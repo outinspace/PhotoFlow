@@ -1,9 +1,10 @@
 import { Item } from '../types';
 import { Download, MediaImage, MediaVideo, Camera, MapPin, Calendar, Cloud } from 'iconoir-react';
-import { LatLngExpression } from 'leaflet';
 import { formatBytes } from '../common/format.helpers';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { lazy, Suspense } from 'react';
+
+// Loaded with the map library only when a photo with coordinates is inspected.
+const MiniMap = lazy(() => import('../map/mini.map').then(module => ({ default: module.MiniMap })));
 import { useNavigate } from '@tanstack/react-router';
 import { BottomSheet } from '../common/bottom.sheet';
 import { format } from 'date-fns';
@@ -13,10 +14,9 @@ interface Props {
     item: Item;
     isOpen: boolean;
     onDismiss: () => any;
-    tenantId?: string;
 }
 
-const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
+const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
     return (
         <BottomSheet
             isOpen={isOpen}
@@ -26,7 +26,7 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss, tenantId }: Props) => {
                 <BasicInfo item={item} />
                 <CameraMetadata item={item} />
                 <LocationMetadata item={item} />
-                <FileMetadata item={item} tenantId={tenantId} />
+                <FileMetadata item={item} />
             </div>
         </BottomSheet>
     );
@@ -84,8 +84,6 @@ const LocationMetadata = ({ item }: { item: Item }) => {
 
     if (!positionAvailable) return null;
 
-    const position: LatLngExpression = [item.latitude ?? 0, item.longitude ?? 0];
-
     const navigateToMap = () => navigate({
         to: '/map',
         search: {
@@ -104,20 +102,16 @@ const LocationMetadata = ({ item }: { item: Item }) => {
                 {item.city && item.region ? `${item.city}, ${item.region}` : 'Unknown location'}
                 {item.altitude && ` (${Math.round(item.altitude)}m)`}
             </div>
-            <div className='border border-slate-200 h-48 overflow-hidden rounded' onClick={navigateToMap}>
-                <MapContainer center={position} zoom={13} scrollWheelZoom={false} zoomControl={false} className='select-none' dragging={false} style={{ height: '100%', width: '100%' }}>
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <Marker position={position} />
-                </MapContainer>
+            <div className='h-48 cursor-pointer overflow-hidden rounded border border-slate-200' onClick={navigateToMap}>
+                <Suspense fallback={<div className='size-full bg-slate-100' />}>
+                    <MiniMap latitude={item.latitude!} longitude={item.longitude!} />
+                </Suspense>
             </div>
         </div>
     );
 };
 
-const FileMetadata = ({ item, tenantId }: { item: Item, tenantId?: string }) => {
+const FileMetadata = ({ item }: { item: Item }) => {
     return (
         <div>
             <div className='flex items-center gap-2 mb-2'>
@@ -141,7 +135,7 @@ const FileMetadata = ({ item, tenantId }: { item: Item, tenantId?: string }) => 
                             {formatBytes(file.sizeBytes)}
                         </div>
                         <div className='border-l border-slate-200 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => downloadFile(file.fileId, tenantId)} />
+                            <Download onClick={() => downloadFile(file)} />
                         </div>
                     </div>
                 ))}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Where the browser reads photos from. Leave publicBaseUrl empty if this app is served from the same domain as your bucket's CDN; otherwise set it to that domain, e.g. https://photos.example.com. Editing this file does not require rebuilding the app.",
+  "publicBaseUrl": ""
+}

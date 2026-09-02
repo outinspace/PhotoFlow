@@ -21,12 +21,11 @@ interface Props {
     onMovePrevious?: Function;
     onClose?: Function;
     readonly?: boolean;
-    tenantId?: string;
 }
 
 const SLIDESHOW_VIDEO_MAX_SECONDS = 15;
 
-const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly, tenantId }: Props) => {
+const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -50,12 +49,10 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             return;
         }
 
-        // Check if the page is zoomed in or if it's a pinch gesture
         if (touches > 1) {
             return; // Prevent dragging during pinch gestures
         }
         
-        // More reliable zoom detection
         const visualViewport = window.visualViewport;
         if (visualViewport && visualViewport.scale > 1) {
             return; // Prevent dragging if zoomed in
@@ -86,7 +83,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
         const mx = omx * (1 - dismissPercent);
         const my = omy * (1 - swipePercent);
 
-        // Track user drag
         if (down) {
             swipeApi.start({
                 x: mx,
@@ -115,7 +111,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 }));
                 onMoveNext?.();
             }
-            // Reset position
             swipeApi.start({ x: 0, immediate: true });
             setIsAnimating(false);
         } else if (Math.abs(my) > window.innerHeight / 4) {
@@ -142,7 +137,6 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             });
         }
 
-        // Reset current gesture direction only when gesture ends
         if (!down) {
             currentGestureDirection.current = undefined;
         }
@@ -164,10 +158,9 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     config: { tension: 500, clamp: true }
                 }));
                 onMoveNext();
-                swipeApi.start({ x: 0, immediate: true }); // Reset position
+                swipeApi.start({ x: 0, immediate: true });
                 setIsAnimating(false);
             } else {
-                // No animation, just move immediately
                 onMoveNext();
             }
         };
@@ -184,10 +177,9 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     config: { tension: 500, clamp: true }
                 }));
                 onMovePrevious();
-                swipeApi.start({ x: 0, immediate: true }); // Reset position
+                swipeApi.start({ x: 0, immediate: true });
                 setIsAnimating(false);
             } else {
-                // No animation, just move immediately
                 onMovePrevious();
             }
         };
@@ -273,7 +265,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                 className='absolute top-0 left-0 w-full h-full touch-manipulation'
             >
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
-                    .filter((i) => i >= 0 && i < items.length) // Only render relevant images
+                    .filter((i) => i >= 0 && i < items.length)
                     .map((i) => (
                         <animated.div
                             key={i}
@@ -369,14 +361,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     onItemsRemoved={() => onClose?.()}
                     position='bottom'
                     readonly={!!readonly}
-                    tenantId={tenantId}
                 />
             </div>
             <ItemInfoSheet
                 item={item}
                 isOpen={showInfoSheet}
                 onDismiss={() => setShowInfoSheet(false)}
-                tenantId={tenantId}
             />
         </animated.div>
     );

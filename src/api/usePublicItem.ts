@@ -1,32 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { Item } from "../types";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
 import { computeItemProperties } from "./computeItemProperties";
+import { readJson } from "../storage/bucket";
+import { loadRuntimeConfig } from "../storage/runtime.config";
+import { itemShareKey, SharedItem } from "../storage/sharing";
 
-interface GetPublicItemResponse {
-    item: Item;
-    originalUrlPrefix: string;
-    tileImageUrlPrefix: string;
-    previewUrlPrefix: string;
-}
-
-export const usePublicItem = (tenantId: string, primaryFileId: string) => useQuery({
-    queryKey: ['public', 'item', tenantId, primaryFileId],
+export const usePublicItem = (primaryFileId: string) => useQuery({
+    queryKey: ['public', 'item', primaryFileId],
     queryFn: async () => {
-        const res = await fetchAuthenticatedRoute(`/public/item/${tenantId}/${primaryFileId}`);
+        await loadRuntimeConfig();
 
-        const body = await res.json();
-        const response = body as GetPublicItemResponse;
+        const shared = await readJson<SharedItem>(itemShareKey(primaryFileId));
+        if (!shared) {
+            throw new Error('This shared photo is no longer available.');
+        }
 
-        // Computed properties
-        computeItemProperties(
-            response.item,
-            response.originalUrlPrefix,
-            response.tileImageUrlPrefix,
-            response.previewUrlPrefix
-        );
+        computeItemProperties(shared.item, shared.urls.originalPrefix, shared.urls.tileImagePrefix, shared.urls.previewPrefix);
 
-        return response.item;
+        return shared.item;
     }
 });
-

@@ -1,19 +1,17 @@
 import { createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import Gallery from "./gallery/gallery";
-import Login from "./login/login";
-import Setup from "./setup/setup";
+import Connect from "./setup/connect";
+import LinkDevice from "./setup/link.device";
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
-import Map from './map/map';
+
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import Settings from './menu/settings';
 import StorageSettings from './menu/storage.settings';
-import ExportData from './menu/export.data';
-import SystemStatus from './menu/system.status';
 import { AlbumLayout } from './albums/album.layout';
 import { FailedItems } from './menu/failed.items';
-import { ItemsInProcess } from './menu/items.in.process';
 import { PublicItemLayout } from './gallery/public.item.layout';
 import { PublicAlbumLayout } from './albums/public.album.layout';
 import { NavigationLayout } from "./navigation.layout";
@@ -21,22 +19,19 @@ import MemoriesLayout from "./memories/memories.layout";
 import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.settings";
-import { isSetupWizardRequired } from "./setup/setup.wizard.state";
-import { getSession } from "./common/session";
+import { isConfigured } from "./storage/config";
+// maplibre-gl is by far the largest dependency here and only the map needs it,
+// so it is kept out of the initial bundle.
+const Map = lazy(() => import('./map/map'));
+
 export const rootRoute = createRootRoute();
 
 export const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     beforeLoad: () => {
-        const session = getSession();
-
-        if (!session) {
-            throw redirect({ to: '/login' });
-        }
-
-        if (isSetupWizardRequired(session.tenantId)) {
-            throw redirect({ to: '/setup' });
+        if (!isConfigured()) {
+            throw redirect({ to: '/connect' });
         }
 
         const defaultToMemories = getDefaultToMemories();
@@ -66,16 +61,10 @@ export const galleryRoute = createRoute({
     )
 });
 
-export const loginRoute = createRoute({
+export const connectRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/login',
-    component: Login
-});
-
-export const setupRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/setup',
-    component: Setup
+    path: '/connect',
+    component: Connect
 });
 
 export const mapRoute = createRoute({
@@ -83,7 +72,9 @@ export const mapRoute = createRoute({
     path: '/map',
     component: () => (
         <NavigationLayout>
-            <Map />
+            <Suspense fallback={<div className='flex-auto bg-slate-900' />}>
+                <Map />
+            </Suspense>
         </NavigationLayout>
     )
 });
@@ -158,16 +149,6 @@ export const recentlyDeletedRoute = createRoute({
     )
 });
 
-export const itemsInProcessRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/items-in-process',
-    component: () => (
-        <NavigationLayout>
-            <ItemsInProcess />
-        </NavigationLayout>
-    )
-});
-
 export const failedItemsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/failed-items',
@@ -198,29 +179,19 @@ export const s3SettingsRoute = createRoute({
     )
 });
 
-export const exportDataRoute = createRoute({
+export const linkDeviceRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/export-data',
+    path: '/link-device',
     component: () => (
         <NavigationLayout>
-            <ExportData />
-        </NavigationLayout>
-    )
-});
-
-export const systemStatusRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/system-status',
-    component: () => (
-        <NavigationLayout>
-            <SystemStatus />
+            <LinkDevice />
         </NavigationLayout>
     )
 });
 
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/p/i/$shortTenantId/$shortPrimaryFileId/',
+    path: '/p/i/$shortPrimaryFileId/',
     component: () => (
         <PublicItemLayout />
     )
@@ -228,7 +199,7 @@ export const publicItemRoute = createRoute({
 
 export const publicAlbumRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/p/a/$shortTenantId/$shortShareSecret/',
+    path: '/p/a/$shortShareSecret/',
     component: () => (
         <PublicAlbumLayout />
     )
@@ -238,8 +209,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     homeRoute,
     galleryRoute,
-    loginRoute,
-    setupRoute,
+    connectRoute,
     mapRoute,
     albumsRoute,
     albumRoute,
@@ -248,12 +218,10 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     menuRoute,
     recentlyDeletedRoute,
-    itemsInProcessRoute,
     failedItemsRoute,
     settingsRoute,
     s3SettingsRoute,
-    exportDataRoute,
-    systemStatusRoute,
+    linkDeviceRoute,
     publicItemRoute,
     publicAlbumRoute
 ]);

@@ -2,15 +2,14 @@ import { useMemo, useState } from 'react';
 import { Item } from '../types';
 import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { useRemoveItemsFromAlbum } from '../api/useRemoveItemsFromAlbum';
-import { useReprocessItems } from '../api/useReprocessItems';
 import { useRestoreItems } from '../api/useRestoreItems';
+import { useReprocessItems } from '../api/useReprocessItems';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { CreateAlbumModal } from './create.album.modal';
-import { compactGUID } from '../common/format.helpers';
 import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
+import { publishItemShare } from '../storage/sharing';
 import { router } from '../routes';
-import { getTenantId } from '../common/session';
 import { DeleteItemsModal } from './delete.items.modal';
 import { IS_STANDALONE } from '../common/browser.utils';
 
@@ -26,51 +25,48 @@ interface Props {
     onActionCompleted?: () => void;
     position: 'top' | 'bottom';
     readonly: boolean;
-    tenantId?: string;
 }
 
-export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemoved, onActionCompleted, position, readonly, tenantId }: Props) => {
+export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemoved, onActionCompleted, position, readonly }: Props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddToAlbumModal, setShowAddToAlbumModal] = useState(false);
     const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
 
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
-    const reprocessItemsMutation = useReprocessItems();
+    const reprocessMutation = useReprocessItems();
 
-    const getPublicUrl = () => {
-        const tenantId = getTenantId();
-        const fileId = items[0]?.primaryFile?.fileId;
-
-        if (!tenantId || !fileId) {
+    const getPublicUrl = async () => {
+        const item = items[0];
+        if (!item?.primaryFile) {
             return;
         }
 
-        const shortTenantId = compactGUID(tenantId);
-        const shortFileId = compactGUID(fileId);
+        // Publishing writes the standalone share document; without it the link
+        // would resolve to nothing for anyone but the owner.
+        await publishItemShare(item);
 
         const link = router.buildLocation({
-            to: '/p/i/$shortTenantId/$shortPrimaryFileId',
-            params: {
-                shortTenantId: shortTenantId,
-                shortPrimaryFileId: shortFileId
-            }
+            to: '/p/i/$shortPrimaryFileId',
+            params: { shortPrimaryFileId: item.primaryFile.fileId }
         });
 
-        const url = window.location.origin + link.href;
-        return url;
+        return window.location.origin + link.href;
     }
 
-    const sharePublicLink = () => {
-        const url = getPublicUrl();
-        navigator.share({
-            url: url
-        });
+    const sharePublicLink = async () => {
+        const url = await getPublicUrl();
+        if (!url) {
+            return;
+        }
+        navigator.share({ url });
     }
 
-    const openPublicLink = () => {
-        const url = getPublicUrl();
-        window.open(url, '_blank');
+    const openPublicLink = async () => {
+        const url = await getPublicUrl();
+        if (url) {
+            window.open(url, '_blank');
+        }
     }
 
     const handleItemsRemoved = () => {
@@ -108,7 +104,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
             visible: !showSharingOptions,
             icon: Download,
             className: '',
-            onClick: () => downloadFiles(items, tenantId)
+            onClick: () => downloadFiles(items)
         },
         {
             title: `Share ${items.length === 1 ? 'File' : 'Files'}`,
@@ -154,12 +150,11 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
         },
         {
             title: 'Reprocess',
-            visible: !readonly,
+            visible: !itemsAreDeleted && !readonly,
             icon: Refresh,
             className: '',
             onClick: () => {
-                const itemIds = items.map(item => item.itemId);
-                reprocessItemsMutation.mutate(itemIds);
+                reprocessMutation.mutate(items.flatMap(item => item.files));
                 onDismiss();
             }
         },

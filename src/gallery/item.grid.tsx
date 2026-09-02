@@ -28,10 +28,9 @@ interface Props {
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
     disablePinch?: boolean;
-    tenantId?: string;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch, tenantId }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -142,7 +141,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
 
-    // Cleanup timer on unmount
     useEffect(() => {
         return () => {
             if (clickTimerRef.current) {
@@ -238,7 +236,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 onActionCompleted={() => closeSelectionMode()}
                                 position='top'
                                 readonly={!!readonly}
-                                tenantId={tenantId}
                             />
                         </>
                     )}
@@ -325,7 +322,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     items={items}
                     itemIndex={previewItemIndex}
                     albumId={albumId}
-                    tenantId={tenantId}
                     onMovePrevious={() => {
                         const newIndex = previewItemIndex === 0 ? items.length - 1 : previewItemIndex - 1;
                         const newItem = items[newIndex];

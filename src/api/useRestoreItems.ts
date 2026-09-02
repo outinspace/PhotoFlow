@@ -1,21 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "../app";
-import { fetchAuthenticatedRoute } from "./fetchAuthenticatedRoute";
+import { appendOperations, invalidateAfterMutation } from "../storage/mutation.log";
 
 export const useRestoreItems = () => {
     return useMutation({
         mutationFn: async (itemIds: number[]) => {
-            await fetchAuthenticatedRoute('/items/restore', {
-                method: 'POST',
-                body: JSON.stringify(itemIds),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            appendOperations(itemIds.map(itemId => ({ op: 'item.deleted' as const, itemId, value: null })));
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['items'] });
-        }
+        onSuccess: invalidateAfterMutation
     });
 }
-
