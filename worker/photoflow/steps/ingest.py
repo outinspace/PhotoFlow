@@ -48,6 +48,13 @@ class Ingested:
     item_id: int | None = None
     upload_time_utc: str | None = None
 
+    # Which outputs this entry still needs. A new upload needs all of them; a
+    # repair of an existing file usually needs only one, and doing the others
+    # would mean re-transcoding video that is already fine.
+    needs_tile: bool = True
+    needs_preview: bool = True
+    needs_embedding: bool = True
+
 
 def content_type_for(file_name: str) -> str:
     extension = os.path.splitext(file_name)[1].lower()

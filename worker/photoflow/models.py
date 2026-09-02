@@ -45,6 +45,10 @@ class ItemRecord(Strict):
     captureTime: str
     files: list[FileRecord] = Field(default_factory=list)
 
+    # Which model version produced this item's search vector. Absent means it has
+    # none yet, which is how a run knows to backfill it.
+    embeddingVersion: int | None = None
+
     videoLength: float | None = None
     widthPixels: int | None = None
     heightPixels: int | None = None

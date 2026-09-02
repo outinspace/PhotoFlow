@@ -18,6 +18,7 @@ def config() -> Config:
         public_base_url="https://cdn.example.invalid/",
         path_prefix="",
         max_files_per_run=100,
+        max_backfill_per_run=500,
         passthrough_max_height=1080,
         clip_model_repo="test/model",
         healthcheck_url=None,

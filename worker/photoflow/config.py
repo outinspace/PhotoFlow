@@ -38,6 +38,9 @@ class Config:
     path_prefix: str
     # Cap per run so a first run over a huge library cannot exhaust CI minutes.
     max_files_per_run: int
+    # Separate cap for repairing already-catalogued files, so a large backlog is
+    # worked through over several nights instead of stalling one run.
+    max_backfill_per_run: int
     # Videos at or below this height that already use a browser-safe codec are served
     # as-is instead of being transcoded into a near-duplicate preview file.
     passthrough_max_height: int
@@ -66,6 +69,7 @@ class Config:
             public_base_url=public_base_url,
             path_prefix=path_prefix,
             max_files_per_run=int(os.environ.get("PHOTOFLOW_MAX_FILES_PER_RUN", "2000")),
+            max_backfill_per_run=int(os.environ.get("PHOTOFLOW_MAX_BACKFILL_PER_RUN", "500")),
             passthrough_max_height=int(os.environ.get("PHOTOFLOW_PASSTHROUGH_MAX_HEIGHT", "1080")),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),
             healthcheck_url=os.environ.get("PHOTOFLOW_HEALTHCHECK_URL") or None,
