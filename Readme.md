@@ -150,10 +150,17 @@ directory to `incoming`, and turn on autotransfer while charging.
 
 ## How it works
 
-**The catalog is static.** `catalog/manifest.json` lists one JSON shard per *upload*
-month. Sharding on upload date rather than capture date means a month stops changing
-once it is over, so browsers cache it indefinitely and each visit fetches only the
-manifest and the current month.
+**The catalog is static.** `catalog/manifest.json` lists the JSON shards, one per
+*upload* month. Sharding on upload date rather than capture date means a month stops
+changing once it is over, so browsers cache it indefinitely and each visit fetches only
+the manifest and the current month.
+
+A month holding more than 2,000 items is split into numbered parts, and a part is only
+rewritten when its own contents change. Without that, importing a back catalogue puts
+most of a library into whichever month it was imported in — 19.7 MB of a 33 MB catalog
+in one real case — and editing a single photo in that month would make every client
+fetch all of it again. Parts are ordered by item id rather than capture time, because
+an id never changes and so the boundaries between parts stay put.
 
 **Mutations avoid conflicts by construction.** Favourites, deletions and album
 membership are written by browsers, not the worker. Each device writes only
@@ -281,10 +288,6 @@ cd worker && uv run --extra dev pytest
 
 This is a prototype. What is not done yet:
 
-- **One month can dominate the shards.** Sharding is by upload month, so importing
-  a back catalogue in one go puts most of the library in a single shard — 19.7 MB of
-  a 33 MB catalog, in one real case. It works, but any edit to a photo in that month
-  makes every client re-fetch it. Splitting oversized months is the fix.
 - **The first import of a large library** should be run locally rather than in CI —
   thousands of video transcodes will exhaust free CI minutes. `PHOTOFLOW_MAX_FILES_PER_RUN`
   caps each run.

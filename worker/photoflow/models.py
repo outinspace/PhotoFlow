@@ -68,11 +68,14 @@ class ItemRecord(Strict):
 
 class ShardDocument(Strict):
     month: str
+    # Months are split when they hold too many items to be one sensible download.
+    part: int = 1
     items: list[ItemRecord] = Field(default_factory=list)
 
 
 class ShardEntry(Strict):
     month: str
+    part: int = 1
     items: int
     updatedAt: str
 

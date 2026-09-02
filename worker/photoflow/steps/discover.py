@@ -16,7 +16,7 @@ def run(context) -> None:
     entries = manifest.shards if manifest else []
 
     for entry in entries:
-        shard = context.storage.get_model(keys.shard(entry.month), ShardDocument)
+        shard = context.storage.get_model(keys.shard(entry.month, entry.part), ShardDocument)
         if not shard:
             continue
 
@@ -25,7 +25,7 @@ def run(context) -> None:
             for file in item.files:
                 context.known_hashes.add(file.hashSha256)
 
-    context.note(f"loaded {len(context.items)} items from {len(entries)} shards")
+    context.note(f"loaded {len(context.items)} items from {len(entries)} shard parts")
 
     incoming = [
         entry
