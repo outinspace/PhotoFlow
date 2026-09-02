@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Item } from '../types';
-import { Book, Download, Link, Minus, Plus, Reply, ShareIos, Trash } from 'iconoir-react';
+import { Book, Download, Link, Minus, Plus, Refresh, Reply, ShareIos, Trash } from 'iconoir-react';
 import { useRemoveItemsFromAlbum } from '../api/useRemoveItemsFromAlbum';
 import { useRestoreItems } from '../api/useRestoreItems';
+import { useReprocessItems } from '../api/useReprocessItems';
 import { AddToAlbumModal } from './add.to.album.modal';
 import { CreateAlbumModal } from './create.album.modal';
 import { ActionMenu } from '../common/action.menu';
@@ -33,6 +34,7 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
 
     const removeFromAlbumMutation = useRemoveItemsFromAlbum();
     const restoreItemsMutation = useRestoreItems();
+    const reprocessMutation = useReprocessItems();
 
     const getPublicUrl = async () => {
         const item = items[0];
@@ -145,6 +147,16 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
             icon: Minus,
             className: '',
             onClick: () => removeItemsFromAlbum()
+        },
+        {
+            title: 'Reprocess',
+            visible: !itemsAreDeleted && !readonly,
+            icon: Refresh,
+            className: '',
+            onClick: () => {
+                reprocessMutation.mutate(items.flatMap(item => item.files));
+                onDismiss();
+            }
         },
         {
             title: 'Delete',

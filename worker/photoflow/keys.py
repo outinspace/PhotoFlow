@@ -11,6 +11,7 @@ CATALOG_EMBEDDINGS = "catalog/embeddings/"
 META_STATE = "meta/state.json"
 META_LOGS = "meta/log/"
 META_HEARTBEAT = "meta/heartbeat.json"
+META_REPROCESS = "meta/reprocess/"
 
 
 def original(prefix: str, file_id: str) -> str:
@@ -23,6 +24,10 @@ def tile(prefix: str, file_id: str) -> str:
 
 def preview(prefix: str, file_id: str, extension: str) -> str:
     return f"preview/{prefix}{file_id}{extension}"
+
+
+def reprocess_request(file_id: str) -> str:
+    return f"{META_REPROCESS}{file_id}.json"
 
 
 def shard(month: str) -> str:

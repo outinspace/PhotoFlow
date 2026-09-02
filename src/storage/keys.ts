@@ -6,7 +6,9 @@ export const CATALOG_MANIFEST = 'catalog/manifest.json';
 export const META_STATE = 'meta/state.json';
 export const META_LOGS = 'meta/log/';
 export const META_HEARTBEAT = 'meta/heartbeat.json';
+export const META_REPROCESS = 'meta/reprocess/';
 
 export const shard = (month: string) => `catalog/shards/${month}.json`;
 export const embeddings = (month: string) => `catalog/embeddings/${month}.bin`;
 export const deviceLog = (deviceId: string) => `${META_LOGS}${deviceId}.json`;
+export const reprocessRequest = (fileId: string) => `${META_REPROCESS}${fileId}.json`;

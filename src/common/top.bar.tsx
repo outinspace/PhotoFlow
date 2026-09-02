@@ -20,6 +20,8 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
     const { history } = useRouter();
 
     return (
+        // Sticky so a page that scrolls its whole body keeps the bar. Most pages put
+        // it outside their scrolling element instead, where this is simply inert.
         <div className='sticky top-0 z-10 flex justify-between items-center bg-white p-3 border-b border-slate-200'>
             {!hideBack && (
                 <div className='hover:bg-slate-200 rounded p-1'>

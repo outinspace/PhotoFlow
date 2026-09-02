@@ -2,6 +2,9 @@
 
 The catalog itself is the worker's state: anything already in a shard is done.
 That removes the need for a database, and makes a re-run after a crash safe.
+
+Work comes from two places: new uploads in incoming/, and reprocess requests the
+app leaves in meta/reprocess/ for files already in the catalog.
 """
 
 from .. import keys
@@ -41,3 +44,14 @@ def run(context) -> None:
         )
     else:
         context.note(f"{len(incoming)} files waiting")
+
+    # One request object per file, named after the file, so two devices asking for
+    # the same one simply write the same object.
+    context.reprocess = {
+        entry.key.rsplit("/", 1)[-1].removesuffix(".json"): entry.key
+        for entry in context.storage.list(keys.META_REPROCESS)
+        if entry.key.endswith(".json")
+    }
+
+    if context.reprocess:
+        context.note(f"{len(context.reprocess)} files requested for reprocessing")

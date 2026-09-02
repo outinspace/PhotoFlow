@@ -160,3 +160,54 @@ def test_a_second_run_with_nothing_new_leaves_the_catalog_byte_identical(tmp_pat
 
 def _only_month(storage) -> str:
     return storage.get_json(keys.CATALOG_MANIFEST)["shards"][0]["month"]
+
+
+@requires_media_tools
+def test_a_reprocess_request_rebuilds_the_file_in_place(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg")})
+    first = run_pipeline(storage, tmp_path)
+
+    item = next(iter(first.items.values()))
+    file = item.files[0]
+    month = _only_month(storage)
+
+    # Throw away a derived file the way a failed or outdated run would leave it.
+    storage.delete(keys.tile("", file.fileId))
+    storage.put_json(keys.reprocess_request(file.fileId), {"fileId": file.fileId})
+
+    second = run_pipeline(storage, tmp_path)
+
+    assert storage.exists(keys.tile("", file.fileId))
+    # The request is consumed, so the next run does not repeat the work.
+    assert not storage.list(keys.META_REPROCESS)
+    # No second item, and it stayed in the month it was uploaded in.
+    assert len(second.items) == 1
+    assert _only_month(storage) == month
+
+
+@requires_media_tools
+def test_reprocessing_does_not_duplicate_or_re_upload_the_original(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg")})
+    first = run_pipeline(storage, tmp_path)
+
+    file = next(iter(first.items.values())).files[0]
+    original_before = storage.get(keys.original("", file.fileId))
+
+    storage.put_json(keys.reprocess_request(file.fileId), {"fileId": file.fileId})
+    second = run_pipeline(storage, tmp_path)
+
+    assert storage.get(keys.original("", file.fileId)) == original_before
+    assert len(next(iter(second.items.values())).files) == 1
+
+
+@requires_media_tools
+def test_a_request_for_a_file_that_is_gone_is_discarded(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg")})
+    run_pipeline(storage, tmp_path)
+
+    storage.put_json(keys.reprocess_request("0" * 64), {"fileId": "0" * 64})
+    context = run_pipeline(storage, tmp_path)
+
+    # Otherwise it would be retried every night forever.
+    assert not storage.list(keys.META_REPROCESS)
+    assert any("unknown file" in note for note in context.notes)
