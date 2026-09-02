@@ -1,180 +1,196 @@
-"""Importing a library from the old API's SQLite database.
+"""Carrying edits over from the old database, matched by content hash.
 
-The fixture mirrors the real schema, including the shapes that actually caused
-trouble: .NET timestamps, DateTime.MinValue standing in for null, durations as
-TimeSpan text, and numbers stored in TEXT columns.
+The photos come in through incoming/ like any upload and get new ids, so the old
+database's ids mean nothing here. Each file's content hash is the join.
 """
 
 import sqlite3
 
-import pytest
-
 from photoflow import keys
-from photoflow.migrate import _exposure, _video_length, read_catalog, read_state, shard_items, write
-from photoflow.models import ManifestDocument, ShardDocument, StateDocument
+from photoflow.migrate import DEVICE_ID, load_catalog_index, next_seq, plan_operations, write_log
+from photoflow.models import DeviceLogDocument
+from photoflow.steps.compact import merge
 from photoflow.storage import MemoryStorage
-from tests.test_catalog import config
+from tests.test_catalog import config, context, item
+from photoflow.steps import publish
 
 OLD_SCHEMA = """
-CREATE TABLE tb_Items (
-    ItemId INTEGER PRIMARY KEY, Altitude TEXT, Aperture TEXT, CameraMake TEXT, CameraModel TEXT,
-    CaptureTimeOffsetMinutes INTEGER, CaptureTimeUtc TEXT, City TEXT, DeletedTimeUtc TEXT,
-    ExposureTimeDenominator INTEGER, ExposureTimeNumerator INTEGER, FNumber TEXT,
-    HeightPixels INTEGER, ISO INTEGER, IsFavorite INTEGER, Latitude TEXT, Longitude TEXT,
-    Megapixels TEXT, ModifiedTimeUtc TEXT, Region TEXT, VideoLength TEXT, WidthPixels INTEGER,
-    EmbeddingV1 BLOB);
-CREATE TABLE tb_Files (
-    FileId TEXT PRIMARY KEY, ContentType TEXT, HashSha256 TEXT, ItemId INTEGER,
-    LastProcessedTimeUtc TEXT, MetadataVersion INTEGER, OriginalFileName TEXT,
-    PreviewVersion INTEGER, SizeBytes INTEGER, TileVersion INTEGER, UploadTimeUtc TEXT,
-    FailedProcessingTimeUtc TEXT, ThumbHash TEXT, ThumbHashVersion INTEGER, EmbeddingVersion INTEGER);
+CREATE TABLE tb_Items (ItemId INTEGER PRIMARY KEY, IsFavorite INTEGER, DeletedTimeUtc TEXT, ModifiedTimeUtc TEXT);
+CREATE TABLE tb_Files (FileId TEXT PRIMARY KEY, ItemId INTEGER, HashSha256 TEXT);
 CREATE TABLE tb_Albums (AlbumId INTEGER PRIMARY KEY, Name TEXT, CreatedTimeUtc TEXT, UpdatedTimeUtc TEXT, ShareSecret TEXT);
 CREATE TABLE tb_ItemAlbum (ItemId INTEGER, AlbumId INTEGER);
 """
 
 
-@pytest.fixture
-def old_db(tmp_path):
-    connection = sqlite3.connect(tmp_path / "photoflow.db")
+def old_db(rows):
+    connection = sqlite3.connect(":memory:")
     connection.executescript(OLD_SCHEMA)
-
-    connection.execute(
-        "INSERT INTO tb_Items VALUES (1,'333.76',NULL,'Apple','iPhone 15',0,'2024-11-02 09:15:00.1234567',"
-        "'Lisbon',NULL,250,1,'1.6',3024,400,1,'41.28','-8.61','12.19','2024-12-07 13:46:15.7349337',"
-        "'Porto',NULL,4032,NULL)"
-    )
-    # No capture time: the old code wrote DateTime.MinValue rather than null.
-    connection.execute(
-        "INSERT INTO tb_Items VALUES (2,NULL,NULL,NULL,NULL,0,'0001-01-01 00:00:00',NULL,"
-        "'2025-02-01 08:00:00.0000000',NULL,NULL,NULL,1080,NULL,0,NULL,NULL,NULL,"
-        "'2025-02-01 08:00:00.0000000',NULL,'00:00:02.8316666',1920,NULL)"
-    )
-
-    connection.execute(
-        "INSERT INTO tb_Files VALUES ('00005570-6BE1-49BE-820E-B97A51928CC3','image/heic','abc123',1,"
-        "'2024-12-07 13:50:00.0000000',1,'IMG_4021.HEIC',3,2400000,2,'2024-12-07 13:46:15.7349337',"
-        "NULL,'WxkGLQJWqf93x2N7mYd2VmLAimYL',1,2)"
-    )
-    connection.execute(
-        "INSERT INTO tb_Files VALUES ('11115570-6BE1-49BE-820E-B97A51928CC4','video/quicktime','def456',2,"
-        "NULL,1,'IMG_9000.MOV',3,9600000,2,'2025-02-01 07:59:00.0000000',"
-        "'2025-02-01 08:05:00.0000000',NULL,NULL,NULL)"
-    )
-
-    connection.execute("INSERT INTO tb_Albums VALUES (7,'Iceland','2025-03-01 10:00:00.0000000','2025-03-05 11:00:00.0000000','secret-xyz')")
-    connection.execute("INSERT INTO tb_ItemAlbum VALUES (1,7)")
+    for statement in rows:
+        connection.execute(statement)
     connection.commit()
     return connection
 
 
-def test_reads_items_and_files(old_db):
-    items, warnings = read_catalog(old_db)
-
-    assert warnings == []
-    assert set(items) == {1, 2}
-    assert items[1].cameraModel == "iPhone 15"
-    # Stored as TEXT in the old schema, but a number in the catalog.
-    assert items[1].megapixels == pytest.approx(12.19)
-    assert items[1].latitude == pytest.approx(41.28)
-
-
-def test_timestamps_become_something_a_browser_can_parse(old_db):
-    items, _ = read_catalog(old_db)
-
-    assert items[1].captureTime == "2024-11-02T09:15:00.123Z"
-    assert items[1].files[0].uploadTimeUtc == "2024-12-07T13:46:15.734Z"
+def catalog_with(storage, **items_by_hash):
+    """A new-format catalog where each named item holds one file with that hash."""
+    ctx = context(storage)
+    for item_id, content_hash in items_by_hash.items():
+        record = item(item_id, "2026-08")
+        record.files[0].hashSha256 = content_hash
+        record.files[0].fileId = content_hash
+        ctx.items[item_id] = record
+    ctx.dirty_months = {"2026-08"}
+    publish.run(ctx)
+    return storage
 
 
-def test_an_unknown_capture_time_falls_back_to_the_upload_time(old_db):
-    items, _ = read_catalog(old_db)
+def test_index_maps_each_hash_to_the_new_item_holding_it():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa", "502": "bbb"})
 
-    # The old sentinel would otherwise sort this item to the year 1.
-    assert items[2].captureTime == "2025-02-01T07:59:00.000Z"
+    index = load_catalog_index(storage)
 
-
-def test_thumbnails_are_dropped_so_they_are_rebuilt_in_this_bucket(old_db):
-    items, _ = read_catalog(old_db)
-
-    # The old ones live in a bucket shared between tenants and are not brought over.
-    assert all(f.tileVersion is None for item in items.values() for f in item.files)
+    assert index == {"aaa": {501}, "bbb": {502}}
 
 
-def test_previews_are_kept_so_no_video_is_transcoded_again(old_db):
-    items, _ = read_catalog(old_db)
+def test_a_favourite_follows_its_file_to_the_new_item():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 1, NULL, '2024-12-07 13:46:15.7349337')",
+        "INSERT INTO tb_Files VALUES ('OLD-GUID', 1, 'AAA')",
+    ])
 
-    assert all(f.previewVersion is not None for item in items.values() for f in item.files)
-    assert all(f.previewIsOriginal is False for item in items.values() for f in item.files)
+    ops, report = plan_operations(db, load_catalog_index(storage))
 
-
-def test_search_vectors_are_dropped_because_the_model_changed(old_db):
-    items, _ = read_catalog(old_db)
-
-    # The old vectors came from a different model; comparing across the two would
-    # rank nonsense, so every item is queued for re-embedding.
-    assert all(item.embeddingVersion is None for item in items.values())
-
-
-def test_file_ids_are_untouched_because_they_are_object_keys(old_db):
-    items, _ = read_catalog(old_db)
-
-    assert items[1].files[0].fileId == "00005570-6BE1-49BE-820E-B97A51928CC3"
+    # Old id 1 and new id 501 share nothing but the hash, which is also matched
+    # case-insensitively since the old API stored it in either case.
+    assert ops == [{"seq": 1, "ts": "2024-12-07T13:46:15.734Z", "op": "item.favorite", "itemId": 501, "value": True}]
+    assert report.favourites == 1
 
 
-def test_a_failed_file_stays_failed(old_db):
-    items, _ = read_catalog(old_db)
+def test_a_deletion_carries_its_original_time():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 0, '2025-02-01 08:00:00.0000000', '2025-02-01 08:00:00.0000000')",
+        "INSERT INTO tb_Files VALUES ('g', 1, 'aaa')",
+    ])
 
-    assert items[2].files[0].failedProcessingTimeUtc == "2025-02-01T08:05:00.000Z"
+    ops, _ = plan_operations(db, load_catalog_index(storage))
 
-
-def test_favourites_and_deletions_become_mutable_state(old_db):
-    items, _ = read_catalog(old_db)
-    state = read_state(old_db, items)
-
-    assert state.items["1"]["favorite"]["value"] is True
-    assert state.items["2"]["deleted"]["value"] == "2025-02-01T08:00:00.000Z"
-    # Timestamped from the row, so a newer edit on a device still wins the merge.
-    assert state.items["1"]["favorite"]["ts"] == "2024-12-07T13:46:15.734Z"
+    assert ops[0]["op"] == "item.deleted"
+    assert ops[0]["value"] == "2025-02-01T08:00:00.000Z"
 
 
-def test_albums_carry_their_membership_and_share_link(old_db):
-    items, _ = read_catalog(old_db)
-    state = read_state(old_db, items)
+def test_albums_keep_their_ids_and_members_follow_by_hash():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa", "502": "bbb"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 0, NULL, NULL)",
+        "INSERT INTO tb_Items VALUES (2, 0, NULL, NULL)",
+        "INSERT INTO tb_Files VALUES ('g1', 1, 'aaa')",
+        "INSERT INTO tb_Files VALUES ('g2', 2, 'bbb')",
+        "INSERT INTO tb_Albums VALUES (7, 'Iceland', '2025-03-01 10:00:00.0000000', '2025-03-05 11:00:00.0000000', NULL)",
+        "INSERT INTO tb_ItemAlbum VALUES (1, 7)",
+        "INSERT INTO tb_ItemAlbum VALUES (2, 7)",
+    ])
 
-    album = state.albums["7"]
-    assert album["name"]["value"] == "Iceland"
-    assert album["shareSecret"]["value"] == "secret-xyz"
-    assert album["members"]["1"]["in"]["value"] is True
+    ops, report = plan_operations(db, load_catalog_index(storage))
 
-
-def test_items_are_sharded_by_upload_month(old_db):
-    items, _ = read_catalog(old_db)
-
-    assert sorted(shard_items(items)) == ["2024-12", "2025-02"]
-
-
-def test_what_is_written_reads_back_as_a_valid_catalog(old_db):
-    items, _ = read_catalog(old_db)
-    state = read_state(old_db, items)
-    storage = MemoryStorage()
-
-    manifest = write(storage, config(), items, state)
-
-    assert storage.get_model(keys.CATALOG_MANIFEST, ManifestDocument).counts.items == 2
-    assert storage.get_model(keys.META_STATE, StateDocument).albums["7"]["albumId"] == 7
-    for entry in manifest.shards:
-        assert storage.get_model(keys.shard(entry.month), ShardDocument) is not None
+    assert {"op": "album.create", "albumId": 7, "name": "Iceland"}.items() <= ops[0].items()
+    assert sorted(o["itemId"] for o in ops if o["op"] == "album.member") == [501, 502]
+    assert report.albums == 1 and report.memberships == 2
 
 
-def test_video_length_converts_from_dotnet_timespan():
-    assert _video_length("00:00:02.8316666") == pytest.approx(2.8316666)
-    assert _video_length("00:00:07") == 7
-    assert _video_length("1.02:00:00") == 93600
-    assert _video_length(None) is None
-    assert _video_length("nonsense") is None
+def test_a_photo_not_yet_reuploaded_is_reported_not_guessed():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 1, NULL, NULL)",
+        "INSERT INTO tb_Files VALUES ('g', 1, 'not-in-catalog')",
+    ])
+
+    ops, report = plan_operations(db, load_catalog_index(storage))
+
+    assert ops == []
+    assert report.unmatched_items == 1
 
 
-def test_exposure_reads_the_way_a_camera_shows_it():
-    assert _exposure(1, 250) == "1/250"
-    assert _exposure(2, 4) == "1/2"
-    assert _exposure(5, 2) == "2.5"
-    assert _exposure(None, 250) is None
+def test_an_old_item_split_across_two_new_items_marks_both():
+    # A Live Photo the new grouping paired differently: the still and the clip
+    # landed on separate items. Losing the favourite on one half would be worse
+    # than marking both.
+    storage = catalog_with(MemoryStorage(), **{"501": "still", "502": "clip"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 1, NULL, NULL)",
+        "INSERT INTO tb_Files VALUES ('g1', 1, 'still')",
+        "INSERT INTO tb_Files VALUES ('g2', 1, 'clip')",
+    ])
+
+    ops, report = plan_operations(db, load_catalog_index(storage))
+
+    assert sorted(o["itemId"] for o in ops) == [501, 502]
+    assert report.split_items == 1
+
+
+def test_share_links_are_not_carried_but_are_named():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    db = old_db([
+        "INSERT INTO tb_Albums VALUES (7, 'Iceland', '2025-03-01 10:00:00.0000000', NULL, 'secret-xyz')",
+    ])
+
+    ops, report = plan_operations(db, load_catalog_index(storage))
+
+    # Carrying the secret without the share document would show a dead link.
+    assert not any(o["op"] == "album.share" for o in ops)
+    assert report.shared_albums_not_carried == ["Iceland"]
+
+
+def test_the_log_it_writes_is_one_the_worker_merges():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa", "502": "bbb"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 1, NULL, '2024-12-07 13:46:15.7349337')",
+        "INSERT INTO tb_Items VALUES (2, 0, '2025-02-01 08:00:00.0000000', '2025-02-01 08:00:00.0000000')",
+        "INSERT INTO tb_Files VALUES ('g1', 1, 'aaa')",
+        "INSERT INTO tb_Files VALUES ('g2', 2, 'bbb')",
+        "INSERT INTO tb_Albums VALUES (7, 'Iceland', '2025-03-01 10:00:00.0000000', '2025-03-05 11:00:00.0000000', NULL)",
+        "INSERT INTO tb_ItemAlbum VALUES (1, 7)",
+    ])
+
+    ops, _ = plan_operations(db, load_catalog_index(storage))
+    write_log(storage, ops)
+
+    # This is the whole point: no special import path, just a device log the
+    # existing compaction understands.
+    log = storage.get_model(keys.device_log(DEVICE_ID), DeviceLogDocument)
+    state, applied = merge({"stateVersion": 1, "cursors": {}, "items": {}, "albums": {}}, [log.model_dump()])
+
+    assert applied == len(ops)
+    assert state["items"]["501"]["favorite"]["value"] is True
+    assert state["items"]["502"]["deleted"]["value"] == "2025-02-01T08:00:00.000Z"
+    assert state["albums"]["7"]["name"]["value"] == "Iceland"
+    assert state["albums"]["7"]["members"]["501"]["in"]["value"] is True
+
+
+def test_a_rerun_continues_after_what_was_already_compacted():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    from photoflow.models import StateDocument
+    storage.put_model(keys.META_STATE, StateDocument(cursors={DEVICE_ID: 4}))
+
+    # Otherwise a second run's operations would sit below the cursor and never apply.
+    assert next_seq(storage) == 5
+
+
+def test_an_edit_made_in_the_new_app_beats_the_old_databases_state():
+    storage = catalog_with(MemoryStorage(), **{"501": "aaa"})
+    db = old_db([
+        "INSERT INTO tb_Items VALUES (1, 1, NULL, '2024-12-07 13:46:15.7349337')",
+        "INSERT INTO tb_Files VALUES ('g', 1, 'aaa')",
+    ])
+    ops, _ = plan_operations(db, load_catalog_index(storage))
+
+    # Someone un-favourited it on their phone last week, well after the old row
+    # was last touched. Timestamping from the row rather than now is what lets
+    # that newer edit win.
+    phone = {"deviceId": "phone", "ops": [
+        {"seq": 1, "ts": "2026-08-20T10:00:00.000Z", "op": "item.favorite", "itemId": 501, "value": False}]}
+    state, _ = merge({"stateVersion": 1, "cursors": {}, "items": {}, "albums": {}},
+                     [{"deviceId": DEVICE_ID, "ops": ops}, phone])
+
+    assert state["items"]["501"]["favorite"]["value"] is False

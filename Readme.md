@@ -210,42 +210,40 @@ Reset with `docker compose -f dev/docker-compose.yml down -v`.
 
 ## Migrating from the older API-backed Photoflow
 
-The photos do not move. Their object keys are unchanged; only the metadata is
-rewritten, from the SQLite database into the catalog and mutable state that
-replace it.
+Photos are migrated the same way any photo arrives: copy them into the new bucket's
+`incoming/` folder and let the worker catalogue them. There is no separate import
+path for the files themselves — they get new ids, fresh thumbnails and fresh search
+vectors, exactly as an upload would. Copying with `rclone` or your provider's own
+tools is fine; only the objects need to land under `incoming/`.
 
-Download the database from **Menu → Export Data** in the old app, then:
+What the worker cannot know is what you did to those photos in the old app. That
+is what the migration script carries over:
 
 ```bash
 cd worker
-PHOTOFLOW_PATH_PREFIX=<your-tenant-id>/ uv run photoflow-migrate photoflow.db --dry-run
-PHOTOFLOW_PATH_PREFIX=<your-tenant-id>/ uv run photoflow-migrate photoflow.db
+uv run photoflow-migrate photoflow.db --dry-run   # once the worker has catalogued the copies
+uv run photoflow-migrate photoflow.db
 ```
 
-`PHOTOFLOW_PATH_PREFIX` is what points the catalog at the old layout, which nested
-media under a tenant folder. The dry run reports what it would write and stops.
+`photoflow.db` is the tenant database from **Menu → Export Data** in the old app.
+The script matches old photos to new ones by **content hash** — the old database
+stored one per file, and the new catalog uses the same hash as each file's id — and
+writes favourites, deletions and album membership as a mutation log, the same kind of
+file a phone writes when you favourite something. The app picks it up immediately and
+the next worker run compacts it. Nothing about it is a special case.
 
-Favourites, deletions, albums and share links all carry over. Two things are
-deliberately left out and rebuilt by the worker instead:
+Run the dry run first and read the report. Photos not yet copied and processed show
+as unmatched; run again once they are, and it continues from where the worker left
+off. A Live Photo the new grouping paired differently shows as split, and its edits
+apply to each part.
 
-- **Thumbnails.** The old API kept them in one bucket shared between tenants; they
-  belong in your own bucket now. Every file is imported with no thumbnail, and the
-  worker rebuilds them — from the 2000px preview, not the original, so this costs
-  a few GB of transfer rather than the whole library.
-- **Search vectors.** They came from a different model to the one the browser now
-  uses, so comparing across the two returns nonsense. They are recomputed from the
-  thumbnails.
+Share links are not carried over: a link is a document the app writes when you share,
+and carrying only the secret would show a link that leads nowhere. Re-share those
+albums from the app; the report names them.
 
-Previews are kept as they are, so no video is transcoded twice.
-
-Both rebuilds happen a batch at a time on each ordinary run, capped by
-`PHOTOFLOW_MAX_BACKFILL_PER_RUN` (500 by default), so a large library is worked
-through over several nights rather than stalling one run. Search is unavailable
-until the vectors finish. Run the worker locally to get through it faster:
-
-```bash
-PHOTOFLOW_MAX_BACKFILL_PER_RUN=100000 uv run photoflow-worker
-```
+Edits made in the new app before the migration runs are kept. Each operation is
+timestamped from the old database row, so anything you did more recently wins the
+merge.
 
 ## The worker
 
@@ -290,7 +288,7 @@ This is a prototype. What is not done yet:
 
 - **The first import of a large library** should be run locally rather than in CI —
   thousands of video transcodes will exhaust free CI minutes. `PHOTOFLOW_MAX_FILES_PER_RUN`
-  caps each run.
+  caps each run. Raise it for a local run so the whole backlog goes through at once.
 - **Processing is nightly**, so photos uploaded today get thumbnails tomorrow. Run the
   workflow manually if you want them sooner.
 - **The CLIP model choice is unverified for redistribution.** The default
