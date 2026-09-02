@@ -64,6 +64,12 @@ def content_type_for(file_name: str) -> str:
 
 
 def is_media(file_name: str) -> bool:
+    # macOS scatters AppleDouble files (._IMG_1234.HEIC) and .DS_Store through any
+    # folder it has touched. They carry no extension to match on and would only be
+    # catalogued as files that cannot be processed.
+    if file_name.startswith("."):
+        return False
+
     extension = os.path.splitext(file_name)[1].lower().lstrip(".")
     content_type = content_type_for(file_name)
     if content_type.startswith(("image/", "video/")):

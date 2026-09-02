@@ -210,11 +210,32 @@ Reset with `docker compose -f dev/docker-compose.yml down -v`.
 
 ## Migrating from the older API-backed Photoflow
 
-Photos are migrated the same way any photo arrives: copy them into the new bucket's
-`incoming/` folder and let the worker catalogue them. There is no separate import
-path for the files themselves — they get new ids, fresh thumbnails and fresh search
-vectors, exactly as an upload would. Copying with `rclone` or your provider's own
-tools is fine; only the objects need to land under `incoming/`.
+Photos are migrated the same way any photo arrives: they land in the new bucket's
+`incoming/` folder and the worker catalogues them. There is no separate import path
+for the files themselves — they get new ids, fresh thumbnails and fresh search
+vectors, exactly as an upload would.
+
+If your photos are already in a bucket at the same provider, copy them across
+server side — nothing is downloaded, and the bytes stay identical, which the next
+step depends on:
+
+```bash
+cd worker
+uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
+uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db
+```
+
+That also renames as it copies. The old bucket keys each file by a GUID with no
+extension, and the worker needs the real filename: without it every file looks like
+`application/octet-stream`, and the two halves of a Live Photo no longer share a
+stem to be paired by. The old database holds those names, so it drives the copy.
+Each item's files land in their own folder, so a filename used twice in the library
+cannot overwrite itself.
+
+It skips what is already there, so a run that stops can simply be run again, and
+`PHOTOFLOW_S3_BUCKET` must be the *new* bucket. Deleted photos come across by
+default; pass `--skip-deleted` to leave them behind. The key needs read on the old
+bucket and write on the new one.
 
 What the worker cannot know is what you did to those photos in the old app. That
 is what the migration script carries over:
