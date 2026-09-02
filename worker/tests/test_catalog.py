@@ -16,7 +16,6 @@ def config() -> Config:
         secret_access_key="test",
         region="us-east-1",
         public_base_url="https://cdn.example.invalid/",
-        path_prefix="",
         max_files_per_run=100,
         max_backfill_per_run=500,
         passthrough_max_height=1080,
@@ -113,19 +112,6 @@ def test_manifest_lists_every_shard_and_the_read_urls():
     assert manifest["urls"]["tileImagePrefix"] == "https://cdn.example.invalid/tile-image/"
 
 
-def test_path_prefix_points_urls_at_a_legacy_bucket_layout():
-    storage = MemoryStorage()
-    legacy = config().__class__(**{**config().__dict__, "path_prefix": "tenant-abc/"})
-    ctx = Context(config=legacy, storage=storage, work_dir="/tmp")
-    ctx.items = {1: item(1, "2026-08")}
-    ctx.dirty_months = {"2026-08"}
-
-    publish.run(ctx)
-
-    urls = storage.get_json(keys.CATALOG_MANIFEST)["urls"]
-    assert urls["originalPrefix"] == "https://cdn.example.invalid/original/tenant-abc/"
-
-
 def test_discover_reloads_what_publish_wrote():
     storage = MemoryStorage()
     first = context(storage)
@@ -210,7 +196,7 @@ def _shard_entry(storage, month):
 def test_public_base_url_falls_back_to_the_bucket_when_no_cdn_is_set(monkeypatch):
     from photoflow.config import Config as RealConfig
 
-    for name in ("PHOTOFLOW_PUBLIC_BASE_URL", "PHOTOFLOW_PATH_PREFIX"):
+    for name in ("PHOTOFLOW_PUBLIC_BASE_URL",):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PHOTOFLOW_S3_ENDPOINT", "https://s3.us-west-004.backblazeb2.com/")
     monkeypatch.setenv("PHOTOFLOW_S3_BUCKET", "my-photos")

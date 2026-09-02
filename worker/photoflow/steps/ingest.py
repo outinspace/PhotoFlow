@@ -97,7 +97,7 @@ def run(context) -> None:
             context.storage.delete(entry.key)
             continue
 
-        original_key = keys.original(context.config.path_prefix, hash_sha256)
+        original_key = keys.original(hash_sha256)
         _upload(context, local_path, original_key, content_type_for(file_name))
 
         context.known_hashes.add(hash_sha256)
@@ -142,7 +142,7 @@ def _fetch_for_reprocessing(context) -> list[Ingested]:
         local_path = os.path.join(context.work_dir, file.originalFileName)
 
         try:
-            _download(context, keys.original(context.config.path_prefix, file_id), local_path)
+            _download(context, keys.original(file_id), local_path)
         except Exception as error:
             context.note(f"could not fetch {file.originalFileName} to reprocess: {error}")
             continue

@@ -91,14 +91,14 @@ def test_a_full_run_against_a_real_bucket(s3_storage, tmp_path):
     shard = storage.get_model(keys.shard(month), ShardDocument)
     file = shard.items[0].files[0]
 
-    assert storage.exists(keys.original("", file.fileId))
-    assert storage.exists(keys.tile("", file.fileId))
-    assert storage.exists(keys.preview("", file.fileId, ".jpeg"))
+    assert storage.exists(keys.original(file.fileId))
+    assert storage.exists(keys.tile(file.fileId))
+    assert storage.exists(keys.preview(file.fileId, ".jpeg"))
     assert not storage.list(keys.INCOMING)
 
     # Tiles are served straight to <img> tags, so the stored content type has to
     # survive the upload or browsers will refuse to render them.
-    head = client.head_object(Bucket=settings.bucket, Key=keys.tile("", file.fileId))
+    head = client.head_object(Bucket=settings.bucket, Key=keys.tile(file.fileId))
     assert head["ContentType"] == "image/jpeg"
 
 
