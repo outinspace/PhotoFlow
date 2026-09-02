@@ -28,7 +28,7 @@ export const useReprocessItems = () => {
         },
         onSuccess: count => {
             toast.success(
-                `${count} file${count === 1 ? '' : 's'} queued — they’ll be rebuilt on the next processing run`,
+                `${count} file${count === 1 ? '' : 's'} queued for reprocessing`,
                 { duration: 5000 }
             );
         },
