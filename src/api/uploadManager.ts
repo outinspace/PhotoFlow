@@ -178,8 +178,8 @@ const knownHashes = () => {
 };
 
 const putFileToBucket = async (file: File) => {
-    // iOS uses the same filename for multiple images when selecting from camera roll.
-    // Adding a timestamp ensures unique filenames and prevents conflicts with existing files.
+    // iOS reuses the same filename across images picked from the camera roll, so a
+    // timestamp is what keeps each incoming key distinct.
     const timestamp = new Date().getTime();
     const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
     const fileNameWithTimestamp = `${file.name.replace(/\.[^/.]+$/, '')}_${timestamp}${fileExtension}`;

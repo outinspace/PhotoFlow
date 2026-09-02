@@ -20,7 +20,7 @@ from .steps import cleanup, compact, derive, discover, embed, extract, ingest, p
 class Context:
     config: Config
     storage: Storage
-    # Working directory for temp files; cleaned up by the caller.
+    # Cleaned up by the caller.
     work_dir: str
 
     # Every item already in the catalog, keyed by itemId, loaded by discover and

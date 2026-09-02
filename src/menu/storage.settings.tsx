@@ -21,8 +21,6 @@ const Row = ({ label, value }: { label: string; value: string }) => (
     </div>
 );
 
-// Photos that have arrived but have not been processed yet.
-//
 // The catalog cannot answer this: an upload has no catalog entry until the worker
 // has been over it, so anything waiting is invisible everywhere else in the app.
 const IncomingQueue = () => {

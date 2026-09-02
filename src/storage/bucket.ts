@@ -2,8 +2,6 @@ import { AwsClient } from 'aws4fetch';
 import { getStorageConfig, requireStorageConfig, resolvePublicBaseUrl, resolveRegion, StorageConfig } from './config';
 import { getLoadedRuntimeConfig } from './runtime.config';
 
-// Two ways into the same bucket, and the difference matters for speed.
-//
 // Reads (readJson, readBinary, and every <img> in the app) go through the CDN in
 // front of the bucket. That gives HTTP/2+3 multiplexing, so a fast scroll can have
 // hundreds of thumbnails in flight; hitting the bucket's own endpoint would cap

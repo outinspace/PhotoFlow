@@ -52,7 +52,7 @@ class Storage(ABC):
         self.put(key, body, "application/json")
 
     def get_model(self, key: str, model: type[TModel]) -> TModel | None:
-        """Read and validate a document, or None if it is not there.
+        """Read and validate a document, or None if it is absent.
 
         A document that exists but does not parse is an error worth stopping for:
         continuing would mean overwriting it with a catalog built from a partial

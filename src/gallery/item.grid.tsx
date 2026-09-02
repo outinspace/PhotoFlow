@@ -141,7 +141,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
     const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
 
-    // Cleanup timer on unmount
     useEffect(() => {
         return () => {
             if (clickTimerRef.current) {

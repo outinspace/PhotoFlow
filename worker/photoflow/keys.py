@@ -1,7 +1,7 @@
 """Every object key the system uses, in one place.
 
-The gallery builds URLs from the same shapes, so changing a key here means
-changing src/storage/catalog.ts too.
+The gallery declares the same keys in src/storage/keys.ts, so changing one here
+means changing that too.
 """
 
 INCOMING = "incoming/"
