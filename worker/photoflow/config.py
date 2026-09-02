@@ -49,8 +49,7 @@ class Config:
         endpoint_url = _required("PHOTOFLOW_S3_ENDPOINT").rstrip("/")
         bucket = _required("PHOTOFLOW_S3_BUCKET")
 
-        # Optional, and the same fallback the app's setup screen uses: with no CDN,
-        # photos are served by the bucket itself.
+        # Optional; the same fallback the app's setup screen uses.
         public_base_url = os.environ.get("PHOTOFLOW_PUBLIC_BASE_URL", "").strip()
         public_base_url = (public_base_url or f"{endpoint_url}/{bucket}").rstrip("/") + "/"
 

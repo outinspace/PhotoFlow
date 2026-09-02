@@ -54,10 +54,9 @@ export const useSearch = (query: string) => {
         }
     });
 
-    // The first search of a session does two slow things before it can rank
-    // anything — fetch the embeddings, then fetch the text model — and the page
-    // needs to name whichever is happening rather than saying "Searching…" for
-    // half a minute.
+    // The first search of a session fetches the embeddings and then the text model,
+    // and the page has to name whichever is happening rather than saying "Searching…"
+    // for half a minute.
     return {
         ...search,
         isLoadingVectors: isSearching && isLoadingVectors,

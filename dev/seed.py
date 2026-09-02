@@ -122,8 +122,8 @@ def main() -> int:
             s3.put_object(Bucket=BUCKET, Key=f"incoming/{name}", Body=handle, ContentType="image/jpeg")
         uploaded += 1
 
-        # Every fourth photo gets a matching clip, so Live Photo grouping and the
-        # video passthrough path both get exercised.
+        # A matching clip on some photos exercises both Live Photo grouping and
+        # the video passthrough path.
         if index % 4 == 0:
             clip_name = f"IMG_{4000 + index}.MP4"
             clip_path = os.path.join(work, clip_name)

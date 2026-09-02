@@ -7,6 +7,9 @@ is needed. Conflicts are resolved here, last-write-wins per field.
 
 This step never deletes a log. It publishes how far it read, and each device
 prunes its own log on its next write once it sees its entries are absorbed.
+
+The merge below is mirrored by src/storage/mutations.ts, which the browser uses to
+show pending edits before they are compacted. Both sides must agree.
 """
 
 from datetime import datetime, timezone

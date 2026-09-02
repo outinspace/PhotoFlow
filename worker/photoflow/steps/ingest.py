@@ -77,7 +77,7 @@ def run(context) -> None:
 
         if hash_sha256 in context.known_hashes:
             # Already in the catalog under this exact content, so the upload was a
-            # duplicate. Drop it from incoming/ and move on.
+            # duplicate.
             skipped += 1
             os.remove(local_path)
             context.storage.delete(entry.key)
