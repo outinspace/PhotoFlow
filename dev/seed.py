@@ -7,8 +7,10 @@ involves a live bucket or personal photos.
     uv run --project worker python dev/seed.py
 """
 
+import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 import tempfile
@@ -31,6 +33,21 @@ PLACES = [
 ]
 
 COLOURS = [(198, 96, 64), (72, 122, 168), (108, 158, 106), (176, 148, 84), (132, 96, 160)]
+
+
+def jittered(place, spread_km=8.0):
+    """Scatter photos around a city rather than stacking them on one pin.
+
+    Map clustering only shows itself when points are near each other but not
+    identical, which is what a real trip's photos look like.
+    """
+    city, latitude, longitude = place
+    degrees = spread_km / 111.0
+    return (
+        city,
+        latitude + random.uniform(-degrees, degrees),
+        longitude + random.uniform(-degrees, degrees),
+    )
 
 
 def make_photo(path, index, taken, place):
@@ -81,6 +98,13 @@ def make_clip(path, index, taken):
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Fill a local bucket with sample photos.")
+    parser.add_argument("--count", type=int, default=12, help="how many photos to generate")
+    parser.add_argument("--seed", type=int, default=1, help="fixed so runs are repeatable")
+    args = parser.parse_args()
+
+    random.seed(args.seed)
+
     for tool in ("exiftool", "ffmpeg"):
         if not subprocess.run(["which", tool], capture_output=True).stdout:
             print(f"{tool} is required (brew install exiftool ffmpeg)", file=sys.stderr)
@@ -110,9 +134,9 @@ def main() -> int:
     uploaded = 0
     base = datetime(2026, 3, 1, 9, 0, 0)
 
-    for index in range(12):
+    for index in range(args.count):
         taken = base + timedelta(days=index * 9, hours=index)
-        place = PLACES[index % len(PLACES)]
+        place = jittered(PLACES[index % len(PLACES)])
 
         name = f"IMG_{4000 + index}.JPG"
         path = os.path.join(work, name)
