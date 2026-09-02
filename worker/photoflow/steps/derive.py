@@ -7,11 +7,11 @@ are only ever read here, never rewritten.
 
 import os
 import subprocess
-from datetime import datetime, timezone
 
 from PIL import Image, ImageOps
 
 from .. import keys, video
+from ..timestamps import now_iso
 from ..thumbhash import rgba_to_thumb_hash
 
 TILE_VERSION = 1
@@ -25,12 +25,14 @@ TRANSCODE_TIMEOUT_SECONDS = 60 * 60
 
 
 def run(context) -> None:
-    now = datetime.now(timezone.utc).isoformat()
+    now = now_iso()
     passed_through = 0
     transcoded = 0
     failures = 0
 
-    for entry in getattr(context, "ingested", []):
+    work = list(context.ingested) + list(context.backfill)
+
+    for entry in work:
         item = context.items.get(getattr(entry, "item_id", None))
         if item is None:
             continue
@@ -39,14 +41,16 @@ def run(context) -> None:
         if record is None:
             continue
 
+        if not (entry.needs_tile or entry.needs_preview):
+            continue
+
         try:
             if entry.content_type.startswith("image/"):
                 _derive_image(context, entry, record)
+            elif _derive_video(context, entry, record):
+                passed_through += 1
             else:
-                if _derive_video(context, entry, record):
-                    passed_through += 1
-                else:
-                    transcoded += 1
+                transcoded += 1
 
             record.lastProcessedTimeUtc = now
             record.failedProcessingTimeUtc = None
@@ -56,7 +60,7 @@ def run(context) -> None:
             context.note(f"derive failed for {entry.original_file_name}: {error}")
 
     context.note(
-        f"derived {len(getattr(context, 'ingested', []))} files "
+        f"derived {len(work)} files "
         f"({passed_through} videos passed through, {transcoded} transcoded, {failures} failed)"
     )
 
@@ -67,39 +71,45 @@ def _derive_image(context, entry, record) -> None:
     with Image.open(entry.local_path) as source:
         image = ImageOps.exif_transpose(source).convert("RGB")
 
-        record.thumbHash = _thumb_hash(image)
+        if entry.needs_tile:
+            record.thumbHash = _thumb_hash(image)
 
-        tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
-        _save_resized(image, tile_path, TILE_WIDTH)
-        _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
-        record.tileVersion = TILE_VERSION
+            tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
+            _save_resized(image, tile_path, TILE_WIDTH)
+            _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
+            record.tileVersion = TILE_VERSION
 
-        preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.jpeg")
-        _save_resized(image, preview_path, PREVIEW_WIDTH)
-        _upload(
-            context,
-            preview_path,
-            keys.preview(context.config.path_prefix, entry.file_id, ".jpeg"),
-            "image/jpeg",
-        )
-        record.previewVersion = PREVIEW_VERSION
+        if entry.needs_preview:
+            preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.jpeg")
+            _save_resized(image, preview_path, PREVIEW_WIDTH)
+            _upload(
+                context,
+                preview_path,
+                keys.preview(context.config.path_prefix, entry.file_id, ".jpeg"),
+                "image/jpeg",
+            )
+            record.previewVersion = PREVIEW_VERSION
 
 
 def _derive_video(context, entry, record) -> bool:
     """Returns True when the original was good enough to serve as its own preview."""
+    if entry.needs_tile:
+        poster_path = os.path.join(context.work_dir, f"{entry.file_id}.poster.jpeg")
+        _extract_poster(entry.local_path, poster_path)
+
+        with Image.open(poster_path) as poster:
+            frame = poster.convert("RGB")
+            record.thumbHash = _thumb_hash(frame)
+
+            tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
+            _save_resized(frame, tile_path, TILE_WIDTH)
+            _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
+            record.tileVersion = TILE_VERSION
+
+    if not entry.needs_preview:
+        return record.previewIsOriginal
+
     info = video.probe(entry.local_path)
-
-    poster_path = os.path.join(context.work_dir, f"{entry.file_id}.poster.jpeg")
-    _extract_poster(entry.local_path, poster_path)
-
-    with Image.open(poster_path) as poster:
-        frame = poster.convert("RGB")
-        record.thumbHash = _thumb_hash(frame)
-
-        tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
-        _save_resized(frame, tile_path, TILE_WIDTH)
-        _upload(context, tile_path, keys.tile(context.config.path_prefix, entry.file_id), "image/jpeg")
-        record.tileVersion = TILE_VERSION
 
     if video.can_pass_through(info, context.config.passthrough_max_height):
         record.previewIsOriginal = True

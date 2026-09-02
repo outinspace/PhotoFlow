@@ -211,3 +211,89 @@ def test_a_request_for_a_file_that_is_gone_is_discarded(tmp_path):
     # Otherwise it would be retried every night forever.
     assert not storage.list(keys.META_REPROCESS)
     assert any("unknown file" in note for note in context.notes)
+
+
+def run_full_pipeline(storage, work_dir):
+    """The ordinary pipeline, including the repair step."""
+    from photoflow.steps import backfill
+    context = Context(config=config(), storage=storage, work_dir=str(work_dir))
+    discover.run(context)
+    ingest.run(context)
+    backfill.run(context)
+    extract.run(context)
+    derive.run(context)
+    publish.run(context)
+    cleanup.run(context)
+    return context
+
+
+@requires_media_tools
+def test_a_missing_thumbnail_is_rebuilt_on_the_next_run(tmp_path):
+    # This is the state a migration leaves behind: the photo and its preview are
+    # in place, but the thumbnail belonged to a bucket that is no longer used.
+    storage = MemoryStorage({keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg")})
+    first = run_full_pipeline(storage, tmp_path)
+
+    file = next(iter(first.items.values())).files[0]
+    storage.delete(keys.tile("", file.fileId))
+    file.tileVersion = None
+    _rewrite_shard(storage, first)
+
+    second = run_full_pipeline(storage, tmp_path)
+
+    assert storage.exists(keys.tile("", file.fileId))
+    assert next(iter(second.items.values())).files[0].tileVersion == derive.TILE_VERSION
+
+
+@requires_media_tools
+def test_the_rebuild_reads_the_preview_rather_than_the_original(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg")})
+    first = run_full_pipeline(storage, tmp_path)
+
+    file = next(iter(first.items.values())).files[0]
+    file.tileVersion = None
+    _rewrite_shard(storage, first)
+
+    # Pulling whole originals back out of storage to rebuild files a fraction of
+    # their size is the thing this must not do.
+    storage.delete(keys.original("", file.fileId))
+    second = run_full_pipeline(storage, tmp_path)
+
+    assert storage.exists(keys.tile("", file.fileId))
+    assert next(iter(second.items.values())).files[0].tileVersion == derive.TILE_VERSION
+
+
+@requires_media_tools
+def test_a_rebuild_does_not_re_transcode_the_video(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "BIG.MP4": make_video(tmp_path / "big.mp4", height=1440)})
+    first = run_full_pipeline(storage, tmp_path)
+
+    file = next(iter(first.items.values())).files[0]
+    preview_before = storage.get(keys.preview("", file.fileId, ".mp4"))
+
+    file.tileVersion = None
+    _rewrite_shard(storage, first)
+    run_full_pipeline(storage, tmp_path)
+
+    assert storage.get(keys.preview("", file.fileId, ".mp4")) == preview_before
+
+
+@requires_media_tools
+def test_a_file_that_failed_is_left_alone_by_the_repair(tmp_path):
+    storage = MemoryStorage({keys.INCOMING + "BROKEN.JPG": b"not an image" * 50})
+    first = run_full_pipeline(storage, tmp_path)
+
+    file = next(iter(first.items.values())).files[0]
+    assert file.failedProcessingTimeUtc
+
+    # Retrying it every night forever is what a reprocess request is for.
+    second = run_full_pipeline(storage, tmp_path)
+    assert second.backfill == []
+
+
+def _rewrite_shard(storage, context):
+    """Persist an edit made directly to a loaded item, as a migration would."""
+    from photoflow.models import ShardDocument
+    month = _only_month(storage)
+    storage.put_model(month_key := keys.shard(month), ShardDocument(month=month, items=list(context.items.values())))
+    return month_key

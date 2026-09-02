@@ -96,6 +96,7 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_PUBLIC_BASE_URL` | `https://photos.example.com` | optional; defaults to the bucket |
 | `PHOTOFLOW_S3_REGION` | `us-west-004` | optional; derived from the endpoint |
 | `PHOTOFLOW_MAX_FILES_PER_RUN` | `2000` | optional |
+| `PHOTOFLOW_MAX_BACKFILL_PER_RUN` | `500` | optional; repairs per run |
 
 Then enable Actions on the fork (forks start with workflows disabled) and run
 **Process photos** once manually to check it works.
@@ -200,14 +201,54 @@ writes — without it every upload and favourite fails a CORS preflight.
 
 Reset with `docker compose -f dev/docker-compose.yml down -v`.
 
+## Migrating from the older API-backed Photoflow
+
+The photos do not move. Their object keys are unchanged; only the metadata is
+rewritten, from the SQLite database into the catalog and mutable state that
+replace it.
+
+Download the database from **Menu → Export Data** in the old app, then:
+
+```bash
+cd worker
+PHOTOFLOW_PATH_PREFIX=<your-tenant-id>/ uv run photoflow-migrate photoflow.db --dry-run
+PHOTOFLOW_PATH_PREFIX=<your-tenant-id>/ uv run photoflow-migrate photoflow.db
+```
+
+`PHOTOFLOW_PATH_PREFIX` is what points the catalog at the old layout, which nested
+media under a tenant folder. The dry run reports what it would write and stops.
+
+Favourites, deletions, albums and share links all carry over. Two things are
+deliberately left out and rebuilt by the worker instead:
+
+- **Thumbnails.** The old API kept them in one bucket shared between tenants; they
+  belong in your own bucket now. Every file is imported with no thumbnail, and the
+  worker rebuilds them — from the 2000px preview, not the original, so this costs
+  a few GB of transfer rather than the whole library.
+- **Search vectors.** They came from a different model to the one the browser now
+  uses, so comparing across the two returns nonsense. They are recomputed from the
+  thumbnails.
+
+Previews are kept as they are, so no video is transcoded twice.
+
+Both rebuilds happen a batch at a time on each ordinary run, capped by
+`PHOTOFLOW_MAX_BACKFILL_PER_RUN` (500 by default), so a large library is worked
+through over several nights rather than stalling one run. Search is unavailable
+until the vectors finish. Run the worker locally to get through it faster:
+
+```bash
+PHOTOFLOW_MAX_BACKFILL_PER_RUN=100000 uv run photoflow-worker
+```
+
 ## The worker
 
 An ETL pipeline of eight steps, run in order (`worker/photoflow/pipeline.py`):
 
 | Step | What it does |
 | --- | --- |
-| `discover` | Load the existing catalog; list `incoming/` |
+| `discover` | Load the existing catalog; list `incoming/` and reprocess requests |
 | `ingest` | Hash, dedupe, store originals under their content hash |
+| `backfill` | Queue a batch of catalogued files missing a thumbnail or search vector |
 | `extract` | exiftool metadata; group Live Photo pairs into one item |
 | `derive` | Tiles, previews, ThumbHash placeholders |
 | `embed` | CLIP image embeddings for search |
@@ -240,13 +281,13 @@ cd worker && uv run --extra dev pytest
 
 This is a prototype. What is not done yet:
 
-- **Reprocessing** is operational, not in-app: bump a version constant in
-  `worker/photoflow/steps/derive.py` and re-run. There is no "reprocess this photo"
-  button.
+- **One month can dominate the shards.** Sharding is by upload month, so importing
+  a back catalogue in one go puts most of the library in a single shard — 19.7 MB of
+  a 33 MB catalog, in one real case. It works, but any edit to a photo in that month
+  makes every client re-fetch it. Splitting oversized months is the fix.
 - **The first import of a large library** should be run locally rather than in CI —
   thousands of video transcodes will exhaust free CI minutes. `PHOTOFLOW_MAX_FILES_PER_RUN`
   caps each run.
-- **No migration** from the older API-backed Photoflow's SQLite metadata.
 - **Processing is nightly**, so photos uploaded today get thumbnails tomorrow. Run the
   workflow manually if you want them sooner.
 - **The CLIP model choice is unverified for redistribution.** The default

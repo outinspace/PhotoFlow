@@ -13,7 +13,7 @@ from . import keys
 from .config import Config
 from .models import HeartbeatDocument, ItemRecord, StepReport
 from .storage import Storage
-from .steps import cleanup, compact, derive, discover, embed, extract, ingest, publish
+from .steps import backfill, cleanup, compact, derive, discover, embed, extract, ingest, publish
 
 
 @dataclass
@@ -32,6 +32,8 @@ class Context:
     pending: list = field(default_factory=list)
     # fileId -> request key, for files the app asked to have rebuilt.
     reprocess: dict = field(default_factory=dict)
+    # Already-catalogued files missing a derived output, repaired a batch per run.
+    backfill: list = field(default_factory=list)
     # Items touched this run, so publish only rewrites the shards that changed.
     dirty_months: set[str] = field(default_factory=set)
     # Embeddings produced this run, keyed by itemId.
@@ -54,6 +56,7 @@ class StepResult:
 STEPS = [
     discover.run,
     ingest.run,
+    backfill.run,
     extract.run,
     derive.run,
     embed.run,

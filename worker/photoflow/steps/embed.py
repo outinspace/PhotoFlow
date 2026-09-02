@@ -31,8 +31,9 @@ _EMBEDDING_OUTPUT_NAMES = ("image_embeds", "pooler_output", "last_hidden_state")
 def run(context) -> None:
     pending = [
         entry
-        for entry in getattr(context, "ingested", [])
-        if entry.content_type.startswith("image/") or _has_poster(context, entry)
+        for entry in list(context.ingested) + list(context.backfill)
+        if entry.needs_embedding
+        and (entry.content_type.startswith("image/") or _has_poster(context, entry))
     ]
 
     if not pending:
@@ -54,6 +55,13 @@ def run(context) -> None:
             pixels = _preprocess(_source_image_path(context, entry))
             vector = _encode(session, pixels)
             context.new_embeddings[item_id] = quantize(vector)
+
+            # Stamped on the item so the next run knows this one is done and does
+            # not fetch and encode it again.
+            item = context.items.get(item_id)
+            if item is not None:
+                item.embeddingVersion = EMBEDDING_VERSION
+
             encoded += 1
         except Exception as error:
             context.note(f"embedding failed for {entry.original_file_name}: {error}")
@@ -125,7 +133,9 @@ def _source_image_path(context, entry) -> str:
     """Videos are embedded from the poster frame derive already pulled."""
     if entry.content_type.startswith("image/"):
         return entry.local_path
-    return os.path.join(context.work_dir, f"{entry.file_id}.poster.jpeg")
+
+    poster = os.path.join(context.work_dir, f"{entry.file_id}.poster.jpeg")
+    return poster if os.path.exists(poster) else entry.local_path
 
 
 def _has_poster(context, entry) -> bool:

@@ -23,6 +23,7 @@ dev = [
 
 [project.scripts]
 photoflow-worker = "photoflow.__main__:main"
+photoflow-migrate = "photoflow.migrate:main"
 
 [build-system]
 requires = ["hatchling"]
