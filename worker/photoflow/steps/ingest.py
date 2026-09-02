@@ -76,7 +76,7 @@ def run(context) -> None:
     skipped = 0
     ignored = 0
 
-    for entry in progress.track(context.pending, "ingesting"):
+    for index, entry in enumerate(progress.track(context.pending, "ingesting")):
         file_name = os.path.basename(entry.key)
 
         if not is_media(file_name):
@@ -84,7 +84,10 @@ def run(context) -> None:
             context.storage.delete(entry.key)
             continue
 
-        local_path = os.path.join(context.work_dir, file_name)
+        # Numbered because incoming/ may have subdirectories, and two folders can
+        # hold the same filename; sharing one temp path would make the second
+        # download overwrite the first before either is read.
+        local_path = os.path.join(context.work_dir, f"{index}-{file_name}")
         _download(context, entry.key, local_path)
 
         hash_sha256 = hash_file(local_path)

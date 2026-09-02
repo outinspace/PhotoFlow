@@ -297,3 +297,33 @@ def _rewrite_shard(storage, context):
     month = _only_month(storage)
     storage.put_model(month_key := keys.shard(month), ShardDocument(month=month, items=list(context.items.values())))
     return month_key
+
+
+@requires_media_tools
+def test_same_filename_in_two_incoming_folders_stays_two_photos(tmp_path):
+    """Copying a library in keeps its folders, and IMG_1234.JPG recurs across years.
+
+    Both have to come through with their own pixels: they share a temp filename
+    while being fetched, and one download overwriting the other is silent.
+    """
+    storage = MemoryStorage({
+        keys.INCOMING + "2024/12/IMG_1234.JPG": _dated_jpeg(tmp_path / "a.jpg", (800, 600), "2024:12:07 13:46:15"),
+        keys.INCOMING + "2025/03/IMG_1234.JPG": _dated_jpeg(tmp_path / "b.jpg", (400, 300), "2025:03:18 09:15:00"),
+    })
+
+    context = run_pipeline(storage, tmp_path)
+
+    assert len(context.items) == 2
+    assert {i.widthPixels for i in context.items.values()} == {800, 400}
+    for item in context.items.values():
+        assert storage.exists(keys.tile(item.files[0].fileId))
+
+
+def _dated_jpeg(path, size, taken):
+    """A photo with a real capture date, which is what separates two years' IMG_1234."""
+    make_jpeg(path, size=size)
+    subprocess.run(
+        ["exiftool", "-overwrite_original", "-q", f"-DateTimeOriginal={taken}", str(path)],
+        check=True,
+    )
+    return path.read_bytes()
