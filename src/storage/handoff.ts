@@ -64,6 +64,20 @@ export const decodeHandoff = (encoded: string): StorageConfig | null => {
 export const buildHandoffUrl = (config: StorageConfig) =>
     `${window.location.origin}/connect#${FRAGMENT_KEY}=${encodeHandoff(config)}`;
 
+// A handoff read from a scanned code rather than from this page's own URL. On a
+// phone with the app installed, scanning with the camera opens the browser
+// instead, and the credentials would be saved to the wrong place — so the app
+// scans the code itself.
+export const decodeHandoffUrl = (scanned: string): StorageConfig | null => {
+    const fragment = scanned.split('#')[1];
+    if (!fragment) {
+        return null;
+    }
+
+    const encoded = new URLSearchParams(fragment).get(FRAGMENT_KEY);
+    return encoded ? decodeHandoff(encoded) : null;
+};
+
 // Reads a handoff out of the current URL and removes it in the same step, so the
 // credentials cannot be recovered from the address bar or the back button.
 //

@@ -42,6 +42,9 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        // Where supported, an installed app claims its own links, so a scanned
+        // code opens here rather than in the browser. Safari ignores this.
+        handle_links: 'preferred',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',

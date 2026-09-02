@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { decodeHandoff, encodeHandoff } from '../handoff';
+import { decodeHandoff, decodeHandoffUrl, encodeHandoff } from '../handoff';
 import { StorageConfig } from '../config';
 
 const full: StorageConfig = {
@@ -105,5 +105,28 @@ describe('taking the handoff out of the URL', () => {
         const { takeHandoffFromUrl } = await import('../handoff');
 
         expect(takeHandoffFromUrl()).toBeNull();
+    });
+});
+
+describe('decoding a scanned code', () => {
+    it('reads a handoff out of a full scanned URL', () => {
+        const url = `https://photoflow.outin.space/connect#c=${encodeHandoff(minimal)}`;
+
+        expect(decodeHandoffUrl(url)).toEqual(minimal);
+    });
+
+    it('ignores a QR code that is not a connection code', () => {
+        // Any other code could be in frame; treating it as a handoff would try to
+        // connect to nothing.
+        expect(decodeHandoffUrl('https://example.com')).toBeNull();
+        expect(decodeHandoffUrl('WIFI:S=coffeeshop;T=WPA;P=hunter2;;')).toBeNull();
+        expect(decodeHandoffUrl('https://photoflow.outin.space/connect#c=garbage')).toBeNull();
+    });
+
+    it('does not care what host the code was built for', () => {
+        // The code is generated on whatever origin the other device is using.
+        const url = `http://localhost:5199/connect#c=${encodeHandoff(full)}`;
+
+        expect(decodeHandoffUrl(url)).toEqual(full);
     });
 });
