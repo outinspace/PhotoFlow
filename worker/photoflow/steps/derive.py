@@ -5,6 +5,7 @@ view, and a ThumbHash for the placeholder shown while the tile loads. Originals
 are only ever read here, never rewritten.
 """
 
+import functools
 import os
 import subprocess
 import threading
@@ -80,6 +81,7 @@ def _derive_image(context, entry, record) -> None:
     _register_heif()
 
     with Image.open(entry.local_path) as source:
+        _draft_to_preview(source)
         image = ImageOps.exif_transpose(source).convert("RGB")
 
         if entry.needs_tile:
@@ -128,7 +130,7 @@ def _derive_video(context, entry, record) -> bool:
         return True
 
     preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.mp4")
-    _transcode(entry.local_path, preview_path)
+    _transcode(entry.local_path, preview_path, context.config)
     _upload(
         context,
         preview_path,
@@ -138,6 +140,22 @@ def _derive_video(context, entry, record) -> bool:
     record.previewIsOriginal = False
     record.previewVersion = PREVIEW_VERSION
     return False
+
+
+def _draft_to_preview(source: Image.Image) -> None:
+    """Decode a JPEG at the smallest scale that still covers the preview width.
+
+    The resizes below then work on a quarter of the pixels, which is most of the
+    cost of this step. Pillow only does this for JPEG, and only in halves, so it is
+    a no-op for HEIC and for anything already small enough.
+
+    The size is asked for along whichever stored dimension becomes the width after
+    the EXIF rotation is applied. Asking along the wrong one would silently hand
+    back a 1512px preview for every portrait photo, since draft refuses to go below
+    either dimension it is given.
+    """
+    rotated = source.getexif().get(0x0112, 1) in (5, 6, 7, 8)
+    source.draft("RGB", (1, PREVIEW_WIDTH) if rotated else (PREVIEW_WIDTH, 1))
 
 
 def _thumb_hash(image: Image.Image) -> str:
@@ -166,13 +184,39 @@ def _extract_poster(source: str, destination: str) -> None:
     )
 
 
-def _transcode(source: str, destination: str) -> None:
+@functools.cache
+def _has_hardware_encoder() -> bool:
+    """Whether this machine can encode H.264 on a dedicated video block.
+
+    Every Apple Silicon Mac can; a Linux CI runner cannot, so the software encoder
+    has to stay. Asked once, since it means starting ffmpeg to find out.
+    """
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            capture_output=True,
+            timeout=30,
+        )
+    except Exception:
+        return False
+    return b"h264_videotoolbox" in result.stdout
+
+
+def _encoder_arguments(config) -> list[str]:
+    if _has_hardware_encoder():
+        # VideoToolbox has no CRF; -q:v is its own scale, where higher is better.
+        return ["-c:v", "h264_videotoolbox", "-q:v", str(config.video_quality_hardware)]
+    return ["-c:v", "libx264", "-preset", "fast", "-crf", str(config.video_quality_software)]
+
+
+def _transcode(source: str, destination: str, config) -> None:
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error",
             "-i", source,
             "-vf", "scale=-2:'min(1080,ih)'",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "28", "-pix_fmt", "yuv420p",
+            *_encoder_arguments(config),
+            "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart",
             destination,

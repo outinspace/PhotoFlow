@@ -376,3 +376,73 @@ def test_two_copies_of_one_photo_in_a_parallel_batch_are_still_one_item(tmp_path
 
     assert len(context.items) == 1
     assert any("5 duplicates" in note for note in context.notes)
+
+
+@requires_media_tools
+def test_a_rotated_photo_still_gets_a_full_width_preview(tmp_path):
+    """The DCT-scaled decode must not shorten a portrait photo's preview.
+
+    Pillow's draft refuses to go below either dimension it is asked for, so asking
+    along the stored width — which becomes the *height* once the EXIF rotation is
+    applied — silently yields a preview well under PREVIEW_WIDTH. Most phone photos
+    are rotated this way, so the regression would have been the common case.
+    """
+    source = tmp_path / "portrait.jpg"
+    image = Image.new("RGB", (4032, 3024), (70, 120, 200))
+    exif = image.getexif()
+    exif[0x0112] = 6  # stored landscape, displayed portrait
+    image.save(source, "JPEG", exif=exif)
+
+    with Image.open(source) as opened:
+        derive._draft_to_preview(opened)
+        from PIL import ImageOps
+
+        displayed = ImageOps.exif_transpose(opened)
+
+    assert displayed.width >= derive.PREVIEW_WIDTH, (
+        f"preview would be {displayed.width}px wide, short of {derive.PREVIEW_WIDTH}"
+    )
+
+
+@requires_media_tools
+def test_an_unrotated_photo_is_decoded_at_a_reduced_scale(tmp_path):
+    """The whole point of the draft: fewer pixels to resize."""
+    source = tmp_path / "landscape.jpg"
+    Image.new("RGB", (4032, 3024), (200, 120, 70)).save(source, "JPEG")
+
+    with Image.open(source) as opened:
+        derive._draft_to_preview(opened)
+        assert opened.width < 4032
+        assert opened.width >= derive.PREVIEW_WIDTH
+
+
+@requires_media_tools
+def test_metadata_for_a_whole_batch_comes_back_keyed_by_path(tmp_path):
+    """One exiftool call has to be mapped back onto the files that went into it."""
+    paths = []
+    for index in range(5):
+        path = tmp_path / f"IMG_{index}.jpg"
+        make_jpeg(path)
+        paths.append(str(path))
+
+    tags = extract.read_tags_many(paths, str(tmp_path))
+
+    assert set(tags) == set(paths)
+    assert all(tags[path]["ImageWidth"] == 800 for path in paths)
+
+
+def test_an_unreadable_file_is_absent_rather_than_shifting_the_others(tmp_path):
+    """A failure must not slide metadata onto the wrong file.
+
+    Results come back keyed by path precisely so that a file exiftool cannot read
+    drops out instead of misaligning everything after it.
+    """
+    good = tmp_path / "good.jpg"
+    make_jpeg(good)
+    broken = tmp_path / "broken.jpg"
+    broken.write_bytes(b"not a jpeg at all")
+
+    tags = extract.read_tags_many([str(broken), str(good)], str(tmp_path))
+
+    assert str(good) in tags
+    assert tags[str(good)]["ImageWidth"] == 800

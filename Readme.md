@@ -293,10 +293,38 @@ uv run photoflow-worker --workers 8  # a laptop getting through a large import
 
 `--workers` sets how many files are processed at once, and defaults to 1 so a
 default run and CI behave exactly as before. On a laptop, measured over 12MP
-photos: 2.4× at 4 workers, 3.0× at 8. Video gains less and plateaus around 1.8×,
-because ffmpeg already spreads one transcode across cores, so parallel transcodes
-mostly contend with each other. Somewhere around the number of cores is the useful
-setting; far beyond it buys nothing.
+photos: 2.4× at 4 workers, 3.0× at 8. Somewhere around the number of cores is the
+useful setting; far beyond it buys nothing.
+
+Three things in the pipeline were shaped around how a laptop actually spends the
+time, all measured on an M1 Pro:
+
+- **Metadata is read for the whole batch in one exiftool call.** exiftool is a Perl
+  script, so starting it costs about 60ms against roughly 2ms of reading. A process
+  per file spent 97% of the step on startup. Worth 13–31× depending on the mix of
+  photos and video, and it is the one step `--workers` never helped, because it is
+  sequential by nature.
+- **JPEGs are decoded at the smallest scale that still covers the preview.** Most of
+  the cost of building a tile and a preview is resizing pixels, not reading them, so
+  halving the decode quarters the work. This does nothing for HEIC, which has no
+  equivalent, and nothing for portrait photos, whose short side is already close to
+  the preview width.
+- **Video is encoded on the hardware encoder** (`h264_videotoolbox`) when the machine
+  has one, falling back to `libx264` where it does not, such as CI. At the default
+  quality the output file is the same size — 3.73MB against 3.76MB over a test set.
+  The wall-clock gain alone is only about 1.6×, but it uses a third of the CPU, and
+  that is the real point: `libx264` alone occupies roughly seven cores for a single
+  clip, which is why video used to plateau at 1.8× no matter how many workers it was
+  given. `PHOTOFLOW_VIDEO_QUALITY_HARDWARE` and `PHOTOFLOW_VIDEO_QUALITY_SOFTWARE`
+  tune this; the two scales are unrelated, and the defaults were matched by size.
+
+End to end over a mixed batch, before against after: 14.05s → 10.29s at one worker,
+6.67s → 3.60s at eight.
+
+Two things that were tried and measured as *not* worth it, so that they are not
+tried again: CoreML for the CLIP embeddings is no faster than the CPU provider on
+this model (27.0ms against 26.6ms), and scaling the video poster frame inside ffmpeg
+costs more than the Pillow decode it saves.
 
 The worker loads `worker/.env` itself, from any working directory. Real environment
 variables override it, which is why the same code needs no `.env` in CI.

@@ -35,6 +35,14 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 - **`--workers` may exceed 1**, so `ingest` and `derive` run their per-file work on
   threads. Anything they share needs a lock — the dedupe check in `ingest` claims a
   hash under one, or two copies of a photo in the same batch would both pass it.
+- **Pillow's `draft()` refuses to go below either dimension it is given**, so the
+  size asked for must follow whichever stored dimension becomes the width after the
+  EXIF rotation. Getting this wrong does not fail: it quietly returns previews at
+  three-quarters of the intended width for every rotated photo, which is most of a
+  phone library. `derive._draft_to_preview` handles it, with a test.
+- **`extract` reads the whole batch in one exiftool call** and maps results back by
+  path. Results are keyed rather than positional on purpose, so a file exiftool
+  cannot read drops out instead of shifting metadata onto its neighbours.
 
 ## Coding guidelines
 

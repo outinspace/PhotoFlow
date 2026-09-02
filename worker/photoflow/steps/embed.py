@@ -114,6 +114,10 @@ def _encode(session, pixels: np.ndarray) -> np.ndarray:
 
 def _preprocess(path: str) -> np.ndarray:
     with Image.open(path) as source:
+        # Only a 224px square survives the crop below, so a full-resolution decode
+        # of a 12MP original is wasted. Both dimensions are asked for because the
+        # crop works off the short side, which the EXIF rotation does not change.
+        source.draft("RGB", (IMAGE_SIZE, IMAGE_SIZE))
         image = ImageOps.exif_transpose(source).convert("RGB")
 
         scale = IMAGE_SIZE / min(image.width, image.height)

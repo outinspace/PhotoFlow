@@ -42,6 +42,12 @@ class Config:
     passthrough_max_height: int
     clip_model_repo: str
     healthcheck_url: str | None
+    # Quality of a transcoded preview, on the scale of whichever encoder runs.
+    # Hardware and software encoders do not agree on a number, so there is one for
+    # each; the defaults were matched to produce the same file size on a 1440p clip.
+    # Last, and defaulted, so that every existing caller stays valid.
+    video_quality_hardware: int = 40
+    video_quality_software: int = 28
 
     @staticmethod
     def from_env() -> "Config":
@@ -62,6 +68,8 @@ class Config:
             max_files_per_run=int(os.environ.get("PHOTOFLOW_MAX_FILES_PER_RUN", "2000")),
             max_backfill_per_run=int(os.environ.get("PHOTOFLOW_MAX_BACKFILL_PER_RUN", "500")),
             passthrough_max_height=int(os.environ.get("PHOTOFLOW_PASSTHROUGH_MAX_HEIGHT", "1080")),
+            video_quality_hardware=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_HARDWARE", "40")),
+            video_quality_software=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_SOFTWARE", "28")),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),
             healthcheck_url=os.environ.get("PHOTOFLOW_HEALTHCHECK_URL") or None,
         )
