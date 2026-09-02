@@ -37,7 +37,10 @@ const awsClient = (config: StorageConfig) => {
     assertCanSign();
 
     const region = resolveRegion(config);
-    const key = `${config.accessKeyId}:${region}`;
+    // Every field the signature depends on, not just the key id: rotating a secret
+    // while keeping the same id would otherwise go on signing with the old one
+    // until the page was reloaded.
+    const key = `${config.accessKeyId}:${config.secretAccessKey}:${region}`;
     if (!client || clientKey !== key) {
         client = new AwsClient({
             accessKeyId: config.accessKeyId,
@@ -110,6 +113,82 @@ export const writeObject = async (key: string, body: BodyInit, contentType: stri
 
 export const writeJson = (key: string, value: unknown) =>
     writeObject(key, JSON.stringify(value), 'application/json');
+
+export class UploadFailed extends Error {
+    constructor(public readonly status: number, message: string) {
+        super(message);
+    }
+}
+
+interface UploadOptions {
+    contentType: string;
+    // Aborts the upload after this long with zero bytes sent. A wall-clock timeout
+    // would kill a large file on a slow connection; only a lack of progress
+    // distinguishes a slow upload from a dead one.
+    stallTimeoutMs: number;
+}
+
+// Sent via XHR rather than fetch because only XHR reports upload progress in every
+// browser, and progress is what drives the stall detector. Without it a hung
+// request holds one of the upload slots for the rest of the session.
+export const uploadFile = (key: string, file: File, options: UploadOptions) =>
+    new Promise<void>((resolve, reject) => {
+        const config = requireStorageConfig();
+        const url = objectUrl(config, key);
+
+        // UNSIGNED-PAYLOAD keeps the file out of the signature, so signing never
+        // reads it and the body streams from disk rather than through memory. This
+        // is what makes many parallel uploads affordable on a phone.
+        awsClient(config)
+            .sign(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': options.contentType,
+                    'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD'
+                }
+            })
+            .then(signed => {
+                const request = new XMLHttpRequest();
+                let stallTimer: ReturnType<typeof setTimeout> | undefined;
+                let stalled = false;
+
+                const restartStallTimer = () => {
+                    clearTimeout(stallTimer);
+                    stallTimer = setTimeout(() => {
+                        stalled = true;
+                        request.abort();
+                    }, options.stallTimeoutMs);
+                };
+
+                request.open('PUT', url);
+                signed.headers.forEach((value, name) => request.setRequestHeader(name, value));
+
+                request.upload.onprogress = restartStallTimer;
+
+                request.onload = () => {
+                    clearTimeout(stallTimer);
+                    if (request.status >= 200 && request.status < 300) {
+                        resolve();
+                    } else {
+                        reject(new UploadFailed(request.status, `Failed to upload ${key} (${request.status})`));
+                    }
+                };
+
+                request.onerror = () => {
+                    clearTimeout(stallTimer);
+                    reject(new UploadFailed(0, `Network error uploading ${key}`));
+                };
+
+                request.onabort = () => {
+                    clearTimeout(stallTimer);
+                    reject(new UploadFailed(0, stalled ? `Stalled uploading ${key}` : `Upload aborted`));
+                };
+
+                restartStallTimer();
+                request.send(file);
+            })
+            .catch(reject);
+    });
 
 export const objectExists = async (key: string) => {
     const config = requireStorageConfig();

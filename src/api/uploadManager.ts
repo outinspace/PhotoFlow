@@ -2,7 +2,7 @@ import pLimit from 'p-limit';
 import toast from 'react-hot-toast';
 import { queryClient } from '../app';
 import * as keys from '../storage/keys';
-import { writeObject } from '../storage/bucket';
+import { uploadFile, UploadFailed } from '../storage/bucket';
 import { requireStorageConfig } from '../storage/config';
 import { Catalog } from '../storage/catalog';
 
@@ -10,10 +10,20 @@ import { Catalog } from '../storage/catalog';
 // with the user's own key. The nightly worker picks them up from there, which is
 // the same path a phone backup app like PhotoSync uses.
 
-const CONCURRENCY = 4;
+// Uploads run wide because they now go straight to the storage provider: there is
+// no single machine in the middle to overwhelm, and the win on a large import comes
+// from having enough requests in flight to cover per-request latency.
+const UPLOAD_CONCURRENCY = 12;
+
+// Hashing is bounded separately because it is the one step that holds a whole file
+// in memory — crypto.subtle has no streaming digest. Keeping this small caps peak
+// memory at roughly HASH_CONCURRENCY x HASH_SIZE_LIMIT_BYTES no matter how many
+// uploads are in flight, which is what stops a big import killing a phone tab.
+const HASH_CONCURRENCY = 2;
+const HASH_SIZE_LIMIT_BYTES = 32 * 1024 * 1024;
+
 const MAX_ATTEMPTS = 3;
-// Hashing reads the whole file into memory, so skip dedup for very large files.
-const HASH_SIZE_LIMIT_BYTES = 512 * 1024 * 1024;
+const STALL_TIMEOUT_MS = 60_000;
 
 // Folder uploads include non-media files (e.g. Google Takeout .json sidecars).
 // We use a denylist rather than an allowlist so that we fail safe: an unknown
@@ -40,7 +50,8 @@ const isMediaFile = (file: File) => {
     return !NON_MEDIA_EXTENSIONS.has(extension);
 };
 
-const limit = pLimit(CONCURRENCY);
+const uploadLimit = pLimit(UPLOAD_CONCURRENCY);
+const hashLimit = pLimit(HASH_CONCURRENCY);
 
 // Progress for the current run. Counts reset once a run fully settles.
 let total = 0;
@@ -85,7 +96,7 @@ export const enqueueFiles = (files: Iterable<File>) => {
     total += mediaFiles.length;
     updateProgressToast();
 
-    mediaFiles.forEach(file => limit(() => runTask(file)));
+    mediaFiles.forEach(file => uploadLimit(() => runTask(file)));
 };
 
 const runTask = async (file: File) => {
@@ -101,12 +112,11 @@ const runTask = async (file: File) => {
                 succeeded++;
                 return;
             } catch (error) {
-                if (attempt >= MAX_ATTEMPTS) {
+                if (attempt >= MAX_ATTEMPTS || isPermanent(error)) {
                     throw error;
                 }
 
-                const backoffMs = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-                await new Promise(resolve => setTimeout(resolve, backoffMs));
+                await new Promise(resolve => setTimeout(resolve, backoffFor(attempt, error)));
             }
         }
     } catch {
@@ -148,33 +158,76 @@ const updateProgressToast = () => {
     toastId = toast.loading(`Uploading ${settledCount()}/${total} files`, { id: toastId });
 };
 
+// A wrong key or an unsupported request will fail identically on every retry, and
+// at this concurrency retrying them would mean thousands of pointless requests.
+const isPermanent = (error: unknown) =>
+    error instanceof UploadFailed
+    && error.status >= 400
+    && error.status < 500
+    && error.status !== 408
+    && error.status !== 429;
+
+const backoffFor = (attempt: number, error: unknown) => {
+    // Running wide is what provokes throttling, so back off hard when a provider
+    // asks us to rather than immediately adding to the pressure.
+    const throttled = error instanceof UploadFailed && (error.status === 429 || error.status === 503);
+    const base = throttled ? 5_000 : 1_000;
+
+    return Math.pow(2, attempt) * base + Math.random() * 500;
+};
+
 // Every catalog entry carries the content hash of its file, and the catalog is
 // already in memory, so re-uploading a photo is caught without a single request.
+//
+// Files above the size limit skip this and upload unconditionally. That is not a
+// correctness gap: the worker dedupes authoritatively by content hash on ingest, so
+// the only cost is one redundant upload of a duplicate large video.
 const isAlreadyImported = async (file: File): Promise<boolean> => {
     if (!crypto.subtle || file.size > HASH_SIZE_LIMIT_BYTES) {
         return false;
     }
 
-    try {
-        const fileBuffer = await file.arrayBuffer();
-        const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
-        const hashHex = Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
+    const known = knownHashes();
+    if (known.size === 0) {
+        return false;
+    }
 
-        return knownHashes().has(hashHex);
+
+    try {
+        return await hashLimit(async () => {
+            const fileBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
+            const hashHex = Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+
+            return known.has(hashHex);
+        });
     } catch {
         // Dedup is an optimization — on any failure, just upload.
         return false;
     }
 };
 
+// Built once per batch rather than per file: a large library has tens of thousands
+// of hashes, and rebuilding the set for every upload was quadratic in exactly the
+// case this concurrency is meant to serve.
+let knownHashesCache: { generatedAt: string; hashes: Set<string> } | null = null;
+
 const knownHashes = () => {
     const catalog = queryClient.getQueryData<Catalog>(['catalog']);
+    const generatedAt = catalog?.manifest.generatedAt ?? '';
 
-    return new Set(
-        (catalog?.items ?? []).flatMap(item => item.files.map(file => file.hashSha256))
-    );
+    if (knownHashesCache?.generatedAt !== generatedAt) {
+        knownHashesCache = {
+            generatedAt,
+            hashes: new Set(
+                (catalog?.items ?? []).flatMap(item => item.files.map(file => file.hashSha256))
+            )
+        };
+    }
+
+    return knownHashesCache.hashes;
 };
 
 const putFileToBucket = async (file: File) => {
@@ -184,9 +237,8 @@ const putFileToBucket = async (file: File) => {
     const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
     const fileNameWithTimestamp = `${file.name.replace(/\.[^/.]+$/, '')}_${timestamp}${fileExtension}`;
 
-    await writeObject(
-        keys.INCOMING + fileNameWithTimestamp,
-        file,
-        file.type || 'application/octet-stream'
-    );
+    await uploadFile(keys.INCOMING + fileNameWithTimestamp, file, {
+        contentType: file.type || 'application/octet-stream',
+        stallTimeoutMs: STALL_TIMEOUT_MS
+    });
 };
