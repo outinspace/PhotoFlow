@@ -1,11 +1,12 @@
 import { createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import Gallery from "./gallery/gallery";
 import Connect from "./setup/connect";
 import LinkDevice from "./setup/link.device";
 import Albums from './albums/albums';
 import Search from './search/search';
 import Menu from './menu/menu';
-import Map from './map/map';
+
 import { RecentlyDeletedItems } from './menu/recently.deleted.items';
 import Settings from './menu/settings';
 import StorageSettings from './menu/storage.settings';
@@ -19,6 +20,10 @@ import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.settings";
 import { isConfigured } from "./storage/config";
+// maplibre-gl is by far the largest dependency here and only the map needs it,
+// so it is kept out of the initial bundle.
+const Map = lazy(() => import('./map/map'));
+
 export const rootRoute = createRootRoute();
 
 export const indexRoute = createRoute({
@@ -67,7 +72,9 @@ export const mapRoute = createRoute({
     path: '/map',
     component: () => (
         <NavigationLayout>
-            <Map />
+            <Suspense fallback={<div className='flex-auto bg-slate-900' />}>
+                <Map />
+            </Suspense>
         </NavigationLayout>
     )
 });

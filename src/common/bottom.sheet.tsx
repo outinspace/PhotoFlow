@@ -80,9 +80,13 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
                     style={style}
                 />
             ))}
+            {/* The sheet stays mounted when closed and is moved off-screen by a
+                transform, so it still spans the viewport and would otherwise swallow
+                clicks aimed at whatever is underneath — on the side placement it
+                covers the rightmost strip, where map controls live. */}
             <animated.div
                 ref={containerRef}
-                className='left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end touch-none'
+                className={`left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end touch-none ${isOpen ? '' : 'pointer-events-none'}`}
                 style={sheetSpring}
                 {...dragBindings()}
             >
