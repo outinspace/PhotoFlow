@@ -120,6 +120,12 @@ def run_copies(client, source_bucket: str, destination_bucket: str, copies: list
                 print(f"  {item.source_key}: {error}", file=sys.stderr)
 
 
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(copy_one, copies))
+
+    return counts
+
+
 def preflight(client, source_bucket: str, copies: list[Copy], sample: int = 5) -> str | None:
     """Check a handful of source objects before starting on tens of thousands.
 
@@ -140,11 +146,6 @@ def preflight(client, source_bucket: str, copies: list[Copy], sample: int = 5) -
         f"    {copies[0].source_key}\n"
         "  Check the bucket name and --source-prefix against what is actually there."
     )
-
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        list(pool.map(copy_one, copies))
-
-    return counts
 
 
 def main() -> int:
