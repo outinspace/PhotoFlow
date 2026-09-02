@@ -9,7 +9,7 @@ import mimetypes
 import os
 from dataclasses import dataclass
 
-from .. import keys
+from .. import keys, progress
 from ..ids import hash_file
 
 # Folder uploads sweep up sidecars and OS junk. This mirrors the denylist in
@@ -76,7 +76,7 @@ def run(context) -> None:
     skipped = 0
     ignored = 0
 
-    for entry in context.pending:
+    for entry in progress.track(context.pending, "ingesting"):
         file_name = os.path.basename(entry.key)
 
         if not is_media(file_name):
@@ -125,7 +125,7 @@ def _fetch_for_reprocessing(context) -> list[Ingested]:
     """
     requested = []
 
-    for file_id, request_key in context.reprocess.items():
+    for file_id, request_key in progress.track(list(context.reprocess.items()), "fetching to reprocess"):
         found = next(
             ((item, file) for item in context.items.values()
              for file in item.files if file.fileId == file_id),

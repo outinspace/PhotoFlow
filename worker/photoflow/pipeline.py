@@ -9,7 +9,7 @@ import time
 import traceback
 from dataclasses import dataclass, field
 
-from . import keys
+from . import keys, progress
 from .config import Config
 from .models import HeartbeatDocument, ItemRecord, StepReport
 from .storage import Storage
@@ -42,6 +42,7 @@ class Context:
     notes: list[str] = field(default_factory=list)
 
     def note(self, message: str) -> None:
+        progress.interrupt()
         self.notes.append(message)
         print(f"  {message}", flush=True)
 
@@ -71,6 +72,7 @@ def run(context: Context) -> list[StepResult]:
 
     for step in STEPS:
         name = step.__module__.rsplit(".", 1)[-1]
+        progress.interrupt()
         print(f"\n[{name}]", flush=True)
         started = time.monotonic()
 
@@ -79,6 +81,7 @@ def run(context: Context) -> list[StepResult]:
             results.append(StepResult(name=name, seconds=time.monotonic() - started))
         except Exception:
             error = traceback.format_exc()
+            progress.interrupt()
             print(error, flush=True)
             results.append(
                 StepResult(name=name, seconds=time.monotonic() - started, error=error)

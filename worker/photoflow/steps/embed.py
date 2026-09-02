@@ -14,6 +14,8 @@ import struct
 import numpy as np
 from PIL import Image, ImageOps
 
+from .. import progress
+
 EMBEDDING_VERSION = 1
 EMBEDDING_DIM = 512
 IMAGE_SIZE = 224
@@ -46,7 +48,7 @@ def run(context) -> None:
         return
 
     encoded = 0
-    for entry in pending:
+    for entry in progress.track(pending, "embedding"):
         item_id = getattr(entry, "item_id", None)
         if item_id is None or item_id in context.new_embeddings:
             continue

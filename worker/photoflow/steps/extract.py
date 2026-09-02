@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from ..grouping import group_keys_for
 from ..ids import item_id_from_group_key
 from ..models import FileRecord, ItemRecord
+from .. import progress
 
 METADATA_VERSION = 1
 EXIFTOOL_TIMEOUT_SECONDS = 120
@@ -31,7 +32,7 @@ def run(context) -> None:
 
     failures = 0
 
-    for entry in getattr(context, "ingested", []):
+    for entry in progress.track(getattr(context, "ingested", []), "reading metadata"):
         try:
             tags = read_tags(entry.local_path)
         except Exception as error:
