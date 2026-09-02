@@ -7,6 +7,7 @@ is safely stored under its content hash.
 
 import mimetypes
 import os
+import threading
 from dataclasses import dataclass
 
 from .. import keys, progress
@@ -82,13 +83,20 @@ def run(context) -> None:
     skipped = 0
     ignored = 0
 
-    for index, entry in enumerate(progress.track(context.pending, "ingesting")):
+    counts = threading.Lock()
+    seen = threading.Lock()
+
+    def ingest_one(numbered) -> None:
+        nonlocal skipped, ignored
+        index, entry = numbered
+
         file_name = os.path.basename(entry.key)
 
         if not is_media(file_name):
-            ignored += 1
+            with counts:
+                ignored += 1
             context.storage.delete(entry.key)
-            continue
+            return
 
         # Numbered because incoming/ may have subdirectories, and two folders can
         # hold the same filename; sharing one temp path would make the second
@@ -98,18 +106,22 @@ def run(context) -> None:
 
         hash_sha256 = hash_file(local_path)
 
-        if hash_sha256 in context.known_hashes:
-            # Already in the catalog under this exact content, so the upload was a
-            # duplicate.
-            skipped += 1
+        # Claimed under a lock: two copies of the same photo in one batch would
+        # otherwise both pass this check and both be catalogued.
+        with seen:
+            duplicate = hash_sha256 in context.known_hashes
+            if not duplicate:
+                context.known_hashes.add(hash_sha256)
+
+        if duplicate:
+            with counts:
+                skipped += 1
             os.remove(local_path)
             context.storage.delete(entry.key)
-            continue
+            return
 
-        original_key = keys.original(hash_sha256)
-        _upload(context, local_path, original_key, content_type_for(file_name))
+        _upload(context, local_path, keys.original(hash_sha256), content_type_for(file_name))
 
-        context.known_hashes.add(hash_sha256)
         ingested.append(
             Ingested(
                 file_id=hash_sha256,
@@ -121,6 +133,10 @@ def run(context) -> None:
                 incoming_key=entry.key,
             )
         )
+
+    # Downloading, hashing and uploading are all waiting on the network, so this
+    # is where a large import spends most of its time.
+    progress.track_map(ingest_one, list(enumerate(context.pending)), "ingesting", context.workers)
 
     context.ingested = ingested + _fetch_for_reprocessing(context)
     context.note(f"ingested {len(ingested)}, skipped {skipped} duplicates, ignored {ignored} non-media")

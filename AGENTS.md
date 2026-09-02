@@ -32,6 +32,9 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 - **Each device writes only its own mutation log.** That single-writer rule is what
   removes write conflicts entirely — do not add code that writes another device's file.
 - **Originals are never modified or deleted** by anything in this repo.
+- **`--workers` may exceed 1**, so `ingest` and `derive` run their per-file work on
+  threads. Anything they share needs a lock — the dedupe check in `ingest` claims a
+  hash under one, or two copies of a photo in the same batch would both pass it.
 
 ## Coding guidelines
 

@@ -98,8 +98,9 @@ class MemoryStorage(Storage):
 
 
 class S3Storage(Storage):
-    def __init__(self, config):
+    def __init__(self, config, workers: int = 1):
         import boto3
+        from botocore.config import Config as BotoConfig
 
         self.bucket = config.bucket
         self.client = boto3.client(
@@ -108,6 +109,9 @@ class S3Storage(Storage):
             aws_access_key_id=config.access_key_id,
             aws_secret_access_key=config.secret_access_key,
             region_name=config.region,
+            # botocore pools ten connections by default; more workers than that
+            # would spend their time queueing for one.
+            config=BotoConfig(max_pool_connections=max(10, workers * 2)),
         )
 
     def list(self, prefix: str) -> list[StoredObject]:

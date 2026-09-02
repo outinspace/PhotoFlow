@@ -22,6 +22,8 @@ class Context:
     storage: Storage
     # Cleaned up by the caller.
     work_dir: str
+    # How many files to process at once. One keeps the sequential path.
+    workers: int = 1
 
     # Every item already in the catalog, keyed by itemId, loaded by discover and
     # written back by publish.

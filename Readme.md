@@ -287,8 +287,16 @@ Run it locally:
 ```bash
 cd worker
 cp .env.example .env   # then fill it in
-uv run photoflow-worker
+uv run photoflow-worker              # one file at a time
+uv run photoflow-worker --workers 8  # a laptop getting through a large import
 ```
+
+`--workers` sets how many files are processed at once, and defaults to 1 so a
+default run and CI behave exactly as before. On a laptop, measured over 12MP
+photos: 2.4× at 4 workers, 3.0× at 8. Video gains less and plateaus around 1.8×,
+because ffmpeg already spreads one transcode across cores, so parallel transcodes
+mostly contend with each other. Somewhere around the number of cores is the useful
+setting; far beyond it buys nothing.
 
 The worker loads `worker/.env` itself, from any working directory. Real environment
 variables override it, which is why the same code needs no `.env` in CI.

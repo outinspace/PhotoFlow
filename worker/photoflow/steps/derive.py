@@ -7,6 +7,7 @@ are only ever read here, never rewritten.
 
 import os
 import subprocess
+import threading
 
 from PIL import Image, ImageOps
 
@@ -31,33 +32,43 @@ def run(context) -> None:
     failures = 0
 
     work = list(context.ingested) + list(context.backfill)
+    counts = threading.Lock()
 
-    for entry in progress.track(work, "deriving"):
+    def derive_one(entry) -> None:
+        nonlocal passed_through, transcoded, failures
+
         item = context.items.get(getattr(entry, "item_id", None))
         if item is None:
-            continue
+            return
 
         record = next((f for f in item.files if f.fileId == entry.file_id), None)
         if record is None:
-            continue
+            return
 
         if not (entry.needs_tile or entry.needs_preview):
-            continue
+            return
 
         try:
             if entry.content_type.startswith("image/"):
                 _derive_image(context, entry, record)
             elif _derive_video(context, entry, record):
-                passed_through += 1
+                with counts:
+                    passed_through += 1
             else:
-                transcoded += 1
+                with counts:
+                    transcoded += 1
 
             record.lastProcessedTimeUtc = now
             record.failedProcessingTimeUtc = None
         except Exception as error:
-            failures += 1
+            with counts:
+                failures += 1
             record.failedProcessingTimeUtc = now
             context.note(f"derive failed for {entry.original_file_name}: {error}")
+
+    # Each file writes only its own record, and the heavy work is ffmpeg and
+    # exiftool in their own processes, so this scales past one core.
+    progress.track_map(derive_one, work, "deriving", context.workers)
 
     context.note(
         f"derived {len(work)} files "

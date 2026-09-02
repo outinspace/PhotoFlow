@@ -11,7 +11,9 @@ its summary already says everything.
 """
 
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 LOG_INTERVAL_SECONDS = 60
 
@@ -65,6 +67,48 @@ def track(items, label: str):
     # step did not actually reach.
     if logged:
         _report(label, total, total, time.monotonic() - started, interactive)
+
+
+def track_map(work, items, label: str, workers: int) -> None:
+    """Run work over items, reporting as each finishes.
+
+    One worker keeps the sequential path, so a default run behaves exactly as it
+    did and nothing here has to be trusted when it is not asked for.
+    """
+    if workers <= 1:
+        for item in track(items, label):
+            work(item)
+        return
+
+    total = len(items)
+    if not total:
+        return
+
+    interactive = sys.stdout.isatty()
+    started = time.monotonic()
+    last_logged = 0.0
+    done = 0
+    lock = threading.Lock()
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(work, item) for item in items]
+
+        for future in as_completed(futures):
+            # Raised here rather than swallowed: a step's own expected failures are
+            # handled inside work, so anything reaching this is a real fault.
+            future.result()
+
+            with lock:
+                done += 1
+                elapsed = time.monotonic() - started
+
+                if interactive:
+                    _report(label, done, total, elapsed, interactive)
+                elif elapsed - last_logged >= LOG_INTERVAL_SECONDS:
+                    last_logged = elapsed
+                    _report(label, done, total, elapsed, interactive)
+
+    interrupt()
 
 
 def _report(label: str, done: int, total: int, elapsed: float, interactive: bool) -> None:

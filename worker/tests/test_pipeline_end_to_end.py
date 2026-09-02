@@ -5,6 +5,7 @@ and touches no network. The embedding step is exercised separately because it
 downloads model weights.
 """
 
+import pathlib
 import shutil
 import subprocess
 
@@ -327,3 +328,51 @@ def _dated_jpeg(path, size, taken):
         check=True,
     )
     return path.read_bytes()
+
+
+def run_pipeline_with(storage, work_dir, workers):
+    from photoflow.steps import backfill
+    pathlib.Path(work_dir).mkdir(parents=True, exist_ok=True)
+    context = Context(config=config(), storage=storage, work_dir=str(work_dir), workers=workers)
+    for step in (discover, ingest, backfill, extract, derive, publish, cleanup):
+        step.run(context)
+    return context
+
+
+@requires_media_tools
+def test_parallel_processing_produces_the_same_catalog_as_sequential(tmp_path):
+    def library(root):
+        root.mkdir(exist_ok=True)
+        return {
+            keys.INCOMING + f"IMG_{n}.JPG": _dated_jpeg(root / f"{n}.jpg", (300 + n * 10, 200), f"2025:03:{n:02d} 10:00:00")
+            for n in range(1, 13)
+        }
+
+    one = MemoryStorage(library(tmp_path / "a"))
+    many = MemoryStorage(library(tmp_path / "b"))
+
+    sequential = run_pipeline_with(one, tmp_path / "wa", workers=1)
+    parallel = run_pipeline_with(many, tmp_path / "wb", workers=6)
+
+    # Same photos in, same catalog out — ids come from content, so they match.
+    assert sorted(sequential.items) == sorted(parallel.items)
+    assert len(parallel.items) == 12
+    for item_id, item in parallel.items.items():
+        assert item.widthPixels == sequential.items[item_id].widthPixels
+        assert item.files[0].tileVersion == derive.TILE_VERSION
+        assert many.exists(keys.tile(item.files[0].fileId))
+
+
+@requires_media_tools
+def test_two_copies_of_one_photo_in_a_parallel_batch_are_still_one_item(tmp_path):
+    # Both hit the dedupe check at once; without a lock each would pass it and
+    # the photo would be catalogued twice.
+    same = _dated_jpeg(tmp_path / "same.jpg", (400, 300), "2025:03:01 10:00:00")
+    storage = MemoryStorage({
+        keys.INCOMING + f"copy{n}/IMG_1.JPG": same for n in range(1, 7)
+    })
+
+    context = run_pipeline_with(storage, tmp_path, workers=6)
+
+    assert len(context.items) == 1
+    assert any("5 duplicates" in note for note in context.notes)

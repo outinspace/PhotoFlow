@@ -1,5 +1,6 @@
 """Entry point: build a context, run the pipeline, report."""
 
+import argparse
 import shutil
 import sys
 import tempfile
@@ -18,6 +19,18 @@ from .storage import S3Storage
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Process new photos and repair what is missing.")
+    parser.add_argument(
+        "--workers", type=int, default=1,
+        help="files to process at once (default 1). Raise it for a local run over a "
+             "large library; leave it alone in CI, where a runner has two cores.",
+    )
+    arguments = parser.parse_args()
+
+    if arguments.workers < 1:
+        print("--workers must be at least 1", file=sys.stderr)
+        return 2
+
     try:
         config = Config.from_env()
     except ConfigError as error:
@@ -27,7 +40,12 @@ def main() -> int:
     work_dir = tempfile.mkdtemp(prefix="photoflow-")
 
     try:
-        context = Context(config=config, storage=S3Storage(config), work_dir=work_dir)
+        context = Context(
+            config=config,
+            storage=S3Storage(config, workers=arguments.workers),
+            work_dir=work_dir,
+            workers=arguments.workers,
+        )
         results = run(context)
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
