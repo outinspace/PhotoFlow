@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Item } from '../types';
+import { MediaImage } from '../common/media.image';
 
 interface Props {
     items: Item[];
@@ -84,13 +85,11 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
                     const item = items[index];
                     const isActive = index === currentImageIndex;
                     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
-                    const tileImageUrl = item.primaryFile.tileImageUrl ?? undefined;
-                    const previewImageUrl = imageFile?.previewUrl ?? undefined;
 
                     return (
                         <div key={item.itemId} className="absolute inset-0 w-full h-full">
-                            <img
-                                src={tileImageUrl}
+                            <MediaImage
+                                source={item.primaryFile.tileImageSource}
                                 alt=""
                                 className="w-full h-full object-cover"
                                 style={{
@@ -101,8 +100,8 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
                                     transition: !animate ? 'none' : 'opacity 0.5s ease-in-out',
                                 }}
                             />
-                            <img
-                                src={previewImageUrl}
+                            <MediaImage
+                                source={imageFile?.previewSource}
                                 alt=""
                                 className="w-full h-full object-cover"
                                 style={{

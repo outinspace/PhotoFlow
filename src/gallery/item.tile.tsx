@@ -3,6 +3,7 @@ import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
 import { useThumbHashDataUrl } from '../common/thumb.hash.cache';
+import { useMediaUrl } from '../api/useMediaUrl';
 
 const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
     const alpha = 0.9 + (i * 0.005);
@@ -12,7 +13,11 @@ const PLACEHOLDER_COLORS = Array.from({ length: 20 }, (_, i) => {
 // Every tile remounts when the grid reflows at a new column count, and going back through the
 // placeholder for an image the browser still has cached reads as a flash of blur. Remembering
 // which tiles have loaded lets those come straight back at full quality instead.
-const loadedTileUrls = new Set<string>();
+//
+// Keyed by the bucket key rather than the signed URL. A signature is only good for
+// a day, so keying on the URL would treat every tile as new each morning and fade
+// the whole grid back in.
+const loadedTileSources = new Set<string>();
 
 interface Props {
     item: Item;
@@ -27,8 +32,12 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
     // and no fade — both of which would only show as a flicker. Fixed at mount, so that a tile
     // loading for the first time still fades in once it arrives.
     const [cached] = useState(() =>
-        item.primaryFile.tileImageUrl !== null && loadedTileUrls.has(item.primaryFile.tileImageUrl)
+        item.primaryFile.tileImageSource !== null && loadedTileSources.has(item.primaryFile.tileImageSource)
     );
+
+    // Null until the URL has been signed. Already-signed tiles resolve on the first
+    // render, so scrolling back over a tile does not flicker.
+    const tileUrl = useMediaUrl(item.primaryFile.tileImageSource);
 
     const [imageLoaded, setImageLoaded] = useState(cached);
     const tileRef = useRef<HTMLDivElement>(null);
@@ -41,11 +50,14 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
         const element = tileRef.current;
         if (!element) return;
 
-        const url = item.primaryFile.tileImageUrl;
-        if (!url) return;
+        const source = item.primaryFile.tileImageSource;
+        if (!source) return;
+
+        // Not signed yet. This runs again when it is, because tileUrl is a dependency.
+        if (!tileUrl) return;
 
         // Its src is set during render instead, so there's nothing to wait for.
-        if (loadedTileUrls.has(url)) return;
+        if (loadedTileSources.has(source)) return;
 
         let timeoutId: number | null = null;
 
@@ -64,7 +76,7 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
         const startLoad = () => {
             const img = imgRef.current;
             if (!img) return;
-            img.src = url;
+            img.src = tileUrl;
         };
 
         const unobserve = observeVisibility(element, (isIntersecting) => {
@@ -83,7 +95,7 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
             cancelPending();
             unobserve();
         };
-    }, [item.primaryFile.tileImageUrl]);
+    }, [item.primaryFile.tileImageSource, tileUrl]);
 
     return (
         <div
@@ -116,7 +128,7 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
             <img
                 ref={imgRef}
                 className='select-none'
-                src={cached ? item.primaryFile.tileImageUrl! : undefined}
+                src={cached ? (tileUrl ?? undefined) : undefined}
                 style={{
                     position: 'relative',
                     width: '100%',
@@ -127,9 +139,9 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                 }}
                 decoding='async'
                 onLoad={() => {
-                    const src = imgRef.current?.getAttribute('src');
-                    if (src) {
-                        loadedTileUrls.add(src);
+                    const source = item.primaryFile.tileImageSource;
+                    if (source && imgRef.current?.getAttribute('src')) {
+                        loadedTileSources.add(source);
                         loadedRef.current = true;
                         setImageLoaded(true);
                     }

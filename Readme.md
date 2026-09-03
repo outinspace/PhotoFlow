@@ -16,7 +16,9 @@ between, so there is nothing to pay for and nothing to keep running.
                     bucket: original/  tile-image/  preview/
                             catalog/   meta/
                                      │
-                                  CDN (Cloudflare)
+                            (private: every read is
+                             a presigned GET, signed
+                             in the browser)
                                      │
                                      ▼
                             this app, in the browser
@@ -30,52 +32,30 @@ for a typical library, and a static host plus a CDN are free at this scale.
 ## What you need
 
 1. An **S3-compatible bucket** (Backblaze B2, Cloudflare R2, AWS S3, Wasabi…).
-2. A **CDN in front of it** on a domain you control. This is not optional for a good
-   experience: the gallery loads hundreds of thumbnails at once, and a CDN gives it
-   HTTP/2+3 multiplexing. Reading the bucket endpoint directly caps the browser at
-   roughly six parallel connections and scrolling will feel slow.
-3. A **GitHub account** to run the nightly job.
-4. Somewhere to host a static site (Cloudflare Pages, Netlify, GitHub Pages).
+2. A **GitHub account** to run the nightly job.
+3. Somewhere to host a static site (Cloudflare Pages, Netlify, GitHub Pages).
+
+A CDN in front of the bucket is worth adding once things work — the gallery loads
+hundreds of thumbnails at once, and a CDN gives it HTTP/2+3 multiplexing, where a
+bucket endpoint caps the browser at roughly six parallel connections. It is not
+required to get started, and nothing here refers to one.
 
 ## Setup
 
 ### 1. Create the bucket
 
-Create a bucket and make it **publicly readable**. Media is addressed by content
-hash, so those paths are unguessable, but treat the bucket as public: anyone with a
-URL can read that object.
+Create a bucket and **keep it private**. Nothing in it is readable without a
+signature, and that is the whole security model: the catalog can sit at fixed,
+guessable paths because a shard is worth nothing to whoever finds it, and deleting
+the application key ends access to everything ever signed with it.
 
-**Generate a private prefix**, and understand what it is for. Media keys are hashes,
-but the catalog sits at a fixed path — so without this, anyone who guesses or is
-given your bucket URL can fetch `catalog/manifest.json`, walk its shards, and read
-the location, camera and filename of every photo in the library, plus the hash of
-every original. The prefix moves the catalog and the mutation logs to a folder
-nobody can guess:
+The app signs every read itself, in the browser, with the key you give it. There is
+no server holding a credential and nothing is world-readable.
 
-```bash
-python3 -c "import secrets; print(secrets.token_hex(16))"
-```
-
-Put the same value in `PHOTOFLOW_PRIVATE_PREFIX` and in the app's storage settings.
-This works because **object storage will not list a public bucket's contents** — the
-prefix would be worthless against a provider that allowed anonymous listing, so check
-that yours refuses it before relying on this. Backblaze B2 does refuse it.
-
-The prefix is a secret with no expiry. Treat it like a password: keep it out of
-screenshots, bug reports and pasted URLs. If it leaks, generate a new one, move the
-catalog to it and re-link your devices — the media does not have to move. The
-trade-off you are accepting is that a leaked media URL is permanent, because a
-content hash cannot be rotated without renaming the file. A private bucket with
-signed reads avoids that, at the cost of the CDN and of share links that expire after
-seven days.
-
-Point your CDN at the bucket and note the public URL (e.g. `https://photos.example.com`).
-
-**Set a CORS rule that permits writes.** Most providers' "make it public" preset only
-allows `GET` and `HEAD`, which is enough to display photos but not to upload one or
-favourite anything — the browser signs those requests itself, and the preflight fails.
-The rule needs `PUT` in the allowed methods and the signing headers in the allowed
-headers:
+**Set a CORS rule.** The browser signs its own requests, so without one every read
+and write is refused before it leaves the page. Reads carry the signature in the
+query string and are not preflighted; writes carry it in headers and are, which is
+why `PUT` and the signing headers have to be allowed:
 
 ```json
 [{
@@ -113,18 +93,10 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_BUCKET` | `my-photos` |
 | `PHOTOFLOW_S3_ACCESS_KEY_ID` | the worker key |
 | `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
-| `PHOTOFLOW_PRIVATE_PREFIX` | the private prefix from step 1 |
 | `PHOTOFLOW_HEALTHCHECK_URL` | *(optional)* a [healthchecks.io](https://healthchecks.io) ping URL |
-
-`PHOTOFLOW_PRIVATE_PREFIX` is a secret rather than a variable, because repository
-variables are readable by anyone who can read the repo, and this one is what keeps
-a public bucket's photo index unreadable. **If it is missing here, the nightly run
-writes the catalog back to the guessable path and undoes the protection** — the app
-would go on working, so nothing would tell you.
 
 | Variable | Example | |
 | --- | --- | --- |
-| `PHOTOFLOW_PUBLIC_BASE_URL` | `https://photos.example.com` | optional; defaults to the bucket |
 | `PHOTOFLOW_S3_REGION` | `us-west-004` | optional; derived from the endpoint |
 | `PHOTOFLOW_MAX_FILES_PER_RUN` | `2000` | optional |
 | `PHOTOFLOW_MAX_BACKFILL_PER_RUN` | `500` | optional; repairs per run |
@@ -147,23 +119,13 @@ npm install
 npm run build
 ```
 
-Deploy `src/dist/` to any static host. There is no build-time configuration — the same
-build works for anyone.
-
-If you serve the app from the **same domain** as your photos, you are done. Otherwise
-edit `photoflow.config.json` in the deployed output and set where photos are read from:
-
-```json
-{ "publicBaseUrl": "https://photos.example.com" }
-```
-
-That file is only needed so share links work for visitors who have never opened the app;
-your own browser uses whatever you enter on the connect screen. Editing it does not
-require rebuilding.
+Deploy `src/dist/` to any static host. There is no configuration of any kind — no
+build-time variables, and no file to edit afterwards. Nothing in the deployed output
+names a bucket, which is what lets one deployment serve any number of people, each
+with their own bucket, including their share links.
 
 Open the app and enter your endpoint, bucket name, and key. The region is worked out
-from the endpoint, and the CDN URL is optional — leave it blank and photos load from the
-bucket directly. Everything is stored in that browser and never sent anywhere else.
+from the endpoint. Everything is stored in that browser and never sent anywhere else.
 
 If the connection fails, the screen says which step broke — unreachable host, CORS
 blocking reads, CORS blocking signed writes, bad credentials, or a key that cannot
@@ -211,6 +173,36 @@ and oversized clips get a compatibility transcode to H.264.
 
 **Originals are never modified.** The pipeline only ever reads them.
 
+**Nothing is readable without a signature.** The bucket is private, and the app signs
+every read in the browser with the key it holds. That is what lets the catalog live at
+fixed, guessable paths: `catalog/manifest.json` is worth nothing to whoever finds it,
+and the shards behind it — which carry the GPS coordinates, camera and filename of
+every photo — cannot be fetched at all.
+
+Signatures are pinned to midnight UTC, so one object yields one URL for the whole day
+on every device. Signing per request would give each thumbnail a new URL every time it
+scrolled into view, making it a fresh download and a fresh cache entry; the service
+worker also drops the `X-Amz-*` parameters from its cache key, so the daily change is
+not a cache miss either. Each URL is signed for seven days, which is the longest
+SigV4 permits.
+
+**To revoke access, delete the application key.** Every URL signed with it stops
+working within seconds, wherever it has been sent, and a leaked shard is inert. With a
+CDN in front you also need to purge its cache, because an edge serves what it has
+already stored without revalidating a signature. Nothing recalls bytes someone has
+already downloaded — no system can — so this controls future access only.
+
+**A share link carries its own credentials.** Sharing writes a standalone document and
+presigns everything in it: the tiles, the previews, and the link to the document
+itself, which travels in the URL fragment so it never reaches a server's access log.
+Whoever opens it needs no account, no key and no configuration. Location is stripped
+from the copy, and no URL for the original is included, since the original's own EXIF
+still carries the coordinates. The one exception is a clip that was already
+browser-playable, where the original *is* the preview.
+
+Seven days is the consequence: a share link stops working after a week, and sharing
+again issues a fresh one. Deleting the document revokes it sooner.
+
 ## Play-testing locally
 
 You can exercise the whole thing against a local S3 server, with generated photos, with
@@ -221,21 +213,21 @@ docker compose -f dev/docker-compose.yml up -d
 uv run --project worker --with pillow python dev/seed.py
 ```
 
-That creates a bucket, makes it anonymously readable, and fills `incoming/` with sample
-photos and clips (including Live Photo pairs). Then run the worker as the seed script
-prints, `npm start`, and connect the app to:
+That creates a private bucket and fills `incoming/` with sample photos and clips
+(including Live Photo pairs). Then run the worker as the seed script prints,
+`npm start`, and connect the app to:
 
 | Field | Value |
 | --- | --- |
 | S3 endpoint | `http://localhost:9000` |
 | Bucket | `photoflow-dev` |
 | Region | `us-east-1` |
-| Public base URL | `http://localhost:9000/photoflow-dev` |
 | Access key / secret | `photoflowdev` / `photoflowdev123` |
 
 MinIO's console is at `http://localhost:9001` if you want to watch objects appear.
-`MINIO_API_CORS_ALLOW_ORIGIN` in the compose file is what lets the browser sign its own
-writes — without it every upload and favourite fails a CORS preflight.
+`MINIO_API_CORS_ALLOW_ORIGIN` in the compose file is what lets the browser read and
+write at all — the bucket is private, so every request carries a signature, and
+without CORS the browser is refused before it gets there.
 
 Reset with `docker compose -f dev/docker-compose.yml down -v`.
 

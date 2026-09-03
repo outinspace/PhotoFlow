@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAlbumsWithItems } from "../api/useAlbumsWithItems";
+import { buildShareUrl } from '../storage/sharing';
 import { useShareAlbum } from "../api/useShareAlbum";
 import ItemGrid from '../gallery/item.grid';
 import { TopBar } from '../common/top.bar';
@@ -9,7 +10,6 @@ import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
 import { ActionMenu } from '../common/action.menu';
 import { Ellipsis } from '../common/ellipsis';
-import { router } from '../routes';
 import toast from 'react-hot-toast';
 
 export const AlbumLayout = () => {
@@ -36,17 +36,12 @@ export const AlbumLayout = () => {
     }
 
     const getPublicLink = async () => {
-        const shareSecret = await shareAlbumMutation.mutateAsync(album.albumId).catch(() => null);
-        if (!shareSecret) {
+        const documentUrl = await shareAlbumMutation.mutateAsync(album.albumId).catch(() => null);
+        if (!documentUrl) {
             return;
         }
 
-        const link = router.buildLocation({
-            to: '/p/a/$shortShareSecret',
-            params: { shortShareSecret: shareSecret }
-        });
-
-        return window.location.origin + link.href;
+        return buildShareUrl('/p/a', documentUrl);
     }
 
     const sharePublicLink = async () => {

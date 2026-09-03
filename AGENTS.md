@@ -22,18 +22,6 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 
 - **Bucket key shapes** are a contract between the two halves. They are declared in
   `worker/photoflow/keys.py` and `src/storage/keys.ts` — change both or neither.
-- **The catalog and `meta/` live under a random private prefix**, because the bucket
-  is public and object storage will not list it: an unguessable path is the only
-  thing standing between `catalog/manifest.json` and every photo's GPS coordinates.
-  Callers everywhere name keys as `keys.py` / `keys.ts` declare them; the prefix is
-  applied in exactly two places, `S3Storage.resolve` and `resolveKey` in
-  `src/storage/config.ts`. **Never** add a new fixed-path object outside that
-  translation, and never move `original/`, `tile-image/`, `preview/`, `share/` or
-  `incoming/` under it — the first four are content hashes and share secrets read
-  from the CDN by URL, and a file in `incoming/` is the same bytes as an `original/`
-  object that is public anyway, so moving the upload queue would hide nothing and
-  cost hundreds of gigabytes of copying. Both lists have tests that fail if this
-  slips.
 - **`src/types.ts` matches `worker/photoflow/models.py`.** A shard entry is dropped
   straight into the gallery without translation.
 - **The mutation merge is implemented twice** — `worker/photoflow/steps/compact.py` and
@@ -44,6 +32,20 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 - **Each device writes only its own mutation log.** That single-writer rule is what
   removes write conflicts entirely — do not add code that writes another device's file.
 - **Originals are never modified or deleted** by anything in this repo.
+- **The bucket is private and nothing in the app is unsigned.** Every read is a
+  presigned GET built in `src/storage/bucket.ts`; there is no public URL anywhere and
+  no `publicBaseUrl`. If you add a read path, sign it — an unsigned request does not
+  fail loudly, it just 403s in a console nobody is watching.
+- **A media field on a file record holds a key, not a URL.** `tileImageSource` and its
+  siblings are bucket keys for the owner, and absolute presigned URLs inside a share
+  document, because its reader cannot sign one. Render them through `useMediaUrl` or
+  `MediaImage`, never straight into a `src`.
+- **A cache-busting query must be added before signing.** SigV4 covers every query
+  parameter, so appending one afterwards invalidates the signature. Verified: storage
+  answers 403.
+- **Signing is pinned to midnight UTC** so a URL is stable for the day, and the
+  service worker strips `X-Amz-*` from its cache key to match. Break either and the
+  gallery silently re-downloads every thumbnail it scrolls past.
 - **`--workers` may exceed 1**, so `ingest` and `derive` run their per-file work on
   threads. Anything they share needs a lock — the dedupe check in `ingest` claims a
   hash under one, or two copies of a photo in the same batch would both pass it.

@@ -15,7 +15,6 @@ def config() -> Config:
         access_key_id="test",
         secret_access_key="test",
         region="us-east-1",
-        public_base_url="https://cdn.example.invalid/",
         max_files_per_run=100,
         max_backfill_per_run=500,
         passthrough_max_height=1080,
@@ -97,7 +96,7 @@ def test_untouched_months_are_not_rewritten():
     assert len(storage.get_json(keys.shard("2026-08"))["items"]) == 2
 
 
-def test_manifest_lists_every_shard_and_the_read_urls():
+def test_manifest_lists_every_shard():
     storage = MemoryStorage()
     ctx = context(storage)
     ctx.items = {1: item(1, "2026-07"), 2: item(2, "2026-08")}
@@ -109,7 +108,10 @@ def test_manifest_lists_every_shard_and_the_read_urls():
 
     assert [shard["month"] for shard in manifest["shards"]] == ["2026-07", "2026-08"]
     assert manifest["counts"]["items"] == 2
-    assert manifest["urls"]["tileImagePrefix"] == "https://cdn.example.invalid/tile-image/"
+
+    # No URLs: the bucket is private, so the app signs one from the key rather than
+    # being handed a prefix to join onto.
+    assert manifest.get("urls") is None
 
 
 def test_discover_reloads_what_publish_wrote():
@@ -191,30 +193,3 @@ def test_a_stable_month_keeps_its_updatedAt_so_clients_can_skip_it():
 def _shard_entry(storage, month):
     manifest = storage.get_json(keys.CATALOG_MANIFEST)
     return next(entry for entry in manifest["shards"] if entry["month"] == month)
-
-
-def test_public_base_url_falls_back_to_the_bucket_when_no_cdn_is_set(monkeypatch):
-    from photoflow.config import Config as RealConfig
-
-    for name in ("PHOTOFLOW_PUBLIC_BASE_URL",):
-        monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("PHOTOFLOW_S3_ENDPOINT", "https://s3.us-west-004.backblazeb2.com/")
-    monkeypatch.setenv("PHOTOFLOW_S3_BUCKET", "my-photos")
-    monkeypatch.setenv("PHOTOFLOW_S3_ACCESS_KEY_ID", "key")
-    monkeypatch.setenv("PHOTOFLOW_S3_SECRET_ACCESS_KEY", "secret")
-
-    settings = RealConfig.from_env()
-
-    assert settings.public_base_url == "https://s3.us-west-004.backblazeb2.com/my-photos/"
-
-
-def test_an_explicit_cdn_wins_over_the_bucket_fallback(monkeypatch):
-    from photoflow.config import Config as RealConfig
-
-    monkeypatch.setenv("PHOTOFLOW_S3_ENDPOINT", "https://s3.us-west-004.backblazeb2.com")
-    monkeypatch.setenv("PHOTOFLOW_S3_BUCKET", "my-photos")
-    monkeypatch.setenv("PHOTOFLOW_S3_ACCESS_KEY_ID", "key")
-    monkeypatch.setenv("PHOTOFLOW_S3_SECRET_ACCESS_KEY", "secret")
-    monkeypatch.setenv("PHOTOFLOW_PUBLIC_BASE_URL", "https://photos.example.com")
-
-    assert RealConfig.from_env().public_base_url == "https://photos.example.com/"

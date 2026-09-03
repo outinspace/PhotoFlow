@@ -8,7 +8,6 @@ involves a live bucket or personal photos.
 """
 
 import argparse
-import json
 import os
 import random
 import subprocess
@@ -121,14 +120,9 @@ def main() -> int:
     except s3.exceptions.BucketAlreadyOwnedByYou:
         pass
 
-    # Media is read anonymously in a real deployment, so mirror that here.
-    s3.put_bucket_policy(Bucket=BUCKET, Policy=json.dumps({
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Effect": "Allow", "Principal": {"AWS": ["*"]},
-            "Action": ["s3:GetObject"], "Resource": [f"arn:aws:s3:::{BUCKET}/*"],
-        }],
-    }))
+    # Left private, which is what a real deployment is. Nothing here is readable
+    # without a signature, so play-testing exercises the same path the app uses:
+    # the browser signs every read with the key it was configured with.
 
     work = tempfile.mkdtemp(prefix="photoflow-seed-")
     uploaded = 0
@@ -162,7 +156,6 @@ def main() -> int:
     print(f"    PHOTOFLOW_S3_BUCKET={BUCKET} \\")
     print(f"    PHOTOFLOW_S3_ACCESS_KEY_ID={ACCESS_KEY} \\")
     print(f"    PHOTOFLOW_S3_SECRET_ACCESS_KEY={SECRET_KEY} \\")
-    print(f"    PHOTOFLOW_PUBLIC_BASE_URL={ENDPOINT}/{BUCKET} \\")
     print("    uv run photoflow-worker")
     return 0
 

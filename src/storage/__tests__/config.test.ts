@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveRegion, normalizeConfig, resolvePublicBaseUrl, resolveRegion, StorageConfig } from '../config';
+import { deriveRegion, normalizeConfig, resolveRegion, StorageConfig } from '../config';
 
 const base: StorageConfig = {
     endpoint: 'https://s3.us-west-004.backblazeb2.com',
@@ -36,22 +36,6 @@ describe('deriving the region from the endpoint', () => {
     });
 });
 
-describe('resolving where photos are read from', () => {
-    it('falls back to the bucket itself when no CDN is given', () => {
-        expect(resolvePublicBaseUrl(base)).toBe('https://s3.us-west-004.backblazeb2.com/my-photos/');
-    });
-
-    it('uses the CDN when one is given', () => {
-        expect(resolvePublicBaseUrl({ ...base, publicBaseUrl: 'https://photos.example.com' }))
-            .toBe('https://photos.example.com/');
-    });
-
-    it('always ends in a single slash, so key concatenation is safe', () => {
-        expect(resolvePublicBaseUrl({ ...base, publicBaseUrl: 'https://photos.example.com///' }))
-            .toBe('https://photos.example.com/');
-    });
-});
-
 describe('normalising what was typed', () => {
     it('trims whitespace and trailing slashes from the endpoint', () => {
         expect(normalizeConfig({ ...base, endpoint: '  https://s3.example.com//  ' }).endpoint)
@@ -59,11 +43,7 @@ describe('normalising what was typed', () => {
     });
 
     it('treats a blank optional field as absent rather than empty', () => {
-        // An empty string would otherwise win over the derived default.
-        const normalized = normalizeConfig({ ...base, publicBaseUrl: '   ', region: '  ' });
-
-        expect(normalized.publicBaseUrl).toBeUndefined();
-        expect(normalized.region).toBeUndefined();
-        expect(resolvePublicBaseUrl(normalized)).toBe('https://s3.us-west-004.backblazeb2.com/my-photos/');
+        // An empty string would otherwise win over the value derived from the endpoint.
+        expect(normalizeConfig({ ...base, region: '  ' }).region).toBeUndefined();
     });
 });

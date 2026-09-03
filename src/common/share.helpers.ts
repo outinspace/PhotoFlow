@@ -1,11 +1,12 @@
 import toast from "react-hot-toast";
 import { File, Item } from "../types";
+import { mediaUrl } from "../storage/bucket";
 
-// Downloads point straight at the object in storage. There is no server to
-// proxy them through, and the CDN serves the original bytes just as well.
-export const downloadFile = (file: File) => {
+// Downloads point straight at the object in storage; there is no server to proxy
+// them through. The URL has to be signed first, since the bucket is private.
+export const downloadFile = async (file: File) => {
     const link = document.createElement("a");
-    link.href = file.originalUrl;
+    link.href = await mediaUrl(file.originalSource);
     link.download = file.originalFileName;
     link.target = "_blank";
     document.body.appendChild(link);
@@ -21,7 +22,7 @@ export const downloadFiles = async (items: Item[]) => {
         if (index > 0) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
-        downloadFile(item.primaryFile);
+        await downloadFile(item.primaryFile);
     }
 
     toast.dismiss(loadingToast);
@@ -32,7 +33,7 @@ export const shareFiles = async (items: Item[]) => {
     const files: globalThis.File[] = [];
 
     const promises = items.map(async item => {
-        const res = await fetch(item.primaryFile.originalUrl);
+        const res = await fetch(await mediaUrl(item.primaryFile.originalSource));
         if (!res.ok) {
             toast.error(`Could not download ${item.primaryFile.originalFileName}.`);
             return;

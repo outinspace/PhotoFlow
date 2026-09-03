@@ -14,7 +14,6 @@ from ..models import (
     ManifestDocument,
     ShardDocument,
     ShardEntry,
-    UrlPrefixes,
 )
 from ..steps.derive import PREVIEW_VERSION, TILE_VERSION
 from ..steps.embed import EMBEDDING_DIM, EMBEDDING_VERSION
@@ -106,7 +105,6 @@ def run(context) -> None:
                 "metadata": METADATA_VERSION,
                 "embedding": EMBEDDING_VERSION,
             },
-            urls=_url_prefixes(context.config),
             shards=shards,
             embeddings=EmbeddingsInfo(
                 dim=EMBEDDING_DIM,
@@ -187,11 +185,3 @@ def month_for(item) -> str:
     # month's shard, which is what keeps finished months from ever being rewritten.
     return month_of(min(file.uploadTimeUtc for file in item.files))
 
-
-def _url_prefixes(config) -> UrlPrefixes:
-    base = config.public_base_url
-    return UrlPrefixes(
-        originalPrefix=f"{base}original/",
-        tileImagePrefix=f"{base}tile-image/",
-        previewPrefix=f"{base}preview/",
-    )

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Item } from '../types';
 import { useLongPress } from 'use-long-press';
 import { useAutoplayLivePhotos, useAutoplayVideos } from '../hooks/use.settings';
+import { useMediaUrl } from '../api/useMediaUrl';
 
 const zIndex = {
     controls: 10,
@@ -26,6 +27,12 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
 
     const imageFile = item.files.find(_ => _.contentType.startsWith('image'));
     const videoFile = item.files.find(_ => _.contentType.startsWith('video'));
+
+    // Signed here rather than in the markup: the bucket is private, so a URL only
+    // exists once it has been signed, and that is asynchronous.
+    const tileUrl = useMediaUrl(imageFile?.tileImageSource);
+    const previewUrl = useMediaUrl(imageFile?.previewSource);
+    const videoPreviewUrl = useMediaUrl(videoFile?.previewSource);
     const isLivePhoto = !!imageFile && !!videoFile;
 
     useEffect(() => {
@@ -131,7 +138,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         width: '100%',
                         zIndex: zIndex.tileImage
                     }}
-                    src={imageFile?.tileImageUrl ?? undefined}
+                    src={tileUrl ?? undefined}
                 />
                 <img
                     className='select-none pointer-events-none'
@@ -142,7 +149,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         width: '100%',
                         zIndex: zIndex.previewImage,
                     }}
-                    src={imageFile.previewUrl ?? undefined}
+                    src={previewUrl ?? undefined}
                 />
             </>}
             {isLivePhoto && (
@@ -165,7 +172,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         }
                     }}
                 >
-                    <source src={videoFile.previewUrl ?? undefined} />
+                    <source src={videoPreviewUrl ?? undefined} />
                 </video>
             )}
             {videoFile && !isLivePhoto && (
@@ -181,7 +188,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         zIndex: zIndex.previewVideo
                     }}
                 >
-                    <source src={videoFile.previewUrl ?? undefined} />
+                    <source src={videoPreviewUrl ?? undefined} />
                 </video>
             )}
         </div>

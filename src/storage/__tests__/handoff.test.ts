@@ -7,8 +7,7 @@ const full: StorageConfig = {
     bucket: 'my-photos',
     accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
     secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-    region: 'us-west-004',
-    publicBaseUrl: 'https://photos.example.com/'
+    region: 'us-west-004'
 };
 
 const minimal: StorageConfig = {
@@ -30,7 +29,6 @@ describe('handing a connection to another device', () => {
 
         expect(decoded).toEqual(minimal);
         expect(decoded?.region).toBeUndefined();
-        expect(decoded?.publicBaseUrl).toBeUndefined();
     });
 
     it('survives secrets containing characters that are unsafe in a URL', () => {
@@ -128,30 +126,5 @@ describe('decoding a scanned code', () => {
         const url = `http://localhost:5199/connect#c=${encodeHandoff(full)}`;
 
         expect(decodeHandoffUrl(url)).toEqual(full);
-    });
-});
-
-describe('the private prefix in a handoff', () => {
-    const config = {
-        endpoint: 'https://s3.example.invalid',
-        bucket: 'photos',
-        accessKeyId: 'id',
-        secretAccessKey: 'secret',
-        privatePrefix: 'abc123'
-    };
-
-    it('travels with the credentials, or the new device reads the wrong paths', () => {
-        expect(decodeHandoff(encodeHandoff(config))?.privatePrefix).toBe('abc123');
-    });
-
-    it('is absent from a code made before the catalog moved, without failing', () => {
-        // A five-field code is what an older build produced. It has to still work.
-        const older = btoa(JSON.stringify([
-            config.endpoint, config.bucket, config.accessKeyId, config.secretAccessKey, ''
-        ])).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-        const decoded = decodeHandoff(older);
-        expect(decoded?.bucket).toBe('photos');
-        expect(decoded?.privatePrefix).toBeUndefined();
     });
 });

@@ -31,6 +31,25 @@ export default defineConfig({
                 maxEntries: 100000,
                 purgeOnQuotaError: true,
               },
+              plugins: [
+                {
+                  // The bucket is private, so every tile URL carries a signature
+                  // that is re-signed each day. Cached under the full URL, the
+                  // whole grid would miss every morning and be stored again under
+                  // the new signature. The signature is dropped from the cache key
+                  // and the `t` version kept, so a tile is stored once and a
+                  // reprocessed one still busts it.
+                  cacheKeyWillBeUsed: async ({ request }) => {
+                    const url = new URL(request.url);
+                    for (const name of [...url.searchParams.keys()]) {
+                      if (name.toLowerCase().startsWith('x-amz-')) {
+                        url.searchParams.delete(name);
+                      }
+                    }
+                    return url.href;
+                  },
+                },
+              ],
             },
           },
         ],

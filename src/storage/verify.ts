@@ -6,8 +6,8 @@
 // a short ladder of requests, each of which fails for exactly one reason, and
 // reports the first rung that breaks.
 
-import { canSignRequests, listResponse } from './bucket';
-import { resolveKey, resolvePublicBaseUrl, StorageConfig } from './config';
+import { canSignRequests, listResponse, presignWith } from './bucket';
+import { StorageConfig } from './config';
 import * as keys from './keys';
 
 export type VerifyFailure =
@@ -34,20 +34,33 @@ export const verifyConnection = async (config: StorageConfig): Promise<VerifyRes
         return { ok: false, failure: 'insecure-context' };
     }
 
-    const probeUrl = resolvePublicBaseUrl(config) + resolveKey(config, keys.CATALOG_MANIFEST);
+    // Rung 1: is anything there at all? A no-cors request is never blocked by CORS,
+    // so it fails only when the host genuinely cannot be reached — whatever status
+    // comes back counts as reachable.
+    //
+    // Signed even though the status is ignored. An unsigned request to a private
+    // bucket is answered 403, and the browser logs that as a failed resource load,
+    // which reads as a broken connection in the console when nothing is wrong.
+    let probeUrl: string;
+    try {
+        probeUrl = await presignWith(config, keys.CATALOG_MANIFEST);
+    } catch {
+        // A config too malformed to sign is one whose endpoint cannot be reached.
+        return { ok: false, failure: 'unreachable', detail: config.endpoint };
+    }
 
-    // Rung 1: is anything there at all? A no-cors request is not blocked by CORS,
-    // so it fails only when the host genuinely cannot be reached.
     try {
         await fetch(probeUrl, { mode: 'no-cors', cache: 'no-store' });
     } catch {
         return { ok: false, failure: 'unreachable', detail: config.endpoint };
     }
 
-    // Rung 2: can the app read? A plain GET sends no custom headers, so it is not
-    // preflighted — it fails only if no CORS rule permits reads from this origin.
+    // Rung 2: can the app read? The bucket is private, so this has to be a signed
+    // GET — but the signature rides in the query string, which sends no custom
+    // headers and so is not preflighted. It therefore still fails for exactly one
+    // reason: no CORS rule permits reads from this origin.
     try {
-        await fetch(probeUrl, { cache: 'no-store' });
+        await fetch(await presignWith(config, keys.CATALOG_MANIFEST), { cache: 'no-store' });
     } catch {
         return { ok: false, failure: 'cors-reads' };
     }

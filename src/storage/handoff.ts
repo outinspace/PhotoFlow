@@ -29,9 +29,7 @@ export const encodeHandoff = (config: StorageConfig): string => {
         config.bucket,
         config.accessKeyId,
         config.secretAccessKey,
-        config.region ?? '',
-        config.publicBaseUrl ?? '',
-        config.privatePrefix ?? ''
+        config.region ?? ''
     ];
 
     return toBase64Url(JSON.stringify(compact));
@@ -44,7 +42,9 @@ export const decodeHandoff = (encoded: string): StorageConfig | null => {
             return null;
         }
 
-        const [endpoint, bucket, accessKeyId, secretAccessKey, region, publicBaseUrl, privatePrefix] = compact;
+        // Extra trailing slots are ignored: a code made before the bucket went
+        // private carried a public base URL here, and there is nowhere to put it.
+        const [endpoint, bucket, accessKeyId, secretAccessKey, region] = compact;
         if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
             return null;
         }
@@ -54,10 +54,7 @@ export const decodeHandoff = (encoded: string): StorageConfig | null => {
             bucket,
             accessKeyId,
             secretAccessKey,
-            region: region || undefined,
-            publicBaseUrl: publicBaseUrl || undefined,
-            // Absent from a code written before the catalog moved under a prefix.
-            privatePrefix: privatePrefix || undefined
+            region: region || undefined
         };
     } catch {
         return null;

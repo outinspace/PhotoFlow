@@ -1,12 +1,25 @@
 import { Item } from "../types";
+import * as keys from "../storage/keys";
 
-export const computeItemProperties = (item: Item, originalUrlPrefix: string, tileImageUrlPrefix: string, previewUrlPrefix: string) => {
+// Everything derived from a shard entry that the gallery needs but the worker does
+// not store. Media locations are bucket keys rather than URLs: the bucket is
+// private, so a URL only exists once it has been signed, which happens per tile as
+// it renders.
+
+export const computeItemProperties = (item: Item) => {
     for (const file of item.files) {
-        file.originalUrl = originalUrlPrefix + file.fileId;
+        // A shared document arrives with signed URLs already in these fields, since
+        // its reader cannot sign one. Only fill in what is missing.
+        file.originalSource ??= keys.original(file.fileId);
 
-        file.tileImageUrl = file.tileVersion ? `${tileImageUrlPrefix}${file.fileId}.jpeg?t=${file.lastProcessedTimeUtc}` : null;
+        // The version is a cache buster: a reprocessed tile keeps its key, because
+        // that key is the hash of the original, so without this the browser would
+        // go on showing the tile it already had.
+        file.tileImageSource ??= file.tileVersion
+            ? `${keys.tile(file.fileId)}?t=${file.lastProcessedTimeUtc}`
+            : null;
 
-        file.previewUrl = computePreviewUrl(file, previewUrlPrefix);
+        file.previewSource ??= computePreviewSource(file);
     }
 
     // Favourites and deletions live in meta/, not in the catalog, so a fresh item
@@ -24,7 +37,7 @@ export const computeItemProperties = (item: Item, originalUrlPrefix: string, til
     item.type = getType(item);
 }
 
-const computePreviewUrl = (file: Item['files'][number], previewUrlPrefix: string) => {
+const computePreviewSource = (file: Item['files'][number]) => {
     if (!file.previewVersion) {
         return null;
     }
@@ -32,11 +45,11 @@ const computePreviewUrl = (file: Item['files'][number], previewUrlPrefix: string
     // A clip that was already browser-playable has no separate preview file; the
     // original is the preview, which is why no transcode was stored for it.
     if (file.previewIsOriginal) {
-        return file.originalUrl;
+        return file.originalSource;
     }
 
     const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
-    return `${previewUrlPrefix}${file.fileId}${previewExtension}?t=${file.lastProcessedTimeUtc}`;
+    return `${keys.preview(file.fileId, previewExtension)}?t=${file.lastProcessedTimeUtc}`;
 }
 
 const getType = (item: Item) => {

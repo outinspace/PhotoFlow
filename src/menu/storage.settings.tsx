@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { TopBar } from '../common/top.bar';
-import { getStorageConfig, resolvePublicBaseUrl, resolveRegion } from '../storage/config';
+import { getStorageConfig, resolveRegion } from '../storage/config';
 import { StorageConnectionForm } from '../setup/storage.connection.form';
 import { useHeartbeat } from '../storage/heartbeat';
 import { useIncomingQueue } from '../storage/incoming';
@@ -150,11 +150,6 @@ const StorageSettings = () => {
                     <Row label='Endpoint' value={config.endpoint} />
                     <Row label='Bucket' value={config.bucket} />
                     <Row label='Region' value={`${resolveRegion(config)}${config.region ? '' : ' (from endpoint)'}`} />
-                    <Row label='Public base URL' value={`${resolvePublicBaseUrl(config)}${config.publicBaseUrl ? '' : ' (bucket, no CDN)'}`} />
-                    <Row
-                        label='Private prefix'
-                        value={config.privatePrefix || 'none — the catalog is at a guessable path'}
-                    />
                     <Row label='Access key ID' value={config.accessKeyId} />
 
                     <div className='p-4'>

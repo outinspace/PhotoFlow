@@ -191,7 +191,7 @@ export const linkDeviceRoute = createRoute({
 
 export const publicItemRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/p/i/$shortPrimaryFileId/',
+    path: '/p/i',
     component: () => (
         <PublicItemLayout />
     )
@@ -199,7 +199,7 @@ export const publicItemRoute = createRoute({
 
 export const publicAlbumRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/p/a/$shortShareSecret/',
+    path: '/p/a',
     component: () => (
         <PublicAlbumLayout />
     )

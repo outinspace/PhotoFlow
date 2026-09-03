@@ -21,12 +21,7 @@ const catalogQuery = {
         const catalog = await fetchCatalog(signal);
 
         for (const item of catalog.items) {
-            computeItemProperties(
-                item,
-                catalog.manifest.urls.originalPrefix,
-                catalog.manifest.urls.tileImagePrefix,
-                catalog.manifest.urls.previewPrefix
-            );
+            computeItemProperties(item);
         }
 
         return catalog;

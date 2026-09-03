@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { ViewGrid, List } from 'iconoir-react';
 import { parseISO } from 'date-fns';
 import { TopBar } from '../common/top.bar';
+import { MediaImage } from '../common/media.image';
 
 type SortOption = 'modified-recent' | 'name-asc';
 type ViewMode = 'thumbnail' | 'list';
@@ -151,9 +152,9 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
                 }}
             >
                 {coverItems.map(item => (
-                    <img
+                    <MediaImage
                         key={item.itemId}
-                        src={item.primaryFile.tileImageUrl ?? ''}
+                        source={item.primaryFile.tileImageSource}
                         className='w-full h-full object-cover'
                     />
                 ))}
@@ -170,7 +171,7 @@ interface AlbumListItemProps {
 
 const AlbumListItem = ({ album, onClick }: AlbumListItemProps) => {
     const firstItem = album.items[0];
-    const thumbnailUrl = firstItem?.primaryFile.tileImageUrl ?? '';
+    const thumbnailSource = firstItem?.primaryFile.tileImageSource;
 
     return (
         <div
@@ -178,9 +179,9 @@ const AlbumListItem = ({ album, onClick }: AlbumListItemProps) => {
             onClick={() => onClick()}
         >
             <div className='flex items-center gap-3 flex-1 min-w-0'>
-                {thumbnailUrl && (
-                    <img
-                        src={thumbnailUrl}
+                {thumbnailSource && (
+                    <MediaImage
+                        source={thumbnailSource}
                         className='w-12 h-12 rounded border border-slate-200 object-cover flex-shrink-0'
                         alt=''
                     />

@@ -1,20 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { computeItemProperties } from "./computeItemProperties";
 import { readJson } from "../storage/bucket";
-import { loadRuntimeConfig } from "../storage/runtime.config";
-import { itemShareKey, SharedItem } from "../storage/sharing";
+import { retryUnlessRefused } from "./retryUnlessRefused";
+import { SharedItem } from "../storage/sharing";
 
-export const usePublicItem = (primaryFileId: string) => useQuery({
-    queryKey: ['public', 'item', primaryFileId],
+// A shared photo is read by its presigned URL, which the link itself carries. So
+// this needs no credentials and no configuration — which is the point, since
+// whoever opens the link has neither.
+
+export const usePublicItem = (documentUrl: string) => useQuery({
+    queryKey: ['public', 'item', documentUrl],
+    retry: retryUnlessRefused,
     queryFn: async () => {
-        await loadRuntimeConfig();
-
-        const shared = await readJson<SharedItem>(itemShareKey(primaryFileId));
+        const shared = await readJson<SharedItem>(documentUrl);
         if (!shared) {
             throw new Error('This shared photo is no longer available.');
         }
 
-        computeItemProperties(shared.item, shared.urls.originalPrefix, shared.urls.tileImagePrefix, shared.urls.previewPrefix);
+        computeItemProperties(shared.item);
 
         return shared.item;
     }

@@ -8,8 +8,7 @@ import { AddToAlbumModal } from './add.to.album.modal';
 import { CreateAlbumModal } from './create.album.modal';
 import { ActionMenu } from '../common/action.menu';
 import { downloadFiles, shareFiles } from '../common/share.helpers';
-import { publishItemShare } from '../storage/sharing';
-import { router } from '../routes';
+import { buildShareUrl, publishItemShare } from '../storage/sharing';
 import { DeleteItemsModal } from './delete.items.modal';
 import { IS_STANDALONE } from '../common/browser.utils';
 
@@ -42,16 +41,10 @@ export const ItemActionMenu = ({ items, albumId, isOpen, onDismiss, onItemsRemov
             return;
         }
 
-        // Publishing writes the standalone share document; without it the link
-        // would resolve to nothing for anyone but the owner.
-        await publishItemShare(item);
-
-        const link = router.buildLocation({
-            to: '/p/i/$shortPrimaryFileId',
-            params: { shortPrimaryFileId: item.primaryFile.fileId }
-        });
-
-        return window.location.origin + link.href;
+        // Publishing writes the standalone share document and hands back a
+        // presigned URL for it; without that the link would resolve to nothing
+        // for anyone but the owner.
+        return buildShareUrl('/p/i', await publishItemShare(item));
     }
 
     const sharePublicLink = async () => {

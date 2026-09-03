@@ -25,11 +25,6 @@ export interface ShardEntry {
 export interface Manifest {
     manifestVersion: number;
     generatedAt: string;
-    urls: {
-        originalPrefix: string;
-        tileImagePrefix: string;
-        previewPrefix: string;
-    };
     shards: ShardEntry[];
     embeddings: { dim: number; dtype: string; modelRepo: string; months: string[] };
     counts: { items: number; files: number };
@@ -94,7 +89,6 @@ export const clearCachedCatalog = async () => {
 const emptyManifest = (): Manifest => ({
     manifestVersion: 1,
     generatedAt: new Date(0).toISOString(),
-    urls: { originalPrefix: '', tileImagePrefix: '', previewPrefix: '' },
     shards: [],
     embeddings: { dim: 512, dtype: 'int8', modelRepo: '', months: [] },
     counts: { items: 0, files: 0 }

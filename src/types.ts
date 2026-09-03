@@ -45,10 +45,13 @@ export interface File {
     // preview, so the worker stored no near-duplicate transcode.
     previewIsOriginal: boolean;
 
-    // Computed
-    originalUrl: string;
-    tileImageUrl: string | null;
-    previewUrl: string | null;
+    // Computed. Each holds either a bucket key, which the app signs when it renders,
+    // or an absolute already-signed URL — which is what a shared document carries,
+    // because whoever opens it has no credentials to sign with. Pass them through
+    // useMediaUrl rather than into a src attribute.
+    originalSource: string;
+    tileImageSource: string | null;
+    previewSource: string | null;
 }
 
 export interface Album {

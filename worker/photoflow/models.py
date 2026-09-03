@@ -87,12 +87,6 @@ class EmbeddingsInfo(Strict):
     months: list[str] = Field(default_factory=list)
 
 
-class UrlPrefixes(Strict):
-    originalPrefix: str
-    tileImagePrefix: str
-    previewPrefix: str
-
-
 class Counts(Strict):
     items: int
     files: int
@@ -102,7 +96,11 @@ class ManifestDocument(Strict):
     manifestVersion: int
     generatedAt: str
     versions: dict[str, int]
-    urls: UrlPrefixes
+    # No longer written. The bucket is private, so the app signs a URL from the key
+    # itself rather than being handed a prefix to join onto. Accepted on read, and
+    # excluded from output, so a manifest written before that still parses without
+    # this reappearing in the one that replaces it.
+    urls: dict | None = Field(default=None, exclude=True)
     shards: list[ShardEntry] = Field(default_factory=list)
     embeddings: EmbeddingsInfo
     counts: Counts
