@@ -5,7 +5,7 @@ import { takeHandoffFromUrl } from '../storage/handoff';
 import { StorageConnectionForm } from './storage.connection.form';
 import { ScanQrCode } from './scan.qr';
 import { StorageConfig } from '../storage/config';
-import logoUrl from '../assets/icon-192.png';
+const logoUrl = '/icon-192.png';
 import { QrCode } from 'iconoir-react';
 
 // First-run setup, and what a scanned device lands on. This screen stands in for
