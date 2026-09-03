@@ -258,6 +258,38 @@ as unmatched; run again once they are, and it continues from where the worker le
 off. A Live Photo the new grouping paired differently shows as split, and its edits
 apply to each part.
 
+### Photos with no date of their own
+
+Not every file records when it was taken. WhatsApp downloads carry no EXIF at all,
+and screenshots often carry none either. Such a file used to be dated as of the run
+that ingested it, which put a photo from years ago at the top of the gallery under
+today's date — and, because `captureTime` also drives the year and month filters,
+trip detection and the "one year ago" memories, put it in the wrong place in all of
+those too.
+
+The worker now reads the date out of the filename when the metadata has none.
+`IMG-20240315-WA0001.jpg`, `WhatsApp Image 2024-03-15 at 14.22.05.jpeg`,
+`IMG_20240315_142205.jpg`, `PXL_...`, and the usual screenshot spellings are all
+recognised, and a run reports how many files it dated that way. For a WhatsApp file
+this is the day it was sent rather than the day it was taken, which is an
+approximation — but it lands the photo in the right month instead of today.
+
+For photos already catalogued, this repairs them in place:
+
+```bash
+uv run photoflow-redate --dry-run
+uv run photoflow-redate
+```
+
+It reads and rewrites the catalog only. No original is touched, nothing is
+re-downloaded, and no thumbnail or search vector is rebuilt — shards key on **upload**
+month, so a corrected capture date does not move an item between them. An item is
+only re-dated when its capture time is exactly the upload time of one of its files,
+which is the fingerprint of the old fallback: it used one timestamp for both. A photo
+whose camera recorded a real date is therefore never overwritten by a guess from its
+filename. The dry run also reports how many photos have no date anywhere, which is
+the set no amount of parsing can fix.
+
 Share links are not carried over: a link is a document the app writes when you share,
 and carrying only the secret would show a link that leads nowhere. Re-share those
 albums from the app; the report names them.

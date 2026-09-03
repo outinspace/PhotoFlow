@@ -54,7 +54,7 @@ def run(context) -> None:
 
     by_month: dict[str, list] = {}
     for item in context.items.values():
-        by_month.setdefault(_month_for(item), []).append(item)
+        by_month.setdefault(month_for(item), []).append(item)
 
     entries: dict[tuple[str, int], ShardEntry] = dict(previous_entries)
     written = 0
@@ -182,7 +182,7 @@ def _embedding_months(context, by_month: dict) -> list[str]:
     return [month for month in by_month if context.storage.exists(keys.embeddings(month))]
 
 
-def _month_for(item) -> str:
+def month_for(item) -> str:
     # Upload month, not capture month: an old photo imported today belongs in this
     # month's shard, which is what keeps finished months from ever being rewritten.
     return month_of(min(file.uploadTimeUtc for file in item.files))

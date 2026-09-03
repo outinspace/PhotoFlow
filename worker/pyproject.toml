@@ -25,6 +25,7 @@ dev = [
 photoflow-worker = "photoflow.__main__:main"
 photoflow-migrate = "photoflow.migrate:main"
 photoflow-copy-media = "photoflow.copy_media:main"
+photoflow-redate = "photoflow.redate:main"
 
 [build-system]
 requires = ["hatchling"]

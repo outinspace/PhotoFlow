@@ -11,6 +11,7 @@ costs about 60ms against roughly 2ms of actual reading; a process per file spent
 
 import json
 import os
+import re
 import subprocess
 from datetime import datetime, timezone
 
@@ -22,7 +23,21 @@ from .. import progress
 METADATA_VERSION = 1
 EXIFTOOL_TIMEOUT_SECONDS = 120
 
-_DATE_TAGS = ["DateTimeOriginal", "CreateDate", "MediaCreateDate", "FileModifyDate"]
+# FileModifyDate is deliberately absent. Every file is read from a fresh download in
+# the work directory, so its filesystem timestamp is the moment the worker fetched
+# it — never when the photo was taken.
+_DATE_TAGS = ["DateTimeOriginal", "CreateDate", "MediaCreateDate"]
+
+# A file with no EXIF date usually still carries one in its name. WhatsApp writes
+# IMG-20240315-WA0001.jpg, its desktop app writes "WhatsApp Image 2024-03-15 at
+# 14.22.05.jpeg", Android and Pixel write IMG_20240315_142205.jpg, and screenshots
+# write their own variants. Trailing digits are consumed because Pixel appends
+# milliseconds, and a leading digit is refused so a longer run of numbers cannot be
+# sliced into a date that was never there.
+_FILENAME_DATE = re.compile(
+    r"(?<!\d)(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})"
+    r"(?:[-_ T]?(?:at )?(\d{2})[-_.:]?(\d{2})[-_.:]?(\d{2})\d*)?(?!\d)"
+)
 
 
 def run(context) -> None:
@@ -36,6 +51,8 @@ def run(context) -> None:
                 group_index[key] = item.itemId
 
     failures = 0
+    from_name = 0
+    undated = 0
 
     entries = list(getattr(context, "ingested", []))
     tags_by_path = read_tags_many([e.local_path for e in entries], context.work_dir)
@@ -49,7 +66,16 @@ def run(context) -> None:
             context.note(f"metadata failed for {entry.original_file_name}")
             tags = {}
 
-        capture_time = _capture_time(tags) or _parse_iso(now)
+        capture_time = _capture_time(tags)
+        if capture_time is None:
+            capture_time = capture_time_from_filename(entry.original_file_name)
+            if capture_time is not None:
+                from_name += 1
+            else:
+                # Nothing anywhere says when this was taken, so it sorts as if it
+                # were taken now. The count below is how that gets noticed.
+                undated += 1
+                capture_time = _parse_iso(now)
 
         if entry.item_id is not None:
             # A rebuild of a file that is already catalogued. Its existing record is
@@ -91,7 +117,15 @@ def run(context) -> None:
         # already belongs to.
         context.dirty_months.add(month_of(file_record.uploadTimeUtc))
 
-    context.note(f"extracted metadata for {len(getattr(context, 'ingested', []))} files ({failures} failed)")
+    context.note(f"extracted metadata for {len(entries)} files ({failures} failed)")
+
+    if from_name:
+        context.note(f"took the capture date from the filename for {from_name} files")
+    if undated:
+        context.note(
+            f"{undated} files carry no capture date at all, in metadata or filename, "
+            "so they are dated as of this run"
+        )
 
 
 def read_tags_many(paths: list[str], work_dir: str) -> dict[str, dict]:
@@ -187,15 +221,57 @@ def _capture_time(tags: dict) -> datetime | None:
     return None
 
 
-def _parse_exif_date(raw: str) -> datetime | None:
-    # EXIF dates look like "2026:03:18 14:22:05" and may carry an offset.
-    cleaned = raw.strip().split("+")[0].split("Z")[0].strip()
-    for pattern in ("%Y:%m:%d %H:%M:%S", "%Y:%m:%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+def capture_time_from_filename(file_name: str) -> datetime | None:
+    """Recover a capture date from the filename, for files whose metadata has none.
+
+    This is the date the file was written by whatever app produced it, which for a
+    WhatsApp download is the day it was sent rather than the day it was taken. That
+    is an approximation, but it puts the photo in roughly the right year and month
+    instead of at the top of the gallery under today's date.
+
+    A date that does not exist, or has not happened yet, is refused rather than
+    trusted, since either means the digits were not a date to begin with.
+    """
+    now = datetime.now(timezone.utc)
+
+    for match in _FILENAME_DATE.finditer(file_name):
+        year, month, day, hour, minute, second = match.groups()
         try:
-            return datetime.strptime(cleaned, pattern).replace(tzinfo=timezone.utc)
+            found = datetime(
+                int(year), int(month), int(day),
+                int(hour or 0), int(minute or 0), int(second or 0),
+                tzinfo=timezone.utc,
+            )
         except ValueError:
             continue
+        if found <= now:
+            return found
+
     return None
+
+
+def _parse_exif_date(raw: str) -> datetime | None:
+    """Parse an exiftool date, keeping any UTC offset it carries.
+
+    exiftool writes "2024:03:15 14:22:05", optionally with a fraction and an offset.
+    Only the date part uses colons, so swapping those for dashes leaves something
+    fromisoformat accepts whole — offset included. Doing it by hand is what dropped
+    negative offsets entirely and silently read positive ones as UTC.
+    """
+    text = raw.strip().replace("Z", "+00:00")
+    date_part, separator, time_part = text.partition(" ")
+    candidate = f"{date_part.replace(':', '-')}{separator}{time_part}"
+
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        # Includes QuickTime's "0000:00:00 00:00:00", which is how a video with no
+        # recorded date announces itself.
+        return None
+
+    # EXIF has no timezone of its own, so a bare date is read as UTC. That is the
+    # existing convention for every date in the catalog.
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _parse_iso(value: str) -> datetime:

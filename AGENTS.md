@@ -40,6 +40,10 @@ Read `Readme.md` for the architecture and the reasoning behind it.
   EXIF rotation. Getting this wrong does not fail: it quietly returns previews at
   three-quarters of the intended width for every rotated photo, which is most of a
   phone library. `derive._draft_to_preview` handles it, with a test.
+- **`captureTime` is not only the sort order.** It also drives the year and month
+  filters, trip detection, album ordering and the "one year ago" memories, so a
+  wrong date is wrong in five places. When a date cannot be read, recover one
+  rather than hiding the photo at the bottom of the gallery.
 - **`extract` reads the whole batch in one exiftool call** and maps results back by
   path. Results are keyed rather than positional on purpose, so a file exiftool
   cannot read drops out instead of shifting metadata onto its neighbours.
