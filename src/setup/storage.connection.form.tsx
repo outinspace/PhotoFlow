@@ -301,7 +301,7 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                 />
             </div>
 
-            <div className='flex gap-2'>
+            <div className='flex gap-2 mb-8'>
                 <button
                     type='button'
                     disabled={!isComplete || testing}
