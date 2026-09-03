@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { getStorageConfig, normalizeConfig, saveStorageConfig, StorageConfig } from '../storage/config';
+import { generatePrivatePrefix, getStorageConfig, normalizeConfig, saveStorageConfig, StorageConfig } from '../storage/config';
 import { loadRuntimeConfig } from '../storage/runtime.config';
 import { CORS_RULE_EXAMPLE, verifyConnection, VerifyFailure } from '../storage/verify';
 import { clearCachedCatalog } from '../storage/catalog';
@@ -38,6 +38,33 @@ const Field = ({ label, hint, value, onChange, type = 'text', placeholder }: {
             className='mt-1 block w-full rounded-md border-0 p-2 font-mono text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-500'
         />
     </label>
+);
+
+// The one field with a generate button, because it is the only one whose value the
+// user is meant to invent rather than look up — and inventing it by hand is how it
+// ends up being "photos" and protecting nothing.
+const PrefixField = ({ value, onChange }: {
+    value: string;
+    onChange: (value: string) => void;
+}) => (
+    <div>
+        <Field
+            label='Private prefix'
+            hint='A random folder name that the catalog and your device history live under. Object storage will not list a public bucket’s contents, so a name nobody can guess is what keeps your photo index — including where photos were taken — from being readable by anyone who finds your bucket. It must match PHOTOFLOW_PRIVATE_PREFIX in the worker’s settings.'
+            placeholder='leave blank only if your bucket is private'
+            value={value}
+            onChange={onChange}
+        />
+        {!value && (
+            <button
+                type='button'
+                onClick={() => onChange(generatePrivatePrefix())}
+                className='mt-1 text-xs font-semibold text-sky-600 hover:text-sky-500'
+            >
+                Generate one
+            </button>
+        )}
+    </div>
 );
 
 const Notice = ({ tone, title, children }: {
@@ -225,6 +252,10 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                     type='password'
                     value={config.secretAccessKey}
                     onChange={update('secretAccessKey')}
+                />
+                <PrefixField
+                    value={config.privatePrefix ?? ''}
+                    onChange={update('privatePrefix')}
                 />
                 <Field
                     label='Public base URL (optional)'

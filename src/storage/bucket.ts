@@ -1,5 +1,13 @@
 import { AwsClient } from 'aws4fetch';
-import { getStorageConfig, requireStorageConfig, resolvePublicBaseUrl, resolveRegion, StorageConfig } from './config';
+import {
+    getStorageConfig,
+    requireStorageConfig,
+    resolveKey,
+    resolvePublicBaseUrl,
+    resolveRegion,
+    stripPrivatePrefix,
+    StorageConfig
+} from './config';
 import { getLoadedRuntimeConfig } from './runtime.config';
 
 // Reads (readJson, readBinary, and every <img> in the app) go through the CDN in
@@ -54,7 +62,7 @@ const awsClient = (config: StorageConfig) => {
 };
 
 const objectUrl = (config: StorageConfig, key: string) =>
-    `${config.endpoint}/${config.bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
+    `${config.endpoint}/${config.bucket}/${resolveKey(config, key).split('/').map(encodeURIComponent).join('/')}`;
 
 // A share link is opened by people who have never set the app up, so reads fall
 // back to the deployment's own settings, and finally to the app's own origin —
@@ -69,7 +77,10 @@ export const publicBaseUrl = () => {
     return configured.replace(/\/+$/, '') + '/';
 };
 
-export const publicUrl = (key: string) => publicBaseUrl() + key;
+// Share links are opened by people with no config at all, so the prefix resolves
+// to nothing for them — which is right, because share/ is the one thing read
+// through here that is deliberately public.
+export const publicUrl = (key: string) => publicBaseUrl() + resolveKey(getStorageConfig(), key);
 
 export const readJson = async <T>(key: string, signal?: AbortSignal): Promise<T | null> => {
     const res = await fetch(publicUrl(key), { signal });
@@ -198,7 +209,7 @@ export const objectExists = async (key: string) => {
 };
 
 export const listResponse = (prefix: string, config: StorageConfig) => {
-    const params = new URLSearchParams({ 'list-type': '2', prefix });
+    const params = new URLSearchParams({ 'list-type': '2', prefix: resolveKey(config, prefix) });
     return awsClient(config).fetch(`${config.endpoint}/${config.bucket}?${params.toString()}`);
 };
 
@@ -225,7 +236,8 @@ export const listObjects = async (prefix: string, override?: StorageConfig): Pro
     const document = new DOMParser().parseFromString(await res.text(), 'text/xml');
 
     const objects = Array.from(document.getElementsByTagName('Contents')).map(node => ({
-        key: node.getElementsByTagName('Key')[0]?.textContent ?? '',
+        // Handed back as the caller named it, not as it is stored.
+        key: stripPrivatePrefix(config, node.getElementsByTagName('Key')[0]?.textContent ?? ''),
         size: Number(node.getElementsByTagName('Size')[0]?.textContent ?? 0)
     }));
 

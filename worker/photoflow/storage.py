@@ -26,6 +26,13 @@ class StoredObject:
     size: int
 
 
+# Keys that are already unguessable and stay where they are. Media is named by
+# content hash, and a share document by the secret in its link, so neither gains
+# anything from a private prefix — and both are read straight from the CDN by URL,
+# which is what keeps the gallery fast.
+PUBLIC_PREFIXES = ("original/", "tile-image/", "preview/", "share/")
+
+
 class Storage(ABC):
     @abstractmethod
     def list(self, prefix: str) -> list[StoredObject]: ...
@@ -98,11 +105,21 @@ class MemoryStorage(Storage):
 
 
 class S3Storage(Storage):
+    """A real bucket, with the private prefix applied on the way in and out.
+
+    Every caller deals in logical keys — "catalog/manifest.json" — and this is the
+    only place that knows where they actually live. Doing it here rather than in
+    keys.py means the gallery, the worker and the tests all go on naming objects the
+    same way, and there is one place to audit for what is public.
+    """
+
     def __init__(self, config, workers: int = 1):
         import boto3
         from botocore.config import Config as BotoConfig
 
         self.bucket = config.bucket
+        prefix = getattr(config, "private_prefix", "") or ""
+        self.private_prefix = f"{prefix.strip('/')}/" if prefix else ""
         self.client = boto3.client(
             "s3",
             endpoint_url=config.endpoint_url,
@@ -114,28 +131,48 @@ class S3Storage(Storage):
             config=BotoConfig(max_pool_connections=max(10, workers * 2)),
         )
 
+    def resolve(self, key: str) -> str:
+        """Where a logical key actually lives in the bucket."""
+        if not self.private_prefix or key.startswith(PUBLIC_PREFIXES):
+            return key
+        return self.private_prefix + key
+
+    def _logical(self, key: str) -> str:
+        """The inverse, for keys coming back from a listing.
+
+        Listings must hand back the same names callers passed in, or a key read from
+        one and then given to get() or delete() would be prefixed twice.
+        """
+        if self.private_prefix and key.startswith(self.private_prefix):
+            return key[len(self.private_prefix):]
+        return key
+
     def list(self, prefix: str) -> list[StoredObject]:
         results: list[StoredObject] = []
         paginator = self.client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=self.resolve(prefix)):
             for entry in page.get("Contents", []):
-                results.append(StoredObject(key=entry["Key"], size=entry["Size"]))
+                results.append(
+                    StoredObject(key=self._logical(entry["Key"]), size=entry["Size"])
+                )
         return results
 
     def get(self, key: str) -> bytes:
-        return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+        return self.client.get_object(Bucket=self.bucket, Key=self.resolve(key))["Body"].read()
 
     def put(self, key: str, body: bytes, content_type: str) -> None:
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=body, ContentType=content_type)
+        self.client.put_object(
+            Bucket=self.bucket, Key=self.resolve(key), Body=body, ContentType=content_type
+        )
 
     def delete(self, key: str) -> None:
-        self.client.delete_object(Bucket=self.bucket, Key=key)
+        self.client.delete_object(Bucket=self.bucket, Key=self.resolve(key))
 
     def exists(self, key: str) -> bool:
         from botocore.exceptions import ClientError
 
         try:
-            self.client.head_object(Bucket=self.bucket, Key=key)
+            self.client.head_object(Bucket=self.bucket, Key=self.resolve(key))
             return True
         except ClientError as error:
             if error.response["Error"]["Code"] in ("404", "NoSuchKey", "NotFound"):
@@ -143,9 +180,9 @@ class S3Storage(Storage):
             raise
 
     def download(self, key: str, destination: str) -> None:
-        self.client.download_file(self.bucket, key, destination)
+        self.client.download_file(self.bucket, self.resolve(key), destination)
 
     def upload(self, path: str, key: str, content_type: str) -> None:
         self.client.upload_file(
-            path, self.bucket, key, ExtraArgs={"ContentType": content_type}
+            path, self.bucket, self.resolve(key), ExtraArgs={"ContentType": content_type}
         )

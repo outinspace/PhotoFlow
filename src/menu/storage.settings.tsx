@@ -151,6 +151,10 @@ const StorageSettings = () => {
                     <Row label='Bucket' value={config.bucket} />
                     <Row label='Region' value={`${resolveRegion(config)}${config.region ? '' : ' (from endpoint)'}`} />
                     <Row label='Public base URL' value={`${resolvePublicBaseUrl(config)}${config.publicBaseUrl ? '' : ' (bucket, no CDN)'}`} />
+                    <Row
+                        label='Private prefix'
+                        value={config.privatePrefix || 'none — the catalog is at a guessable path'}
+                    />
                     <Row label='Access key ID' value={config.accessKeyId} />
 
                     <div className='p-4'>

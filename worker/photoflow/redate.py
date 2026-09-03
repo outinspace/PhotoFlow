@@ -17,6 +17,8 @@ overwritten by a guess from its filename.
     uv run photoflow-redate --dry-run
     uv run photoflow-redate
 """
+from pathlib import Path
+from dotenv import load_dotenv
 
 import argparse
 import sys
@@ -26,6 +28,10 @@ from .pipeline import Context
 from .steps import discover, publish
 from .steps.extract import capture_time_from_filename
 from .storage import S3Storage
+
+# Settings come from worker/.env when running locally. Real environment variables
+# take precedence, so a stale local file can never override what CI passes in.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 def dated_from_run(item) -> bool:

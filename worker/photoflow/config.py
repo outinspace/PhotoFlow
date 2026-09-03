@@ -48,6 +48,11 @@ class Config:
     # Last, and defaulted, so that every existing caller stays valid.
     video_quality_hardware: int = 40
     video_quality_software: int = 28
+    # Random prefix the catalog and mutation logs live under. Media keys are content
+    # hashes and share keys are secrets, so both are already unguessable; the catalog
+    # sits at a fixed path and would otherwise hand its whole index, GPS included, to
+    # anyone who guessed "catalog/manifest.json" on a public bucket.
+    private_prefix: str = ""
 
     @staticmethod
     def from_env() -> "Config":
@@ -70,6 +75,7 @@ class Config:
             passthrough_max_height=int(os.environ.get("PHOTOFLOW_PASSTHROUGH_MAX_HEIGHT", "1080")),
             video_quality_hardware=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_HARDWARE", "40")),
             video_quality_software=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_SOFTWARE", "28")),
+            private_prefix=os.environ.get("PHOTOFLOW_PRIVATE_PREFIX", "").strip().strip("/"),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),
             healthcheck_url=os.environ.get("PHOTOFLOW_HEALTHCHECK_URL") or None,
         )

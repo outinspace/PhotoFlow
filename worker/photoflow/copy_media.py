@@ -29,6 +29,7 @@ import boto3
 from botocore.client import Config as BotoConfig
 from botocore.exceptions import ClientError
 
+from . import keys
 from .config import Config, ConfigError
 from .steps.ingest import is_media
 
@@ -46,7 +47,19 @@ class Copy:
     destination_key: str
 
 
-def plan(database: str, tenant_id: str, source_prefix: str, include_deleted: bool) -> tuple[list[Copy], int, int]:
+def _private(config, key: str) -> str:
+    """The same translation S3Storage does, for a script that uses boto3 directly."""
+    prefix = getattr(config, "private_prefix", "") or ""
+    return f"{prefix.strip('/')}/{key}" if prefix else key
+
+
+def plan(
+    database: str,
+    tenant_id: str,
+    source_prefix: str,
+    include_deleted: bool,
+    destination_prefix: str = keys.INCOMING,
+) -> tuple[list[Copy], int, int]:
     """What to copy where, from the old database's own record of each file."""
     connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
@@ -72,7 +85,7 @@ def plan(database: str, tenant_id: str, source_prefix: str, include_deleted: boo
             source_key=f"{source_prefix}{tenant_id}/{row['FileId'].lower()}",
             # Per item, so a filename repeated across the library cannot collide,
             # while a Live Photo's two halves stay together.
-            destination_key=f"incoming/{row['ItemId']}/{row['OriginalFileName']}",
+            destination_key=f"{destination_prefix}{row['ItemId']}/{row['OriginalFileName']}",
         )
         for row in rows
     ]
@@ -169,13 +182,19 @@ def main() -> int:
         print("PHOTOFLOW_S3_BUCKET is the source bucket; it has to be the new one.", file=sys.stderr)
         return 2
 
+    # Uploads wait in incoming/ under ids from the old database, which are
+    # sequential and so guessable. They go under the private prefix with everything
+    # else that is not named by content hash.
+    destination_prefix = _private(config, keys.INCOMING)
+
     copies, non_media, deleted = plan(
-        arguments.database, arguments.tenant_id, arguments.source_prefix, not arguments.skip_deleted
+        arguments.database, arguments.tenant_id, arguments.source_prefix,
+        not arguments.skip_deleted, destination_prefix,
     )
 
     print(f"\n{'Would copy' if arguments.dry_run else 'Copying'} {len(copies)} files")
     print(f"  from  {arguments.source_bucket}/{arguments.source_prefix}{arguments.tenant_id}/")
-    print(f"  to    {config.bucket}/incoming/")
+    print(f"  to    {config.bucket}/{destination_prefix}")
     if non_media:
         print(f"  {non_media} skipped as not media (.DS_Store and the like)")
     if deleted:

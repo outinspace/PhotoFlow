@@ -7,7 +7,7 @@
 // reports the first rung that breaks.
 
 import { canSignRequests, listResponse } from './bucket';
-import { resolvePublicBaseUrl, StorageConfig } from './config';
+import { resolveKey, resolvePublicBaseUrl, StorageConfig } from './config';
 import * as keys from './keys';
 
 export type VerifyFailure =
@@ -34,7 +34,7 @@ export const verifyConnection = async (config: StorageConfig): Promise<VerifyRes
         return { ok: false, failure: 'insecure-context' };
     }
 
-    const probeUrl = resolvePublicBaseUrl(config) + keys.CATALOG_MANIFEST;
+    const probeUrl = resolvePublicBaseUrl(config) + resolveKey(config, keys.CATALOG_MANIFEST);
 
     // Rung 1: is anything there at all? A no-cors request is not blocked by CORS,
     // so it fails only when the host genuinely cannot be reached.

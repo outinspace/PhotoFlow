@@ -41,9 +41,33 @@ for a typical library, and a static host plus a CDN are free at this scale.
 
 ### 1. Create the bucket
 
-Create a bucket and make it **publicly readable**. Objects are addressed by content
-hash, so paths are unguessable, but treat the bucket as public: anyone with a URL can
-read that object.
+Create a bucket and make it **publicly readable**. Media is addressed by content
+hash, so those paths are unguessable, but treat the bucket as public: anyone with a
+URL can read that object.
+
+**Generate a private prefix**, and understand what it is for. Media keys are hashes,
+but the catalog sits at a fixed path — so without this, anyone who guesses or is
+given your bucket URL can fetch `catalog/manifest.json`, walk its shards, and read
+the location, camera and filename of every photo in the library, plus the hash of
+every original. The prefix moves the catalog, the mutation logs and `incoming/` to a
+folder nobody can guess:
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(16))"
+```
+
+Put the same value in `PHOTOFLOW_PRIVATE_PREFIX` and in the app's storage settings.
+This works because **object storage will not list a public bucket's contents** — the
+prefix would be worthless against a provider that allowed anonymous listing, so check
+that yours refuses it before relying on this. Backblaze B2 does refuse it.
+
+The prefix is a secret with no expiry. Treat it like a password: keep it out of
+screenshots, bug reports and pasted URLs. If it leaks, generate a new one, move the
+catalog to it and re-link your devices — the media does not have to move. The
+trade-off you are accepting is that a leaked media URL is permanent, because a
+content hash cannot be rotated without renaming the file. A private bucket with
+signed reads avoids that, at the cost of the CDN and of share links that expire after
+seven days.
 
 Point your CDN at the bucket and note the public URL (e.g. `https://photos.example.com`).
 
