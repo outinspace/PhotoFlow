@@ -2,7 +2,8 @@
 
 Nothing in this design assigns ids centrally, so they are derived from content.
 Two runs over the same photos produce the same ids, which is what makes the whole
-pipeline safely re-runnable.
+pipeline safely re-runnable. A file's id is its content hash, so re-uploading the
+same photo is a no-op rather than a duplicate.
 """
 
 import hashlib
@@ -15,16 +16,6 @@ ID_BITS = 52
 def item_id_from_group_key(group_key: str) -> int:
     digest = hashlib.sha256(group_key.encode("utf-8")).digest()
     return int.from_bytes(digest[:8], "big") >> (64 - ID_BITS)
-
-
-def file_id_from_hash(hash_sha256: str) -> str:
-    # The content hash is the file id, which makes re-uploading the same photo a
-    # no-op instead of a duplicate.
-    return hash_sha256
-
-
-def hash_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def hash_file(path: str) -> str:

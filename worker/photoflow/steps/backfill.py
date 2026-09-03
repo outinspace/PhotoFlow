@@ -103,7 +103,7 @@ def _fetch(context, item, file, needs_tile: bool, needs_embedding: bool) -> Inge
     local_path = os.path.join(context.work_dir, f"backfill-{file.fileId}{extension}")
 
     try:
-        _download(context, source_key, local_path)
+        context.storage.download(source_key, local_path)
     except Exception as error:
         context.note(f"could not fetch {file.originalFileName} to repair: {error}")
         return None
@@ -132,12 +132,3 @@ def _smallest_source(context, file) -> tuple[str, str]:
         return keys.preview(file.fileId, ".mp4"), ".mp4"
 
     return keys.original(file.fileId), os.path.splitext(file.originalFileName)[1] or ""
-
-
-def _download(context, key: str, destination: str) -> None:
-    download = getattr(context.storage, "download", None)
-    if download:
-        download(key, destination)
-        return
-    with open(destination, "wb") as handle:
-        handle.write(context.storage.get(key))

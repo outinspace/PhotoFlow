@@ -89,18 +89,13 @@ def _derive_image(context, entry, record) -> None:
 
             tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
             _save_resized(image, tile_path, TILE_WIDTH)
-            _upload(context, tile_path, keys.tile(entry.file_id), "image/jpeg")
+            context.storage.upload(tile_path, keys.tile(entry.file_id), "image/jpeg")
             record.tileVersion = TILE_VERSION
 
         if entry.needs_preview:
             preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.jpeg")
             _save_resized(image, preview_path, PREVIEW_WIDTH)
-            _upload(
-                context,
-                preview_path,
-                keys.preview(entry.file_id, ".jpeg"),
-                "image/jpeg",
-            )
+            context.storage.upload(preview_path, keys.preview(entry.file_id, ".jpeg"), "image/jpeg")
             record.previewVersion = PREVIEW_VERSION
 
 
@@ -116,7 +111,7 @@ def _derive_video(context, entry, record) -> bool:
 
             tile_path = os.path.join(context.work_dir, f"{entry.file_id}.tile.jpeg")
             _save_resized(frame, tile_path, TILE_WIDTH)
-            _upload(context, tile_path, keys.tile(entry.file_id), "image/jpeg")
+            context.storage.upload(tile_path, keys.tile(entry.file_id), "image/jpeg")
             record.tileVersion = TILE_VERSION
 
     if not entry.needs_preview:
@@ -131,12 +126,7 @@ def _derive_video(context, entry, record) -> bool:
 
     preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.mp4")
     _transcode(entry.local_path, preview_path, context.config)
-    _upload(
-        context,
-        preview_path,
-        keys.preview(entry.file_id, ".mp4"),
-        "video/mp4",
-    )
+    context.storage.upload(preview_path, keys.preview(entry.file_id, ".mp4"), "video/mp4")
     record.previewIsOriginal = False
     record.previewVersion = PREVIEW_VERSION
     return False
@@ -233,12 +223,3 @@ def _register_heif() -> None:
         register_heif_opener()
     except ImportError:
         pass
-
-
-def _upload(context, path: str, key: str, content_type: str) -> None:
-    upload = getattr(context.storage, "upload", None)
-    if upload:
-        upload(path, key, content_type)
-        return
-    with open(path, "rb") as handle:
-        context.storage.put(key, handle.read(), content_type)

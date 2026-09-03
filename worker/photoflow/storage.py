@@ -42,6 +42,20 @@ class Storage(ABC):
     @abstractmethod
     def exists(self, key: str) -> bool: ...
 
+    def download(self, key: str, destination: str) -> None:
+        """Fetch an object to a local file.
+
+        Steps work on local temp files, so this is how every original reaches
+        them. S3Storage overrides both of these with boto3's managed transfers,
+        which stream and multipart rather than holding a whole video in memory.
+        """
+        with open(destination, "wb") as handle:
+            handle.write(self.get(key))
+
+    def upload(self, path: str, key: str, content_type: str) -> None:
+        with open(path, "rb") as handle:
+            self.put(key, handle.read(), content_type)
+
     def get_json(self, key: str, default=None):
         if not self.exists(key):
             return default

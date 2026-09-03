@@ -11,7 +11,6 @@ its summary already says everything.
 """
 
 import sys
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -30,13 +29,13 @@ def interrupt() -> None:
         _line_open = False
 
 
-def track(items, label: str):
+def track(items, label: str, total: int | None = None):
     """Yield each of items, reporting progress as they go.
 
-    Takes a sized collection rather than any iterable: the total is the whole
-    point of the report, and every caller already has a list.
+    The total is the whole point of the report, so it comes from len(items) unless
+    the caller passes one — which only an iterator of futures needs to do.
     """
-    total = len(items)
+    total = len(items) if total is None else total
     if not total:
         return
 
@@ -44,21 +43,23 @@ def track(items, label: str):
     started = time.monotonic()
     last_logged = 0.0
     logged = False
+    done = 0
 
     if interactive:
         _report(label, 0, total, 0.0, interactive)
 
     try:
-        for index, item in enumerate(items, start=1):
+        for item in items:
             yield item
+            done += 1
             elapsed = time.monotonic() - started
 
             if interactive:
-                _report(label, index, total, elapsed, interactive)
+                _report(label, done, total, elapsed, interactive)
             elif elapsed - last_logged >= LOG_INTERVAL_SECONDS:
                 last_logged = elapsed
                 logged = True
-                _report(label, index, total, elapsed, interactive)
+                _report(label, done, total, elapsed, interactive)
     finally:
         # The caller may break out early, which still leaves a line to close.
         interrupt()
@@ -73,42 +74,21 @@ def track_map(work, items, label: str, workers: int) -> None:
     """Run work over items, reporting as each finishes.
 
     One worker keeps the sequential path, so a default run behaves exactly as it
-    did and nothing here has to be trusted when it is not asked for.
+    did and nothing here has to be trusted when it is not asked for. Progress is
+    reported from this thread as results arrive, so the counting needs no lock.
     """
     if workers <= 1:
         for item in track(items, label):
             work(item)
         return
 
-    total = len(items)
-    if not total:
-        return
-
-    interactive = sys.stdout.isatty()
-    started = time.monotonic()
-    last_logged = 0.0
-    done = 0
-    lock = threading.Lock()
-
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [pool.submit(work, item) for item in items]
 
-        for future in as_completed(futures):
+        for future in track(as_completed(futures), label, total=len(futures)):
             # Raised here rather than swallowed: a step's own expected failures are
             # handled inside work, so anything reaching this is a real fault.
             future.result()
-
-            with lock:
-                done += 1
-                elapsed = time.monotonic() - started
-
-                if interactive:
-                    _report(label, done, total, elapsed, interactive)
-                elif elapsed - last_logged >= LOG_INTERVAL_SECONDS:
-                    last_logged = elapsed
-                    _report(label, done, total, elapsed, interactive)
-
-    interrupt()
 
 
 def _report(label: str, done: int, total: int, elapsed: float, interactive: bool) -> None:

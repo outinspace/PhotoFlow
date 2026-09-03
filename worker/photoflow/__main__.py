@@ -5,15 +5,8 @@ import shutil
 import sys
 import tempfile
 import urllib.request
-from pathlib import Path
-
-from dotenv import load_dotenv
 
 from .config import Config, ConfigError
-
-# Settings come from worker/.env when running locally. Real environment variables
-# take precedence, so a stale local file can never override what CI passes in.
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from .pipeline import Context, run
 from .storage import S3Storage
 

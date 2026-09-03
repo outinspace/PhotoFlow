@@ -6,6 +6,11 @@ contract between the repo and its operator.
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class ConfigError(Exception):
@@ -47,6 +52,11 @@ class Config:
 
     @staticmethod
     def from_env() -> "Config":
+        # Settings come from worker/.env when running locally. Real environment
+        # variables take precedence, so a stale local file can never override what
+        # CI passes in.
+        load_dotenv(ENV_FILE)
+
         return Config(
             endpoint_url=_required("PHOTOFLOW_S3_ENDPOINT").rstrip("/"),
             bucket=_required("PHOTOFLOW_S3_BUCKET"),

@@ -15,9 +15,6 @@ filename cannot overwrite each other.
     uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
     uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db
 """
-from pathlib import Path
-from dotenv import load_dotenv
-
 import argparse
 import sqlite3
 import sys
@@ -31,10 +28,6 @@ from botocore.exceptions import ClientError
 
 from .config import Config, ConfigError
 from .steps.ingest import is_media
-
-# Settings come from worker/.env when running locally. Real environment variables
-# take precedence, so a stale local file can never override what CI passes in.
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # Server-side copies are API calls, not transfers, so this is about round trips.
 DEFAULT_WORKERS = 16

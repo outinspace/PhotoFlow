@@ -102,7 +102,7 @@ def run(context) -> None:
         # hold the same filename; sharing one temp path would make the second
         # download overwrite the first before either is read.
         local_path = os.path.join(context.work_dir, f"{index}-{file_name}")
-        _download(context, entry.key, local_path)
+        context.storage.download(entry.key, local_path)
 
         hash_sha256 = hash_file(local_path)
 
@@ -120,7 +120,7 @@ def run(context) -> None:
             context.storage.delete(entry.key)
             return
 
-        _upload(context, local_path, keys.original(hash_sha256), content_type_for(file_name))
+        context.storage.upload(local_path, keys.original(hash_sha256), content_type_for(file_name))
 
         ingested.append(
             Ingested(
@@ -167,7 +167,7 @@ def _fetch_for_reprocessing(context) -> list[Ingested]:
         local_path = os.path.join(context.work_dir, file.originalFileName)
 
         try:
-            _download(context, keys.original(file_id), local_path)
+            context.storage.download(keys.original(file_id), local_path)
         except Exception as error:
             context.note(f"could not fetch {file.originalFileName} to reprocess: {error}")
             continue
@@ -192,21 +192,3 @@ def _fetch_for_reprocessing(context) -> list[Ingested]:
         context.note(f"fetched {len(requested)} files to reprocess")
 
     return requested
-
-
-def _download(context, key: str, destination: str) -> None:
-    download = getattr(context.storage, "download", None)
-    if download:
-        download(key, destination)
-        return
-    with open(destination, "wb") as handle:
-        handle.write(context.storage.get(key))
-
-
-def _upload(context, path: str, key: str, content_type: str) -> None:
-    upload = getattr(context.storage, "upload", None)
-    if upload:
-        upload(path, key, content_type)
-        return
-    with open(path, "rb") as handle:
-        context.storage.put(key, handle.read(), content_type)

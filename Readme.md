@@ -1,80 +1,48 @@
 # Photoflow
 
-A self-hosted photo library — an alternative to iCloud Photos and Google Photos — that
-runs with **no server and no API**.
+A self-hosted photo library — an alternative to iCloud Photos and Google Photos —
+that runs with **no server and no API**.
 
-Your photos live in your own S3-compatible bucket. A scheduled job turns new uploads
-into a static catalog, and the app reads that catalog directly. Nothing sits in
-between, so there is nothing to pay for and nothing to keep running.
+Your photos live in your own S3-compatible bucket. A job on a cron schedule turns new
+uploads into a static catalog, and the app reads that catalog straight out of the
+bucket. There is no backend between the two, so the bill is your storage and nothing
+else. [Backblaze B2](https://www.backblaze.com/cloud-storage) is the cheap option and
+the one to start with; GitHub Actions runs the scheduled job on its free tier.
 
-```
-  phone / browser  ──upload──▶  bucket: incoming/
-                                     │
-                     nightly GitHub Actions job (worker/)
-                                     │
-                                     ▼
-                    bucket: original/  tile-image/  preview/
-                            catalog/   meta/
-                                     │
-                            (private: every read is
-                             a presigned GET, signed
-                             in the browser)
-                                     │
-                                     ▼
-                            this app, in the browser
-```
+The bucket stays **private**. Every read is signed in the browser with a bucket API
+key that only ever exists in that browser's local storage, so nothing is world
+readable and there is no server holding a credential. Deleting the key ends access to
+everything ever signed with it.
 
-## What it costs
+## What it does
 
-Your storage bill, and nothing else. GitHub Actions' free tier covers the nightly job
-for a typical library, and a static host plus a CDN are free at this scale.
-
-## What you need
-
-1. An **S3-compatible bucket** (Backblaze B2, Cloudflare R2, AWS S3, Wasabi…).
-2. A **GitHub account** to run the nightly job.
-3. Somewhere to host a static site (Cloudflare Pages, Netlify, GitHub Pages).
-
-A CDN in front of the bucket is worth adding once things work — the gallery loads
-hundreds of thumbnails at once, and a CDN gives it HTTP/2+3 multiplexing, where a
-bucket endpoint caps the browser at roughly six parallel connections. It is not
-required to get started, and nothing in the deployment refers to one: the address
-is entered on the connect screen and stored in that browser, so each person can
-point at their own.
-
-If you set one, it covers **pictures only**. The catalog, the mutation logs and
-every write go to the bucket endpoint regardless, so a CDN that is misconfigured
-costs slow images rather than a library that will not load. Because SigV4 covers
-the Host header and the path, the CDN has to forward both to the bucket unchanged
-— the connect screen checks exactly that by asking it for an object that cannot
-exist: storage answers a valid signature with 404 and a mangled one with 403.
+- **Mobile first**, and a full desktop app too.
+- **Works offline.** It is a PWA, so the gallery keeps working with no connection.
+- **Fast.** Thumbnails and placeholders are precomputed, and the catalog is cached
+  a month at a time rather than fetched per photo.
+- **AI search that runs in your browser.** Search phrases like "red bicycle in the
+  snow"; no query ever leaves the device.
+- **A map** of everywhere you have taken a photo.
+- **Automatic trip detection**, plus year and "one year ago" views.
+- **Albums**, and **temporary share links** for an album or a single photo, which
+  need no account at the other end.
+- **First-class Apple Live Photos.** Both halves stay together as one photo.
+- **You own the storage.** It is your bucket, your keys, and ordinary files in it.
 
 ## Setup
 
-### 1. Create the bucket
+You need an S3-compatible bucket, a GitHub account, and somewhere to host a static
+site (Cloudflare Pages, Netlify and GitHub Pages are all free at this scale).
 
-Create a bucket and **keep it private**. Nothing in it is readable without a
-signature, and that is the whole security model: the catalog can sit at fixed,
-guessable paths because a shard is worth nothing to whoever finds it, and deleting
-the application key ends access to everything ever signed with it.
+### 1. Create a private bucket
 
-The app signs every read itself, in the browser, with the key you give it. There is
-no server holding a credential and nothing is world-readable.
+Create the bucket and **keep it private**. The connect screen refuses a public one:
+it writes a one-byte object, tries to read it back with no signature, and will not
+connect if that succeeds.
 
-**The connect screen checks this and refuses a public bucket.** It writes a one-byte
-object, reads it back with no signature, and deletes it again. If that anonymous read
-succeeds, it will not connect and tells you where the setting lives for your provider.
-Probing an object it just wrote is what makes the answer definite: on a bucket with no
-photos in it yet there is nothing else to read, and "not found" and "not allowed" are
-exactly the two things being told apart. Providers also disagree about what an
-anonymous refusal looks like — B2 answers 401 with no CORS headers at all, so a browser
-sees only an opaque failure, while MinIO answers 403 with them — so only a readable
-success is treated as public.
-
-**Set a CORS rule.** The browser signs its own requests, so without one every read
-and write is refused before it leaves the page. Reads carry the signature in the
-query string and are not preflighted; writes carry it in headers and are, which is
-why `PUT` and the signing headers have to be allowed:
+**Set a CORS rule**, or the browser is refused before a request leaves the page.
+Reads carry their signature in the query string and are not preflighted; writes carry
+it in headers and are, which is why `PUT` and the signing headers have to be allowed:
 
 ```json
 [{
@@ -86,27 +54,24 @@ why `PUT` and the signing headers have to be allowed:
 }]
 ```
 
-On Backblaze B2 this means a custom rule; the built-in "share everything" preset is
+On Backblaze B2 this means a custom rule. The built-in "share everything" preset is
 read-only and will not work.
 
-Turn on **object versioning** if your provider supports it. Nothing in Photoflow ever
+Turn on **object versioning** if your provider offers it. Nothing in Photoflow ever
 deletes or rewrites an original, but versioning protects you from a mistake outside it.
 
-### 2. Create two API keys
+### 2. Create the API keys
 
-- **A worker key** — read and write on this bucket only. Used by the nightly job.
-- **An app key** — read, write and list on this bucket. Used by your browser. It needs
-  list because the app discovers other devices' mutation logs under `meta/log/`, and
-  write because uploads, favourites and albums are all written straight from the
-  browser. The connect screen verifies all three, so a key missing one is caught at
-  setup rather than the first time you favourite something. Scope it to this one bucket
-  and nothing else in your account.
+Scope each one to this bucket and nothing else in your account.
 
-  This key is also the revocation lever: deleting it invalidates every URL ever signed
-  with it, including any share link, within seconds.
-- **An upload key** *(optional)* — write-only, scoped to `incoming/`, for your phone's
-  backup app. A backup app only ever uploads, so a leaked key there can add junk but
-  cannot read or destroy your library.
+- **A worker key** — read and write. Used by the scheduled job.
+- **An app key** — read, write and list. Used by your browser. It needs list to find
+  other devices' mutation logs, and write because uploads, favourites and albums are
+  all written straight from the browser. This key is also the revocation lever:
+  deleting it invalidates every URL ever signed with it, share links included.
+- **An upload key** *(optional)* — write-only, scoped to `incoming/`, for your
+  phone's backup app. A leaked key there can add junk but cannot read or destroy
+  anything.
 
 ### 3. Fork this repo and set its secrets
 
@@ -120,22 +85,14 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
 | `PHOTOFLOW_HEALTHCHECK_URL` | *(optional)* a [healthchecks.io](https://healthchecks.io) ping URL |
 
-| Variable | Example | |
-| --- | --- | --- |
-| `PHOTOFLOW_S3_REGION` | `us-west-004` | optional; derived from the endpoint |
-| `PHOTOFLOW_MAX_FILES_PER_RUN` | `2000` | optional |
-| `PHOTOFLOW_MAX_BACKFILL_PER_RUN` | `500` | optional; repairs per run |
+Optional variables are listed in [`worker/.env.example`](worker/.env.example), which
+is the full and authoritative set of settings.
 
-Then enable Actions on the fork (forks start with workflows disabled) and run
-**Process photos** once manually to check it works.
+Then enable Actions on the fork — forks start with workflows disabled — and run
+**Process photos** once by hand to check it works. It is scheduled nightly after that.
 
 Set up the healthcheck. Without it, a job that quietly stops running is invisible
 until you notice photos are missing.
-
-**The app must be served over HTTPS**, or over plain `http` on `localhost` exactly.
-Photoflow signs its own bucket requests with WebCrypto, and browsers only expose that in
-a secure context. Opening the app over `http` at a LAN address or a custom local
-hostname leaves `crypto.subtle` undefined and every request fails.
 
 ### 4. Deploy the app
 
@@ -144,236 +101,65 @@ npm install
 npm run build
 ```
 
-Deploy `src/dist/` to any static host. There is no configuration of any kind — no
-build-time variables, and no file to edit afterwards. Nothing in the deployed output
-names a bucket, which is what lets one deployment serve any number of people, each
-with their own bucket, including their share links.
+Deploy `src/dist/` to any static host. There is nothing to configure at build
+time and no file to edit afterwards: nothing in the output names a bucket, which is
+what lets one deployment serve any number of people, each with their own.
 
-Open the app and enter your endpoint, bucket name, and key. The region is worked out
-from the endpoint. Everything is stored in that browser and never sent anywhere else.
+**It must be served over HTTPS**, or over plain `http` on `localhost` exactly. The
+app signs its own requests with WebCrypto, and browsers only expose that in a secure
+context.
 
-If the connection fails, the screen says which step broke — unreachable host, CORS
-blocking reads, CORS blocking signed writes, bad credentials, or a key that cannot
-list — rather than a generic error.
-
-Put the app behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/)
-(free for up to 50 users) if you would rather not have it publicly reachable.
+Open it and enter your endpoint, bucket and app key. The region is worked out from
+the endpoint. Everything is stored in that browser and sent nowhere else. If the
+connection fails, the screen names the step that broke rather than showing a generic
+error.
 
 ### 5. Set up phone backup
 
-Photos are picked up from `incoming/` in the bucket, so any app that can upload to S3
-works. [PhotoSync](https://www.photosync-app.com/) is the usual choice on iOS and
-Android: create an S3 destination, point it at your bucket with the upload key, set the
+Photos are picked up from `incoming/`, so any app that can upload to S3 works.
+[PhotoSync](https://www.photosync-app.com/) is the usual choice on iOS and Android:
+create an S3 destination, point it at your bucket with the upload key, set the
 directory to `incoming`, and turn on autotransfer while charging.
+
+### Optional: a CDN for pictures
+
+Worth adding once things work. The gallery loads hundreds of thumbnails at once, and
+a bucket endpoint caps the browser at roughly six parallel connections where a CDN
+gives it HTTP/2+3 multiplexing. The address is entered on the connect screen, so each
+person can point at their own.
+
+It covers **pictures only** — the catalog and every write go to the bucket endpoint
+regardless — so a misconfigured CDN costs slow images rather than a library that will
+not load. It has to forward the host header and path unchanged, because the signature
+covers both; the connect screen checks exactly that.
 
 ## How it works
 
-**The catalog is static.** `catalog/manifest.json` lists the JSON shards, one per
-*upload* month. Sharding on upload date rather than capture date means a month stops
-changing once it is over, so browsers cache it indefinitely and each visit fetches only
-the manifest and the current month.
-
-A month holding more than 2,000 items is split into numbered parts, and a part is only
-rewritten when its own contents change. Without that, importing a back catalogue puts
-most of a library into whichever month it was imported in — 19.7 MB of a 33 MB catalog
-in one real case — and editing a single photo in that month would make every client
-fetch all of it again. Parts are ordered by item id rather than capture time, because
-an id never changes and so the boundaries between parts stay put.
-
-**Mutations avoid conflicts by construction.** Favourites, deletions and album
-membership are written by browsers, not the worker. Each device writes only
-`meta/log/<its own id>.json` and never touches another device's file, so there is no
-locking, no read-modify-write, and no need for conditional writes. The nightly job
-merges the logs (last write wins per field) into `meta/state.json`. Album membership is
-tracked per photo rather than as one list, so two devices adding different photos to the
-same album both survive.
-
-**Search runs in the browser.** The worker precomputes a CLIP embedding per photo
-(~516 bytes each) and stores them next to the shards. The browser downloads those once
-and encodes only your search phrase locally. There is no search API.
-
-**Videos are usually not transcoded.** A clip that is already H.264 at 1080p or less is
-served as its own preview, which avoids storing a near-duplicate of every video. HEVC
-and oversized clips get a compatibility transcode to H.264.
-
-**Originals are never modified.** The pipeline only ever reads them.
-
-**Nothing is readable without a signature.** The bucket is private, and the app signs
-every read in the browser with the key it holds. That is what lets the catalog live at
-fixed, guessable paths: `catalog/manifest.json` is worth nothing to whoever finds it,
-and the shards behind it — which carry the GPS coordinates, camera and filename of
-every photo — cannot be fetched at all.
-
-Signatures are pinned to midnight UTC, so one object yields one URL for the whole day
-on every device. Signing per request would give each thumbnail a new URL every time it
-scrolled into view, making it a fresh download and a fresh cache entry; the service
-worker also drops the `X-Amz-*` parameters from its cache key, so the daily change is
-not a cache miss either. Each URL is signed for seven days, which is the longest
-SigV4 permits.
-
-**To revoke access, delete the application key.** Every URL signed with it stops
-working within seconds, wherever it has been sent, and a leaked shard is inert. With a
-CDN in front you also need to purge its cache, because an edge serves what it has
-already stored without revalidating a signature. Nothing recalls bytes someone has
-already downloaded — no system can — so this controls future access only.
-
-**A share link carries its own credentials.** Sharing writes a standalone document and
-presigns everything in it: the tiles, the previews, the original, and the link to the
-document itself, which travels in the URL fragment so it never reaches a server's
-access log. Whoever opens it needs no account, no key and no configuration.
-
-A share hands over the photo, and a photo's location and full-resolution file are part
-of it: the recipient can see where it was taken and download the original under its own
-filename. That download works because the original's URL asks storage to answer as an
-attachment — the `download` attribute on a link is ignored for a cross-origin URL, so
-storage has to say it — and the request is a query parameter inside the signature, so
-it cannot be altered. Anyone who would rather not share a photo's location or original
-should not share the photo.
-
-What a recipient cannot do is reach anything outside the document. A SigV4 signature
-covers the method, the host and the exact object path, so each URL is good for exactly
-one object; editing the path to `catalog/manifest.json` is refused, and a content hash
-by itself opens nothing. Nothing in the document can be used to sign a new URL, because
-the secret never leaves the owner's browser.
-
-Seven days is the consequence: a share link stops working after a week, and sharing
-again issues a fresh one. Deleting the document revokes it sooner.
-
-## Play-testing locally
-
-You can exercise the whole thing against a local S3 server, with generated photos, with
-no bucket and no cost:
-
-```bash
-docker compose -f dev/docker-compose.yml up -d
-uv run --project worker --with pillow python dev/seed.py
+```
+  phone / browser  ──upload──▶  bucket: incoming/
+                                     │
+                          scheduled job (worker/)
+                                     │
+                                     ▼
+                    bucket: original/  tile-image/  preview/
+                            catalog/   meta/
+                                     │
+                                     ▼
+                            this app, in the browser
 ```
 
-That creates a private bucket and fills `incoming/` with sample photos and clips
-(including Live Photo pairs). Then run the worker as the seed script prints,
-`npm start`, and connect the app to:
+- **The catalog is static JSON**, one shard per upload month, so a month stops
+  changing once it is over and browsers cache it indefinitely.
+- **Favourites, albums and deletions are written by browsers**, each device to its
+  own log file, and merged by the job. One writer per file means no conflicts and no
+  locking.
+- **Search embeddings are precomputed** by the job, about 516 bytes a photo. The
+  browser downloads them once and encodes only your search phrase locally.
+- **Originals are never modified or deleted** by anything in this repo.
+- **Videos are usually not transcoded.** A clip already H.264 at 1080p or less is
+  served as its own preview instead of being stored twice.
 
-| Field | Value |
-| --- | --- |
-| S3 endpoint | `http://localhost:9000` |
-| Bucket | `photoflow-dev` |
-| Region | `us-east-1` |
-| Access key / secret | `photoflowdev` / `photoflowdev123` |
-
-MinIO's console is at `http://localhost:9001` if you want to watch objects appear.
-`MINIO_API_CORS_ALLOW_ORIGIN` in the compose file is what lets the browser read and
-write at all — the bucket is private, so every request carries a signature, and
-without CORS the browser is refused before it gets there.
-
-Reset with `docker compose -f dev/docker-compose.yml down -v`.
-
-## Migrating from the older API-backed Photoflow
-
-Photos are migrated the same way any photo arrives: they land in the new bucket's
-`incoming/` folder and the worker catalogues them. There is no separate import path
-for the files themselves — they get new ids, fresh thumbnails and fresh search
-vectors, exactly as an upload would.
-
-If your photos are already in a bucket at the same provider, copy them across
-server side — nothing is downloaded, and the bytes stay identical, which the next
-step depends on:
-
-```bash
-cd worker
-uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
-uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db
-```
-
-That also renames as it copies. The old bucket keys each file by a GUID with no
-extension, and the worker needs the real filename: without it every file looks like
-`application/octet-stream`, and the two halves of a Live Photo no longer share a
-stem to be paired by. The old database holds those names, so it drives the copy.
-Each item's files land in their own folder, so a filename used twice in the library
-cannot overwrite itself.
-
-It skips what is already there, so a run that stops can simply be run again, and
-`PHOTOFLOW_S3_BUCKET` must be the *new* bucket. Deleted photos come across by
-default; pass `--skip-deleted` to leave them behind. The key needs read on the old
-bucket and write on the new one.
-
-What the worker cannot know is what you did to those photos in the old app. That
-is what the migration script carries over:
-
-```bash
-cd worker
-uv run photoflow-migrate photoflow.db --dry-run   # once the worker has catalogued the copies
-uv run photoflow-migrate photoflow.db
-```
-
-`photoflow.db` is the tenant database from **Menu → Export Data** in the old app.
-The script matches old photos to new ones by **content hash** — the old database
-stored one per file, and the new catalog uses the same hash as each file's id — and
-writes favourites, deletions and album membership as a mutation log, the same kind of
-file a phone writes when you favourite something. The app picks it up immediately and
-the next worker run compacts it. Nothing about it is a special case.
-
-Run the dry run first and read the report. Photos not yet copied and processed show
-as unmatched; run again once they are, and it continues from where the worker left
-off. A Live Photo the new grouping paired differently shows as split, and its edits
-apply to each part.
-
-### Photos with no date of their own
-
-Not every file records when it was taken. WhatsApp downloads carry no EXIF at all,
-and screenshots often carry none either. Such a file used to be dated as of the run
-that ingested it, which put a photo from years ago at the top of the gallery under
-today's date — and, because `captureTime` also drives the year and month filters,
-trip detection and the "one year ago" memories, put it in the wrong place in all of
-those too.
-
-The worker now reads the date out of the filename when the metadata has none.
-`IMG-20240315-WA0001.jpg`, `WhatsApp Image 2024-03-15 at 14.22.05.jpeg`,
-`IMG_20240315_142205.jpg`, `PXL_...`, and the usual screenshot spellings are all
-recognised, and a run reports how many files it dated that way. For a WhatsApp file
-this is the day it was sent rather than the day it was taken, which is an
-approximation — but it lands the photo in the right month instead of today.
-
-For photos already catalogued, this repairs them in place:
-
-```bash
-uv run photoflow-redate --dry-run
-uv run photoflow-redate
-```
-
-It reads and rewrites the catalog only. No original is touched, nothing is
-re-downloaded, and no thumbnail or search vector is rebuilt — shards key on **upload**
-month, so a corrected capture date does not move an item between them. An item is
-only re-dated when its capture time is exactly the upload time of one of its files,
-which is the fingerprint of the old fallback: it used one timestamp for both. A photo
-whose camera recorded a real date is therefore never overwritten by a guess from its
-filename. The dry run also reports how many photos have no date anywhere, which is
-the set no amount of parsing can fix.
-
-Share links are not carried over: a link is a document the app writes when you share,
-and carrying only the secret would show a link that leads nowhere. Re-share those
-albums from the app; the report names them.
-
-Edits made in the new app before the migration runs are kept. Each operation is
-timestamped from the old database row, so anything you did more recently wins the
-merge.
-
-## The worker
-
-An ETL pipeline of eight steps, run in order (`worker/photoflow/pipeline.py`):
-
-| Step | What it does |
-| --- | --- |
-| `discover` | Load the existing catalog; list `incoming/` and reprocess requests |
-| `ingest` | Hash, dedupe, store originals under their content hash |
-| `backfill` | Queue a batch of catalogued files missing a thumbnail or search vector |
-| `extract` | exiftool metadata; group Live Photo pairs into one item |
-| `derive` | Tiles, previews, ThumbHash placeholders |
-| `embed` | CLIP image embeddings for search |
-| `compact` | Merge device mutation logs into `meta/state.json` |
-| `publish` | Write changed shards, the manifest, and embeddings |
-| `cleanup` | Clear `incoming/` — only for work that was published |
-
-Run it locally:
+## Running the worker locally
 
 ```bash
 cd worker
@@ -382,63 +168,58 @@ uv run photoflow-worker              # one file at a time
 uv run photoflow-worker --workers 8  # a laptop getting through a large import
 ```
 
-`--workers` sets how many files are processed at once, and defaults to 1 so a
-default run and CI behave exactly as before. On a laptop, measured over 12MP
-photos: 2.4× at 4 workers, 3.0× at 8. Somewhere around the number of cores is the
-useful setting; far beyond it buys nothing.
+`--workers` defaults to 1, so CI behaves as it always has. Somewhere around the
+number of cores is the useful setting; far beyond it buys nothing.
 
-Three things in the pipeline were shaped around how a laptop actually spends the
-time, all measured on an M1 Pro:
-
-- **Metadata is read for the whole batch in one exiftool call.** exiftool is a Perl
-  script, so starting it costs about 60ms against roughly 2ms of reading. A process
-  per file spent 97% of the step on startup. Worth 13–31× depending on the mix of
-  photos and video, and it is the one step `--workers` never helped, because it is
-  sequential by nature.
-- **JPEGs are decoded at the smallest scale that still covers the preview.** Most of
-  the cost of building a tile and a preview is resizing pixels, not reading them, so
-  halving the decode quarters the work. This does nothing for HEIC, which has no
-  equivalent, and nothing for portrait photos, whose short side is already close to
-  the preview width.
-- **Video is encoded on the hardware encoder** (`h264_videotoolbox`) when the machine
-  has one, falling back to `libx264` where it does not, such as CI. At the default
-  quality the output file is the same size — 3.73MB against 3.76MB over a test set.
-  The wall-clock gain alone is only about 1.6×, but it uses a third of the CPU, and
-  that is the real point: `libx264` alone occupies roughly seven cores for a single
-  clip, which is why video used to plateau at 1.8× no matter how many workers it was
-  given. `PHOTOFLOW_VIDEO_QUALITY_HARDWARE` and `PHOTOFLOW_VIDEO_QUALITY_SOFTWARE`
-  tune this; the two scales are unrelated, and the defaults were matched by size.
-
-End to end over a mixed batch, before against after: 14.05s → 10.29s at one worker,
-6.67s → 3.60s at eight.
-
-Two things that were tried and measured as *not* worth it, so that they are not
-tried again: CoreML for the CLIP embeddings is no faster than the CPU provider on
-this model (27.0ms against 26.6ms), and scaling the video poster frame inside ffmpeg
-costs more than the Pillow decode it saves.
-
-The worker loads `worker/.env` itself, from any working directory. Real environment
-variables override it, which is why the same code needs no `.env` in CI.
-
-Run it as a module if you prefer — `uv run python -m photoflow` — but not as a file path
-(`uv run photoflow/__main__.py`), which takes the module out of its package and breaks
-its relative imports.
-
-Tests need no credentials and touch no network:
+The pipeline is nine steps run in order, listed in
+[`worker/photoflow/pipeline.py`](worker/photoflow/pipeline.py). Tests need no
+credentials and touch no network:
 
 ```bash
-cd worker && uv run --extra dev pytest
+npm test                               # front end
+cd worker && uv run --extra dev pytest # worker
 ```
+
+You can also exercise the whole thing against a local S3 server with generated
+photos, no bucket and no cost:
+
+```bash
+docker compose -f dev/docker-compose.yml up -d
+uv run --project worker --with pillow python dev/seed.py
+```
+
+That creates a private bucket and fills `incoming/` with sample photos and clips,
+then prints what to connect the app to. Reset with
+`docker compose -f dev/docker-compose.yml down -v`.
+
+## Coming from the older API-backed Photoflow
+
+Photos are migrated the way any photo arrives: they land in `incoming/` and the
+worker catalogues them. If they are already in a bucket at the same provider, copy
+them across server side, then carry your favourites, deletions and albums over from
+the old tenant database (**Menu → Export Data** in the old app):
+
+```bash
+cd worker
+uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
+uv run photoflow-worker
+uv run photoflow-migrate photoflow.db --dry-run
+```
+
+Both commands take `--dry-run`; run it first and read the report. They match old
+photos to new ones by content hash, so nothing depends on the old ids. Share links
+are not carried over — re-share those albums from the app, and the report names them.
 
 ## Known gaps
 
 This is a prototype. What is not done yet:
 
-- **The first import of a large library** should be run locally rather than in CI —
-  thousands of video transcodes will exhaust free CI minutes. `PHOTOFLOW_MAX_FILES_PER_RUN`
-  caps each run. Raise it for a local run so the whole backlog goes through at once.
-- **Processing is nightly**, so photos uploaded today get thumbnails tomorrow. Run the
-  workflow manually if you want them sooner.
+- **The first import of a large library** should be run locally rather than in CI, as
+  thousands of video transcodes will exhaust free CI minutes.
+  `PHOTOFLOW_MAX_FILES_PER_RUN` caps each run; raise it locally to get through the
+  backlog at once.
+- **Processing is nightly**, so photos uploaded today get thumbnails tomorrow. Run
+  the workflow by hand if you want them sooner.
 - **The CLIP model choice is unverified for redistribution.** The default
-  (`Xenova/clip-vit-base-patch32`) is an ONNX export of a permissively licensed model,
-  but confirm the licence before publishing a fork that ships weights.
+  (`Xenova/clip-vit-base-patch32`) is an ONNX export of a permissively licensed
+  model, but confirm the licence before publishing a fork that ships weights.
