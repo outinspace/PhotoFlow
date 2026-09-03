@@ -43,6 +43,9 @@ export const useDefaultToMemories = () => useStoredSetting(DEFAULT_TO_MEMORIES_K
 // Route guards run outside React and need this before any component has mounted.
 export const getDefaultToMemories = () => parseDisabledByDefault(localStorage.getItem(DEFAULT_TO_MEMORIES_KEY));
 
+// The map opens flat and stays on whichever projection was last chosen.
+export const useMapGlobe = () => useStoredSetting('settings_map_globe', parseDisabledByDefault);
+
 // Null until the user zooms the grid, so it can start from a screen-size default instead.
 const parseGridColumns = (stored: string | null) => {
     const value = Number(stored);

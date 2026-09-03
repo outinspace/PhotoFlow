@@ -5,7 +5,9 @@ import { useSearch } from '@tanstack/react-router';
 import { useItems } from '../api/useItems';
 import { Item } from '../types';
 import { BottomSheet } from '../common/bottom.sheet';
-import ItemGrid from '../gallery/item.grid';
+import ItemGrid, { floatingButtonClasses } from '../gallery/item.grid';
+import { Globe, Map as MapIcon } from 'iconoir-react';
+import { useMapGlobe } from '../hooks/use.settings';
 import { BASEMAP_STYLE, DOT_COLOR, DOT_STROKE, LABEL_FONT } from './basemap';
 
 // 25,000 geotagged photos is well past what per-marker DOM elements can carry, so
@@ -53,6 +55,9 @@ const Map = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<MapLibreMap | null>(null);
     const [ready, setReady] = useState(false);
+    // Flat until told otherwise: it is the projection a photo map is read on, and the
+    // globe is for looking at where a library has been rather than for finding a photo.
+    const [globe, setGlobe] = useMapGlobe();
     const [previewItems, setPreviewItems] = useState<Item[]>([]);
 
     const params: SearchParams = useSearch({ strict: false });
@@ -84,11 +89,23 @@ const Map = () => {
             zoom: params.longitude != null ? 12 : 1.4,
             attributionControl: { compact: true },
             minZoom: MIN_ZOOM,
-            // Keeps the globe from tumbling to an angle the labels cannot be read at.
-            maxPitch: 60
+            // The camera stays overhead and north-up: a tilted or rotated photo map is
+            // disorienting rather than useful. maxPitch pins the tilt whatever asks
+            // for it, and the handlers are switched off as well so their gestures are
+            // not captured only to do nothing.
+            maxPitch: 0,
+            dragRotate: false,
+            pitchWithRotate: false,
+            touchPitch: false
         });
 
-        map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+        // The other two ways to change the bearing: a twisting pinch, and shift+arrow.
+        // Both handlers keep their zoom and pan behaviour, only the rotation is dropped.
+        map.touchZoomRotate.disableRotation();
+        map.keyboard.disableRotation();
+
+        // No compass, since there is no bearing or pitch left to reset or visualise.
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
         map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), 'top-right');
 
         // 'style.load' rather than 'load': the latter also waits for the first
@@ -278,9 +295,9 @@ const Map = () => {
 
         // The same Mercator tiles are reprojected on the GPU, so the globe costs no
         // extra data. MapLibre flattens towards Mercator on its own as you zoom in,
-        // which is why street level still looks like a street map.
-        map.setProjection({ type: 'globe' });
-    }, [ready]);
+        // which is why street level still looks like a street map either way.
+        map.setProjection({ type: globe ? 'globe' : 'mercator' });
+    }, [ready, globe]);
 
     return (
         <div className='relative flex-auto'>
@@ -288,6 +305,17 @@ const Map = () => {
                 .maplibregl-map { position: relative } and is imported after Tailwind,
                 so an `absolute inset-0` container silently collapses to zero height. */}
             <div ref={containerRef} className='size-full bg-slate-900' />
+
+            <button
+                className={`${floatingButtonClasses} absolute bottom-2 left-2 z-10`}
+                onClick={() => setGlobe(!globe)}
+                title={globe ? 'Switch to flat map' : 'Switch to globe'}
+                aria-label={globe ? 'Switch to flat map' : 'Switch to globe'}
+            >
+                {globe
+                    ? <MapIcon className='size-6 drop-shadow-sm' />
+                    : <Globe className='size-6 drop-shadow-sm' />}
+            </button>
 
             <BottomSheet
                 isOpen={previewItems.length > 0}

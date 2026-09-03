@@ -21,6 +21,9 @@ import { readPreviewItemId, usePreviewItem } from './use.preview.item';
 // the whole range on a phone as well as on a wide desktop.
 const ZOOM_STEP = 1.4;
 
+// The map page floats its own controls over the canvas and should look like these.
+export const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
+
 interface Props {
     items: Item[];
     albumId: number | null;
@@ -138,8 +141,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         setShowActionMenu(false);
         setSelectModeEnabled(false);
     }
-
-    const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
 
     useEffect(() => {
         return () => {
