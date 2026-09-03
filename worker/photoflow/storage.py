@@ -56,6 +56,15 @@ class Storage(ABC):
         with open(path, "rb") as handle:
             self.put(key, handle.read(), content_type)
 
+    def copy(self, source_key: str, destination_key: str, content_type: str) -> None:
+        """Duplicate an object under another key without it leaving the bucket.
+
+        Ingest uses this to file an upload under its content hash: the original
+        has already been downloaded to be hashed, and sending it straight back up
+        is the slow leg on an asymmetric connection.
+        """
+        self.put(destination_key, self.get(source_key), content_type)
+
     def get_json(self, key: str, default=None):
         if not self.exists(key):
             return default
@@ -162,4 +171,15 @@ class S3Storage(Storage):
     def upload(self, path: str, key: str, content_type: str) -> None:
         self.client.upload_file(
             path, self.bucket, key, ExtraArgs={"ContentType": content_type}
+        )
+
+    def copy(self, source_key: str, destination_key: str, content_type: str) -> None:
+        # The managed copy switches to a multipart copy above the single-call size
+        # limit, so a long video works the same as a photo. Both are plain S3 API.
+        # REPLACE is what makes the content type take effect on a copy.
+        self.client.copy(
+            {"Bucket": self.bucket, "Key": source_key},
+            self.bucket,
+            destination_key,
+            ExtraArgs={"ContentType": content_type, "MetadataDirective": "REPLACE"},
         )

@@ -18,6 +18,12 @@ def main() -> int:
         help="files to process at once (default 1). Raise it for a local run over a "
              "large library; leave it alone in CI, where a runner has two cores.",
     )
+    parser.add_argument(
+        "--until-empty", action="store_true",
+        help="keep running batches of PHOTOFLOW_MAX_FILES_PER_RUN until incoming/ is "
+             "empty. Each batch is published before the next starts, so stopping or "
+             "crashing loses at most one batch of work.",
+    )
     arguments = parser.parse_args()
 
     if arguments.workers < 1:
@@ -30,30 +36,44 @@ def main() -> int:
         print(f"Configuration error: {error}", file=sys.stderr)
         return 2
 
-    work_dir = tempfile.mkdtemp(prefix="photoflow-")
+    storage = S3Storage(config, workers=arguments.workers)
+    batch = 0
 
-    try:
-        context = Context(
-            config=config,
-            storage=S3Storage(config, workers=arguments.workers),
-            work_dir=work_dir,
-            workers=arguments.workers,
-        )
-        results = run(context)
-    finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
+    while True:
+        batch += 1
+        if arguments.until_empty:
+            print(f"\n===== batch {batch} =====", flush=True)
 
-    failed = [result for result in results if result.error]
+        # A fresh directory per batch keeps disk use to one batch of originals.
+        work_dir = tempfile.mkdtemp(prefix="photoflow-")
+        try:
+            context = Context(
+                config=config, storage=storage, work_dir=work_dir, workers=arguments.workers
+            )
+            results = run(context)
+        finally:
+            shutil.rmtree(work_dir, ignore_errors=True)
 
+        failed = [result for result in results if result.error]
+        _print_summary(results)
+
+        # A short batch means incoming/ is now empty. A full one may have left
+        # more behind, so go round again; the worst case is one empty run.
+        more_waiting = len(context.pending) >= config.max_files_per_run
+        if failed or not arguments.until_empty or not more_waiting:
+            break
+
+    _ping_healthcheck(config, ok=not failed)
+
+    return 1 if failed else 0
+
+
+def _print_summary(results) -> None:
     print("\n" + "=" * 48)
     for result in results:
         status = "FAILED" if result.error else "ok"
         print(f"{result.name:<10} {result.seconds:>7.1f}s  {status}")
     print("=" * 48)
-
-    _ping_healthcheck(config, ok=not failed)
-
-    return 1 if failed else 0
 
 
 def _ping_healthcheck(config, ok: bool) -> None:

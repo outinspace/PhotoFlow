@@ -120,7 +120,7 @@ def run(context) -> None:
             context.storage.delete(entry.key)
             return
 
-        context.storage.upload(local_path, keys.original(hash_sha256), content_type_for(file_name))
+        context.storage.copy(entry.key, keys.original(hash_sha256), content_type_for(file_name))
 
         ingested.append(
             Ingested(
@@ -134,8 +134,8 @@ def run(context) -> None:
             )
         )
 
-    # Downloading, hashing and uploading are all waiting on the network, so this
-    # is where a large import spends most of its time.
+    # Downloading and hashing are waiting on the network and disk, so this is
+    # where a large import spends most of its time.
     progress.track_map(ingest_one, list(enumerate(context.pending)), "ingesting", context.workers)
 
     context.ingested = ingested + _fetch_for_reprocessing(context)

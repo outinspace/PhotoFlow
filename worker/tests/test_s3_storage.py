@@ -125,3 +125,17 @@ def test_a_second_run_against_a_real_bucket_is_a_no_op(s3_storage, tmp_path):
 
     assert len(second.items) == 1
     assert second.dirty_months == set()
+
+
+def test_copy_keeps_the_body_and_sets_the_content_type(s3_storage):
+    storage, client = s3_storage
+    bucket = moto_config().bucket
+    client.put_object(Bucket=bucket, Key=f"{keys.INCOMING}IMG_1.HEIC", Body=b"pixels", ContentType="binary/octet-stream")
+
+    storage.copy(f"{keys.INCOMING}IMG_1.HEIC", keys.original("abc"), "image/heic")
+
+    copied = client.get_object(Bucket=bucket, Key=keys.original("abc"))
+    assert copied["Body"].read() == b"pixels"
+    assert copied["ContentType"] == "image/heic"
+    # The source stays until cleanup decides the item is safely published.
+    assert storage.exists(f"{keys.INCOMING}IMG_1.HEIC")
