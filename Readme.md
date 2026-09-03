@@ -218,12 +218,23 @@ already stored without revalidating a signature. Nothing recalls bytes someone h
 already downloaded — no system can — so this controls future access only.
 
 **A share link carries its own credentials.** Sharing writes a standalone document and
-presigns everything in it: the tiles, the previews, and the link to the document
-itself, which travels in the URL fragment so it never reaches a server's access log.
-Whoever opens it needs no account, no key and no configuration. Location is stripped
-from the copy, and no URL for the original is included, since the original's own EXIF
-still carries the coordinates. The one exception is a clip that was already
-browser-playable, where the original *is* the preview.
+presigns everything in it: the tiles, the previews, the original, and the link to the
+document itself, which travels in the URL fragment so it never reaches a server's
+access log. Whoever opens it needs no account, no key and no configuration.
+
+A share hands over the photo, and a photo's location and full-resolution file are part
+of it: the recipient can see where it was taken and download the original under its own
+filename. That download works because the original's URL asks storage to answer as an
+attachment — the `download` attribute on a link is ignored for a cross-origin URL, so
+storage has to say it — and the request is a query parameter inside the signature, so
+it cannot be altered. Anyone who would rather not share a photo's location or original
+should not share the photo.
+
+What a recipient cannot do is reach anything outside the document. A SigV4 signature
+covers the method, the host and the exact object path, so each URL is good for exactly
+one object; editing the path to `catalog/manifest.json` is refused, and a content hash
+by itself opens nothing. Nothing in the document can be used to sign a new URL, because
+the secret never leaves the owner's browser.
 
 Seven days is the consequence: a share link stops working after a week, and sharing
 again issues a fresh one. Deleting the document revokes it sooner.

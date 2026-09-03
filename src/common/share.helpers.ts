@@ -1,12 +1,14 @@
 import toast from "react-hot-toast";
 import { File, Item } from "../types";
-import { mediaUrl } from "../storage/bucket";
+import { downloadUrl, mediaUrl } from "../storage/bucket";
 
 // Downloads point straight at the object in storage; there is no server to proxy
-// them through. The URL has to be signed first, since the bucket is private.
+// them through. The URL is signed, since the bucket is private, and asks storage to
+// answer as an attachment under the original filename — the `download` attribute
+// below is ignored for a cross-origin URL, so storage has to say it instead.
 export const downloadFile = async (file: File) => {
     const link = document.createElement("a");
-    link.href = await mediaUrl(file.originalSource);
+    link.href = await downloadUrl(file.originalSource, file.originalFileName);
     link.download = file.originalFileName;
     link.target = "_blank";
     document.body.appendChild(link);

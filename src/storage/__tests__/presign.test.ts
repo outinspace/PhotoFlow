@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { presignMediaWith, presignWith } from '../bucket';
+import { downloadUrl, presignMediaWith, presignWith } from '../bucket';
 import { StorageConfig } from '../config';
 
 // The bucket is private, so every read is a presigned GET signed in the browser.
@@ -118,5 +118,55 @@ describe('presigning a read', () => {
         const other = await presignWith({ ...config, bucket: 'someone-else' }, 'catalog/manifest.json');
 
         expect(other).toContain('/someone-else/catalog/manifest.json');
+    });
+});
+
+describe('refusing to sign the bucket itself', () => {
+    it('throws on an empty key rather than signing the bucket root', async () => {
+        // The bucket root is a ListObjects request. This is how a blank
+        // originalSource in a share document turned "Download File" into an XML
+        // listing of every object for whoever held the owner's key.
+        await expect(presignWith(config, '')).rejects.toThrow(/bucket itself/);
+        await expect(presignWith(config, '?t=1')).rejects.toThrow(/bucket itself/);
+    });
+});
+
+describe('a URL that downloads under the original filename', () => {
+    // downloadUrl signs with the stored connection, so give it one.
+    const stored = { getItem: () => JSON.stringify(config), setItem() {}, removeItem() {} };
+
+    it('asks storage to answer as an attachment, inside the signature', async () => {
+        vi.stubGlobal('localStorage', stored);
+        try {
+            const url = await downloadUrl('original/abc', 'IMG_1234.HEIC');
+            const disposition = params(url).get('response-content-disposition');
+
+            expect(disposition).toContain('attachment;');
+            expect(disposition).toContain('filename="IMG_1234.HEIC"');
+            // Covered by the signature: it is a query parameter like any other.
+            expect(params(url).get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('carries a non-ASCII name in UTF-8 with an ASCII fallback', async () => {
+        vi.stubGlobal('localStorage', stored);
+        try {
+            const disposition = params(await downloadUrl('original/abc', 'café 📷.HEIC'))
+                .get('response-content-disposition')!;
+
+            expect(disposition).toContain(`filename*=UTF-8''caf%C3%A9%20%F0%9F%93%B7.HEIC`);
+            expect(disposition).toMatch(/filename="[\x20-\x7E]*"/);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('passes an already-signed absolute URL through untouched', async () => {
+        // A share document's original was signed this way when it was written; the
+        // recipient has no key to sign anything with.
+        const signed = 'https://s3.example.com/b/original/abc?X-Amz-Signature=deadbeef';
+        expect(await downloadUrl(signed, 'anything.jpg')).toBe(signed);
     });
 });

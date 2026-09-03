@@ -3,7 +3,7 @@ import { Item } from '../types';
 import { Catalog } from './catalog';
 import { MergedState } from './mutations';
 import { selectAlbums } from '../api/useAlbums';
-import { mediaUrl, writeJson } from './bucket';
+import { downloadUrl, mediaUrl, writeJson } from './bucket';
 
 // A share link has to work for someone with no credentials and no app config, so
 // each share is written as a standalone JSON document containing everything the
@@ -32,31 +32,24 @@ export interface SharedItem {
 export const albumShareKey = (secret: string) => `share/album/${secret}.json`;
 export const itemShareKey = (fileId: string) => `share/item/${fileId}.json`;
 
-const withoutLocation = (item: Item): Item => ({
-    ...item,
-    latitude: null,
-    longitude: null,
-    altitude: null,
-    city: null,
-    region: null
-});
-
 // Replaces every bucket key in an item with a presigned URL, so the page can load
 // its media without signing anything.
 //
-// The original is deliberately not among them. Its own EXIF still carries the GPS
-// that withoutLocation strips from the item record, and nothing on a share page
-// offers it. The exception is a clip that was already browser-playable, where the
-// original *is* the preview — that one is signed, as previewSource, below.
+// The original is included, signed to download under its own filename, and the
+// item's location is kept: sharing means handing over the photo, and a photo's
+// location and full-resolution file are part of it. Anyone who would rather not
+// share those should not share the photo. What a recipient cannot do is reach
+// anything outside the document: each URL is good for exactly one object, and a
+// key by itself opens nothing.
 const withSignedMedia = async (item: Item): Promise<Item> => {
     const files = await Promise.all(item.files.map(async file => ({
         ...file,
         tileImageSource: file.tileImageSource ? await mediaUrl(file.tileImageSource) : null,
         previewSource: file.previewSource ? await mediaUrl(file.previewSource) : null,
-        originalSource: ''
+        originalSource: await downloadUrl(file.originalSource, file.originalFileName)
     })));
 
-    return { ...withoutLocation(item), files };
+    return { ...item, files };
 };
 
 const readCaches = () => {

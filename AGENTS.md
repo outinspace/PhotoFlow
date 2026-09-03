@@ -52,6 +52,10 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 - **A signature is only valid for the host it was signed for.** The signature cache
   is keyed by base URL for that reason. Never sign for the bucket and then swap the
   hostname.
+- **Never sign an empty key.** `presignUnder` throws on one. The bucket root is a
+  ListObjects request, so a signed URL for it lists every object for a week. A blank
+  `originalSource` in share documents once turned "Download File" into exactly that
+  for whoever held the owner's key.
 - **A cache-busting query must be added before signing.** SigV4 covers every query
   parameter, so appending one afterwards invalidates the signature. Verified: storage
   answers 403.

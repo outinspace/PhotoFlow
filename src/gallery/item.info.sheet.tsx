@@ -9,6 +9,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { BottomSheet } from '../common/bottom.sheet';
 import { format } from 'date-fns';
 import { downloadFile } from '../common/share.helpers';
+import { isConfigured } from '../storage/config';
 
 interface Props {
     item: Item;
@@ -84,7 +85,11 @@ const LocationMetadata = ({ item }: { item: Item }) => {
 
     if (!positionAvailable) return null;
 
-    const navigateToMap = () => navigate({
+    // The full map is the owner's library view and needs a connection. Someone
+    // opening a share link has none, so for them the map is a picture, not a link.
+    const canOpenMap = isConfigured();
+
+    const navigateToMap = () => canOpenMap && navigate({
         to: '/map',
         search: {
             latitude: item.latitude,
@@ -102,7 +107,7 @@ const LocationMetadata = ({ item }: { item: Item }) => {
                 {item.city && item.region ? `${item.city}, ${item.region}` : 'Unknown location'}
                 {item.altitude && ` (${Math.round(item.altitude)}m)`}
             </div>
-            <div className='h-48 cursor-pointer overflow-hidden rounded border border-slate-200' onClick={navigateToMap}>
+            <div className={`h-48 overflow-hidden rounded border border-slate-200 ${canOpenMap ? 'cursor-pointer' : ''}`} onClick={navigateToMap}>
                 <Suspense fallback={<div className='size-full bg-slate-100' />}>
                     <MiniMap latitude={item.latitude!} longitude={item.longitude!} />
                 </Suspense>

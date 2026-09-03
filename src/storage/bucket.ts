@@ -128,6 +128,13 @@ export const presignMediaWith = (config: StorageConfig, key: string): Promise<st
     presignUnder(resolveMediaBaseUrl(config), config, key);
 
 const presignUnder = async (base: string, config: StorageConfig, key: string): Promise<string> => {
+    // An empty key is the bucket root, and a signed GET of the bucket root is a
+    // ListObjects request: a URL that lists every object, valid for a week, handed
+    // to whoever asked for a picture. Nothing may ever sign one by accident.
+    if (!key.split('?')[0]) {
+        throw new Error('Refusing to sign a URL for the bucket itself rather than an object in it.');
+    }
+
     const stamp = signingStamp();
     const cacheKey = signatureCacheKey(base, config, key, stamp);
 
@@ -151,6 +158,37 @@ const presignUnder = async (base: string, config: StorageConfig, key: string): P
 /** A URL the browser can load for a picture, signing it if necessary. */
 export const mediaUrl = async (source: string): Promise<string> =>
     isAbsolute(source) ? source : presignMediaWith(requireStorageConfig(), source);
+
+// RFC 6266: a plain `filename` every client understands, holding an ASCII-safe
+// version, and a `filename*` carrying the real name in UTF-8. Both B2 and MinIO
+// echo whatever is asked for here verbatim, so the browser does the parsing.
+const attachmentDisposition = (fileName: string) => {
+    const ascii = fileName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
+    const utf8 = encodeURIComponent(fileName)
+        .replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+    return `attachment; filename="${ascii}"; filename*=UTF-8''${utf8}`;
+};
+
+/**
+ * A URL that downloads an object under its original filename.
+ *
+ * The `download` attribute on a link is ignored for a cross-origin URL, and every
+ * picture here is cross-origin, so the only way to make a browser save rather than
+ * display is for storage itself to say so. S3 lets a presigned GET override the
+ * Content-Disposition it will answer with — and because that override is a query
+ * parameter, it is covered by the signature and cannot be stripped or altered.
+ *
+ * A source that is already an absolute URL came from a share document and was
+ * signed this way when the document was written.
+ */
+export const downloadUrl = async (source: string, fileName: string): Promise<string> => {
+    if (isAbsolute(source)) {
+        return source;
+    }
+
+    const query = new URLSearchParams({ 'response-content-disposition': attachmentDisposition(fileName) });
+    return presignMediaWith(requireStorageConfig(), `${source}?${query}`);
+};
 
 /** Thrown when storage refused a signature, rather than merely lacking the object. */
 export class AccessRejected extends Error {}
