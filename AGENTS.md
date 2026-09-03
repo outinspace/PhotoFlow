@@ -32,6 +32,11 @@ Read `Readme.md` for the architecture and the reasoning behind it.
 - **Each device writes only its own mutation log.** That single-writer rule is what
   removes write conflicts entirely — do not add code that writes another device's file.
 - **Originals are never modified or deleted** by anything in this repo.
+- **A public bucket is refused at setup**, by writing a probe object and reading it
+  back anonymously (`verify.ts`). Only a *readable* success counts as public: B2
+  answers an anonymous refusal 401 with no CORS headers, so the browser sees an opaque
+  throw, while MinIO answers 403 with them. Treat a throw as private — reads were
+  already proven two rungs earlier — or every B2 user is locked out.
 - **The bucket is private and nothing in the app is unsigned.** Every read is a
   presigned GET built in `src/storage/bucket.ts`; there is no public URL anywhere and
   no `publicBaseUrl`. If you add a read path, sign it — an unsigned request does not
@@ -40,6 +45,13 @@ Read `Readme.md` for the architecture and the reasoning behind it.
   siblings are bucket keys for the owner, and absolute presigned URLs inside a share
   document, because its reader cannot sign one. Render them through `useMediaUrl` or
   `MediaImage`, never straight into a `src`.
+- **Pictures may go through a CDN; data never does.** `resolveMediaBaseUrl` decides
+  the host for tiles, previews and originals; the catalog, the mutation logs and all
+  writes always use the bucket endpoint. Keep that split — it is what makes a wrong
+  CDN a slow gallery rather than a dead one.
+- **A signature is only valid for the host it was signed for.** The signature cache
+  is keyed by base URL for that reason. Never sign for the bucket and then swap the
+  hostname.
 - **A cache-busting query must be added before signing.** SigV4 covers every query
   parameter, so appending one afterwards invalidates the signature. Verified: storage
   answers 403.

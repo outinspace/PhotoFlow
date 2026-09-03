@@ -74,8 +74,33 @@ const FAILURE_TITLES: Record<VerifyFailure, string> = {
     'bad-credentials': 'Those credentials were rejected',
     'no-such-bucket': 'No such bucket',
     'no-list-permission': 'That key cannot list the bucket',
+    'no-write-permission': 'That key cannot write to the bucket',
+    'bucket-is-public': 'That bucket is readable by anyone',
+    'cdn-rejects-signatures': 'That CDN is changing the request',
+    'cdn-unreachable': 'Could not read pictures from that CDN',
     'unknown': 'Could not connect'
 };
+
+// Named per provider because "make it private" is in a different place in each, and
+// the setting is easy to look straight past.
+const PRIVACY_HINTS: { match: RegExp; hint: React.ReactNode }[] = [
+    {
+        match: /backblazeb2\.com/,
+        hint: <>In B2, open the bucket, choose <strong>Bucket Settings</strong>, and set
+            <strong> Files in Bucket</strong> to <strong>Private</strong>.</>
+    },
+    {
+        match: /r2\.cloudflarestorage\.com/,
+        hint: <>In R2, open the bucket’s <strong>Settings</strong> and turn off
+            <strong> Public Development URL</strong>, plus any custom domain serving it.</>
+    },
+    {
+        match: /amazonaws\.com/,
+        hint: <>In S3, open the bucket’s <strong>Permissions</strong> tab, turn
+            <strong> Block all public access</strong> on, and remove any bucket policy
+            granting <code>s3:GetObject</code> to <code>*</code>.</>
+    }
+];
 
 interface Props {
     onConnected: () => void;
@@ -158,8 +183,7 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
 
                     {failure === 'unreachable' && (
                         <p>
-                            Nothing answered at <code>{detail}</code>. Check the endpoint URL, and that the
-                            public base URL below (if you set one) points somewhere real.
+                            Nothing answered at <code>{detail}</code>. Check the endpoint URL.
                         </p>
                     )}
 
@@ -194,6 +218,58 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                         </p>
                     )}
 
+                    {failure === 'cdn-rejects-signatures' && (
+                        <p>
+                            <code>{detail}</code> answered, but storage refused the signature on the way
+                            through. Photoflow signs each picture’s URL for the host it is asked for, and
+                            the signature covers both the host and the path — so the CDN has to forward
+                            them to the bucket unchanged. Check that it preserves the <code>Host</code>
+                            header and does not add or strip a path prefix. Leave the field blank to read
+                            pictures straight from the bucket instead.
+                        </p>
+                    )}
+
+                    {failure === 'cdn-unreachable' && (
+                        <p>
+                            Nothing usable answered at <code>{detail}</code>. Either it cannot be reached,
+                            or it does not return CORS headers for this app’s origin. Everything else is
+                            working — leave the field blank and pictures load from the bucket directly.
+                        </p>
+                    )}
+
+                    {failure === 'no-write-permission' && (
+                        <p>
+                            The key can read and list the bucket but not write to it. Photoflow needs
+                            write, because uploads, favourites and albums are all written straight from
+                            this browser. Give this key read, write and list on this bucket.
+                            The provider said <code>{detail}</code>.
+                        </p>
+                    )}
+
+                    {failure === 'bucket-is-public' && (
+                        <>
+                            <p>
+                                Anyone can read objects from <code>{config.bucket}</code> without
+                                credentials, so Photoflow will not connect to it.
+                            </p>
+                            <p>
+                                Photoflow keeps your photo index at fixed paths — <code>catalog/manifest.json</code>{' '}
+                                and the shards it lists. On a private bucket that is safe, because reading
+                                any of it needs a signature. On a public one, anyone who finds or guesses
+                                the bucket can fetch that index, and it names the location, camera, filename
+                                and stored file of every photo you have. Photo files themselves are named by
+                                content hash, but the index is the list of those hashes.
+                            </p>
+                            <p>
+                                Nothing here needs public access: this app signs every read in your browser
+                                with the key above. Make the bucket private and connect again.
+                            </p>
+                            {PRIVACY_HINTS.find(({ match }) => match.test(config.endpoint))?.hint
+                                ? <p>{PRIVACY_HINTS.find(({ match }) => match.test(config.endpoint))!.hint}</p>
+                                : null}
+                        </>
+                    )}
+
                     {failure === 'unknown' && (
                         <p>The provider said: <code>{detail || 'no details'}</code>.</p>
                     )}
@@ -215,6 +291,13 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                     type='password'
                     value={config.secretAccessKey}
                     onChange={update('secretAccessKey')}
+                />
+                <Field
+                    label='CDN Base URL (Optional)'
+                    hint='A CDN in front of your bucket, used for photos and videos only — the catalog and your edits always go straight to the bucket. Worth setting: the gallery loads hundreds of thumbnails at once, and a CDN serves them over one multiplexed connection where a bucket endpoint allows about six. It has to pass the host and path through to the bucket unchanged, which is checked when you connect. Leave blank to read from the bucket.'
+                    placeholder='https://photos.example.com'
+                    value={config.publicBaseUrl ?? ''}
+                    onChange={update('publicBaseUrl')}
                 />
             </div>
 

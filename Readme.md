@@ -38,7 +38,16 @@ for a typical library, and a static host plus a CDN are free at this scale.
 A CDN in front of the bucket is worth adding once things work — the gallery loads
 hundreds of thumbnails at once, and a CDN gives it HTTP/2+3 multiplexing, where a
 bucket endpoint caps the browser at roughly six parallel connections. It is not
-required to get started, and nothing here refers to one.
+required to get started, and nothing in the deployment refers to one: the address
+is entered on the connect screen and stored in that browser, so each person can
+point at their own.
+
+If you set one, it covers **pictures only**. The catalog, the mutation logs and
+every write go to the bucket endpoint regardless, so a CDN that is misconfigured
+costs slow images rather than a library that will not load. Because SigV4 covers
+the Host header and the path, the CDN has to forward both to the bucket unchanged
+— the connect screen checks exactly that by asking it for an object that cannot
+exist: storage answers a valid signature with 404 and a mangled one with 403.
 
 ## Setup
 
@@ -51,6 +60,16 @@ the application key ends access to everything ever signed with it.
 
 The app signs every read itself, in the browser, with the key you give it. There is
 no server holding a credential and nothing is world-readable.
+
+**The connect screen checks this and refuses a public bucket.** It writes a one-byte
+object, reads it back with no signature, and deletes it again. If that anonymous read
+succeeds, it will not connect and tells you where the setting lives for your provider.
+Probing an object it just wrote is what makes the answer definite: on a bucket with no
+photos in it yet there is nothing else to read, and "not found" and "not allowed" are
+exactly the two things being told apart. Providers also disagree about what an
+anonymous refusal looks like — B2 answers 401 with no CORS headers at all, so a browser
+sees only an opaque failure, while MinIO answers 403 with them — so only a readable
+success is treated as public.
 
 **Set a CORS rule.** The browser signs its own requests, so without one every read
 and write is refused before it leaves the page. Reads carry the signature in the
@@ -77,8 +96,14 @@ deletes or rewrites an original, but versioning protects you from a mistake outs
 
 - **A worker key** — read and write on this bucket only. Used by the nightly job.
 - **An app key** — read, write and list on this bucket. Used by your browser. It needs
-  list because the app discovers other devices' mutation logs under `meta/log/`. Scope it
-  to this one bucket and nothing else in your account.
+  list because the app discovers other devices' mutation logs under `meta/log/`, and
+  write because uploads, favourites and albums are all written straight from the
+  browser. The connect screen verifies all three, so a key missing one is caught at
+  setup rather than the first time you favourite something. Scope it to this one bucket
+  and nothing else in your account.
+
+  This key is also the revocation lever: deleting it invalidates every URL ever signed
+  with it, including any share link, within seconds.
 - **An upload key** *(optional)* — write-only, scoped to `incoming/`, for your phone's
   backup app. A backup app only ever uploads, so a leaked key there can add junk but
   cannot read or destroy your library.

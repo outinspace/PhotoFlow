@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveRegion, normalizeConfig, resolveRegion, StorageConfig } from '../config';
+import { StorageConfig, deriveRegion, normalizeConfig, resolveMediaBaseUrl, resolveRegion } from '../config';
 
 const base: StorageConfig = {
     endpoint: 'https://s3.us-west-004.backblazeb2.com',
@@ -33,6 +33,26 @@ describe('deriving the region from the endpoint', () => {
 
     it('uses the derived region when none is stored', () => {
         expect(resolveRegion(base)).toBe('us-west-004');
+    });
+});
+
+describe('where pictures are read from', () => {
+    it('falls back to the bucket when no CDN is given', () => {
+        expect(resolveMediaBaseUrl(base)).toBe('https://s3.us-west-004.backblazeb2.com/my-photos/');
+    });
+
+    it('uses the CDN when one is given', () => {
+        expect(resolveMediaBaseUrl({ ...base, publicBaseUrl: 'https://photos.example.com' }))
+            .toBe('https://photos.example.com/');
+    });
+
+    it('always ends in a single slash, so key concatenation is safe', () => {
+        expect(resolveMediaBaseUrl({ ...base, publicBaseUrl: 'https://photos.example.com///' }))
+            .toBe('https://photos.example.com/');
+    });
+
+    it('treats a blank picture URL as absent rather than empty', () => {
+        expect(normalizeConfig({ ...base, publicBaseUrl: '   ' }).publicBaseUrl).toBeUndefined();
     });
 });
 

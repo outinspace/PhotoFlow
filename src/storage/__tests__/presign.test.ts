@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { presignWith } from '../bucket';
+import { presignMediaWith, presignWith } from '../bucket';
 import { StorageConfig } from '../config';
 
 // The bucket is private, so every read is a presigned GET signed in the browser.
@@ -71,6 +71,45 @@ describe('presigning a read', () => {
         const two = await presignWith(config, 'tile-image/two.jpeg');
 
         expect(params(one).get('X-Amz-Signature')).not.toBe(params(two).get('X-Amz-Signature'));
+    });
+
+    it('signs a picture for the CDN when one is configured', async () => {
+        // The signature covers the host, so it has to be computed for the host the
+        // request will actually reach — swapping the hostname afterwards would
+        // invalidate it.
+        const url = await presignMediaWith(
+            { ...config, publicBaseUrl: 'https://photos.example.com/' },
+            'tile-image/abc.jpeg'
+        );
+
+        expect(url.startsWith('https://photos.example.com/tile-image/abc.jpeg?')).toBe(true);
+        expect(params(url).get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('signs a picture for the bucket when no CDN is configured', async () => {
+        const url = await presignMediaWith(config, 'tile-image/abc.jpeg');
+
+        expect(url).toContain('/my-photos/tile-image/abc.jpeg');
+    });
+
+    it('keeps data on the bucket even when a CDN is configured', async () => {
+        // A misconfigured CDN should cost slow pictures, not a library that will
+        // not load. The catalog and the mutation logs never go through it.
+        const withCdn = { ...config, publicBaseUrl: 'https://photos.example.com/' };
+
+        expect(await presignWith(withCdn, 'catalog/manifest.json'))
+            .toContain('s3.us-west-004.backblazeb2.com/my-photos/catalog/manifest.json');
+    });
+
+    it('signs the same key differently for the CDN and the bucket', async () => {
+        // Cached under one and served for the other, every picture would 403.
+        const withCdn = { ...config, publicBaseUrl: 'https://photos.example.com/' };
+
+        const viaCdn = await presignMediaWith(withCdn, 'tile-image/abc.jpeg');
+        const viaBucket = await presignMediaWith(config, 'tile-image/abc.jpeg');
+
+        expect(params(viaCdn).get('X-Amz-Signature'))
+            .not.toBe(params(viaBucket).get('X-Amz-Signature'));
     });
 
     it('signs for the bucket in the config, not a hardcoded one', async () => {

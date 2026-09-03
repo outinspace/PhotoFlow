@@ -7,7 +7,8 @@ const full: StorageConfig = {
     bucket: 'my-photos',
     accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
     secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-    region: 'us-west-004'
+    region: 'us-west-004',
+    publicBaseUrl: 'https://photos.example.com/'
 };
 
 const minimal: StorageConfig = {

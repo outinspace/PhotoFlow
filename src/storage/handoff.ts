@@ -29,7 +29,8 @@ export const encodeHandoff = (config: StorageConfig): string => {
         config.bucket,
         config.accessKeyId,
         config.secretAccessKey,
-        config.region ?? ''
+        config.region ?? '',
+        config.publicBaseUrl ?? ''
     ];
 
     return toBase64Url(JSON.stringify(compact));
@@ -42,9 +43,9 @@ export const decodeHandoff = (encoded: string): StorageConfig | null => {
             return null;
         }
 
-        // Extra trailing slots are ignored: a code made before the bucket went
-        // private carried a public base URL here, and there is nowhere to put it.
-        const [endpoint, bucket, accessKeyId, secretAccessKey, region] = compact;
+        // Trailing slots are optional, so a code made before a field existed still
+        // scans — it simply arrives without that value.
+        const [endpoint, bucket, accessKeyId, secretAccessKey, region, publicBaseUrl] = compact;
         if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
             return null;
         }
@@ -54,7 +55,8 @@ export const decodeHandoff = (encoded: string): StorageConfig | null => {
             bucket,
             accessKeyId,
             secretAccessKey,
-            region: region || undefined
+            region: region || undefined,
+            publicBaseUrl: publicBaseUrl || undefined
         };
     } catch {
         return null;

@@ -15,6 +15,11 @@ export interface StorageConfig {
     // Derived from the endpoint when left empty, so the setup screen only has to
     // ask for the four things that cannot be worked out.
     region?: string;
+
+    // A CDN in front of the bucket, used for pictures only. Optional, and stored
+    // here rather than anywhere in the deployment, so each person can point at
+    // their own. See resolveMediaBaseUrl for what it does and does not cover.
+    publicBaseUrl?: string;
 }
 
 const STORAGE_CONFIG_KEY = 'photoflow.storage';
@@ -54,11 +59,29 @@ export const deriveRegion = (endpoint: string): string => {
 
 export const resolveRegion = (config: StorageConfig) => config.region || deriveRegion(config.endpoint);
 
+const trailingSlash = (url: string) => url.replace(/\/+$/, '') + '/';
+
+/**
+ * Where pictures are read from: a CDN if one is configured, otherwise the bucket.
+ *
+ * Only pictures. The catalog, the mutation logs and every write go to the bucket
+ * endpoint regardless, so a CDN that is misconfigured leaves the app working with
+ * slow images rather than not working at all.
+ *
+ * The URL is signed for whatever host this produces, because SigV4 covers the Host
+ * header. A CDN therefore has to pass both the host and the path through to the
+ * bucket unchanged, or storage computes a different signature and refuses. The
+ * connect screen checks exactly that.
+ */
+export const resolveMediaBaseUrl = (config: StorageConfig) =>
+    trailingSlash(config.publicBaseUrl || `${config.endpoint}/${config.bucket}`);
+
 export const normalizeConfig = (config: StorageConfig): StorageConfig => ({
     ...config,
     endpoint: config.endpoint.trim().replace(/\/+$/, ''),
     bucket: config.bucket.trim(),
     region: config.region?.trim() || undefined,
+    publicBaseUrl: config.publicBaseUrl?.trim() ? trailingSlash(config.publicBaseUrl.trim()) : undefined,
 });
 
 export const getStorageConfig = (): StorageConfig | null => {

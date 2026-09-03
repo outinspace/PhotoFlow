@@ -151,6 +151,10 @@ const StorageSettings = () => {
                     <Row label='Bucket' value={config.bucket} />
                     <Row label='Region' value={`${resolveRegion(config)}${config.region ? '' : ' (from endpoint)'}`} />
                     <Row label='Access key ID' value={config.accessKeyId} />
+                    <Row
+                        label='CDN Base URL'
+                        value={config.publicBaseUrl ?? `${config.endpoint}/${config.bucket}/ (bucket, no CDN)`}
+                    />
 
                     <div className='p-4'>
                         <button

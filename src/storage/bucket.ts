@@ -1,5 +1,5 @@
 import { AwsClient } from 'aws4fetch';
-import { getStorageConfig, requireStorageConfig, resolveRegion, StorageConfig } from './config';
+import { getStorageConfig, requireStorageConfig, resolveMediaBaseUrl, resolveRegion, StorageConfig } from './config';
 
 // The bucket is private, so nothing in it can be read without a signature. Every
 // read here — the catalog, the mutation logs, and every thumbnail the gallery
@@ -58,11 +58,16 @@ const awsClient = (config: StorageConfig) => {
 // A source may carry a cache-busting query (`?t=...`), which has to be part of the
 // URL before it is signed: SigV4 covers every query parameter, so appending one
 // afterwards would invalidate the signature.
-const objectUrl = (config: StorageConfig, key: string) => {
+const urlUnder = (base: string, key: string) => {
     const [path, query] = key.split('?');
     const encoded = path.split('/').map(encodeURIComponent).join('/');
-    return `${config.endpoint}/${config.bucket}/${encoded}${query ? `?${query}` : ''}`;
+    return `${base}${encoded}${query ? `?${query}` : ''}`;
 };
+
+// Data — the catalog, the mutation logs — and every write always go to the bucket
+// endpoint. Only pictures may go somewhere else; see resolveMediaBaseUrl.
+const objectUrl = (config: StorageConfig, key: string) =>
+    urlUnder(`${config.endpoint}/${config.bucket}/`, key);
 
 // SigV4 will not presign anything for longer than seven days, because the signing
 // key is derived from the date. Nothing here needs longer: the app re-signs
@@ -79,8 +84,10 @@ const signingStamp = () => `${new Date().toISOString().slice(0, 10).replace(/-/g
 // at another bucket cannot serve a URL signed for the old one.
 const signedUrls = new Map<string, string>();
 
-const signatureCacheKey = (config: StorageConfig, key: string, stamp: string) =>
-    `${stamp}|${config.endpoint}|${config.bucket}|${config.accessKeyId}|${key}`;
+// The base is part of the key: pointing at a CDN changes the host the signature
+// covers, so a URL signed for the bucket is not valid for the CDN and vice versa.
+const signatureCacheKey = (base: string, config: StorageConfig, key: string, stamp: string) =>
+    `${stamp}|${base}|${config.accessKeyId}|${key}`;
 
 // A source is either a bucket key, which this browser signs, or an absolute URL
 // that was signed elsewhere — which is what a share document carries, since the
@@ -98,7 +105,9 @@ export const peekMediaUrl = (source: string): string | null => {
         return null;
     }
 
-    return signedUrls.get(signatureCacheKey(config, source, signingStamp())) ?? null;
+    return signedUrls.get(
+        signatureCacheKey(resolveMediaBaseUrl(config), config, source, signingStamp())
+    ) ?? null;
 };
 
 /**
@@ -107,16 +116,27 @@ export const peekMediaUrl = (source: string): string | null => {
  * The setup screen needs this: it has to prove a connection works before it saves
  * anything, so at that point there is no stored config to sign with.
  */
-export const presignWith = async (config: StorageConfig, key: string): Promise<string> => {
+export const presignWith = (config: StorageConfig, key: string): Promise<string> =>
+    presignUnder(`${config.endpoint}/${config.bucket}/`, config, key);
+
+/**
+ * The same, but under whichever host pictures are read from — a CDN when one is
+ * configured. Exported so the connect screen can prove that host works before it
+ * is saved and every thumbnail starts depending on it.
+ */
+export const presignMediaWith = (config: StorageConfig, key: string): Promise<string> =>
+    presignUnder(resolveMediaBaseUrl(config), config, key);
+
+const presignUnder = async (base: string, config: StorageConfig, key: string): Promise<string> => {
     const stamp = signingStamp();
-    const cacheKey = signatureCacheKey(config, key, stamp);
+    const cacheKey = signatureCacheKey(base, config, key, stamp);
 
     const cached = signedUrls.get(cacheKey);
     if (cached) {
         return cached;
     }
 
-    const url = new URL(objectUrl(config, key));
+    const url = new URL(urlUnder(base, key));
     url.searchParams.set('X-Amz-Expires', String(SIGNED_READ_TTL_SECONDS));
 
     const signed = await awsClient(config).sign(url.toString(), {
@@ -128,9 +148,9 @@ export const presignWith = async (config: StorageConfig, key: string): Promise<s
     return signed.url;
 };
 
-/** A URL the browser can load for a bucket key, signing it if necessary. */
+/** A URL the browser can load for a picture, signing it if necessary. */
 export const mediaUrl = async (source: string): Promise<string> =>
-    isAbsolute(source) ? source : presignWith(requireStorageConfig(), source);
+    isAbsolute(source) ? source : presignMediaWith(requireStorageConfig(), source);
 
 /** Thrown when storage refused a signature, rather than merely lacking the object. */
 export class AccessRejected extends Error {}
@@ -139,8 +159,13 @@ export class AccessRejected extends Error {}
 // yet has no state.json. 403 means the signature was refused, which is a different
 // thing entirely — an expired share link, or a key that has been revoked — and
 // reporting it as "absent" would send the caller down the wrong path.
+// Data, not pictures: always the bucket endpoint, never the CDN. A share document
+// is the exception — it arrives as an absolute URL that was signed elsewhere.
+const dataUrl = (source: string) =>
+    isAbsolute(source) ? Promise.resolve(source) : presignWith(requireStorageConfig(), source);
+
 const readResponse = async (source: string, signal?: AbortSignal) => {
-    const res = await fetch(await mediaUrl(source), { signal });
+    const res = await fetch(await dataUrl(source), { signal });
 
     if (res.status === 403) {
         throw new AccessRejected(
@@ -193,6 +218,21 @@ const describeClockSkew = (res: Response) => {
         ? ` This device's clock is about ${minutes} minutes off, which is enough to invalidate a signature.`
         : '';
 };
+
+/**
+ * The address of an object with no signature on it.
+ *
+ * Its only legitimate use is proving that the bucket refuses anonymous reads —
+ * see verify.ts. Anything that actually needs to read an object must sign for it.
+ */
+export const unsignedObjectUrl = (config: StorageConfig, key: string) => objectUrl(config, key);
+
+/** A signed request against a config passed in, for the setup screen's checks. */
+export const signedRequestWith = (
+    config: StorageConfig,
+    key: string,
+    init: RequestInit
+) => awsClient(config).fetch(objectUrl(config, key), init);
 
 export const writeObject = async (key: string, body: BodyInit, contentType: string) => {
     const config = requireStorageConfig();
