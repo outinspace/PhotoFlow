@@ -113,7 +113,14 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_BUCKET` | `my-photos` |
 | `PHOTOFLOW_S3_ACCESS_KEY_ID` | the worker key |
 | `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
+| `PHOTOFLOW_PRIVATE_PREFIX` | the private prefix from step 1 |
 | `PHOTOFLOW_HEALTHCHECK_URL` | *(optional)* a [healthchecks.io](https://healthchecks.io) ping URL |
+
+`PHOTOFLOW_PRIVATE_PREFIX` is a secret rather than a variable, because repository
+variables are readable by anyone who can read the repo, and this one is what keeps
+a public bucket's photo index unreadable. **If it is missing here, the nightly run
+writes the catalog back to the guessable path and undoes the protection** — the app
+would go on working, so nothing would tell you.
 
 | Variable | Example | |
 | --- | --- | --- |

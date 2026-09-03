@@ -26,6 +26,9 @@ jobs:
       PHOTOFLOW_S3_REGION: ${{ vars.PHOTOFLOW_S3_REGION }}
       PHOTOFLOW_PUBLIC_BASE_URL: ${{ vars.PHOTOFLOW_PUBLIC_BASE_URL }}
       PHOTOFLOW_MAX_FILES_PER_RUN: ${{ vars.PHOTOFLOW_MAX_FILES_PER_RUN }}
+      # A secret, not a var: it is what keeps a public bucket's photo index
+      # unreadable, and vars are visible to anyone who can read the repo.
+      PHOTOFLOW_PRIVATE_PREFIX: ${{ secrets.PHOTOFLOW_PRIVATE_PREFIX }}
       PHOTOFLOW_HEALTHCHECK_URL: ${{ secrets.PHOTOFLOW_HEALTHCHECK_URL }}
 
     steps:
