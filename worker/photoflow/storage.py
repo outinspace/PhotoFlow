@@ -30,7 +30,15 @@ class StoredObject:
 # content hash, and a share document by the secret in its link, so neither gains
 # anything from a private prefix — and both are read straight from the CDN by URL,
 # which is what keeps the gallery fast.
-PUBLIC_PREFIXES = ("original/", "tile-image/", "preview/", "share/")
+#
+# incoming/ is here too, for a reason worth writing down. Its keys look guessable —
+# a filename, or an old item id and a filename — but guessing one still means
+# guessing the filename, which carries a capture date and a camera counter. More to
+# the point, every file waiting there is the same bytes as an original/ object named
+# by its hash, which is public regardless. So moving incoming/ would mean copying the
+# whole upload queue, hundreds of gigabytes of it, to hide nothing that original/
+# does not already expose.
+PUBLIC_PREFIXES = ("original/", "tile-image/", "preview/", "share/", "incoming/")
 
 
 class Storage(ABC):

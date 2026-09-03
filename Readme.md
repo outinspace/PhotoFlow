@@ -49,8 +49,8 @@ URL can read that object.
 but the catalog sits at a fixed path — so without this, anyone who guesses or is
 given your bucket URL can fetch `catalog/manifest.json`, walk its shards, and read
 the location, camera and filename of every photo in the library, plus the hash of
-every original. The prefix moves the catalog, the mutation logs and `incoming/` to a
-folder nobody can guess:
+every original. The prefix moves the catalog and the mutation logs to a folder
+nobody can guess:
 
 ```bash
 python3 -c "import secrets; print(secrets.token_hex(16))"

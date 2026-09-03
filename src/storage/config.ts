@@ -63,7 +63,12 @@ export const resolveRegion = (config: StorageConfig) => config.region || deriveR
 // Keys already unguessable on their own: media is named by content hash, and a
 // share document by the secret in its link. Both are read straight from the CDN by
 // URL, which is what keeps the gallery fast, so neither moves.
-const PUBLIC_PREFIXES = ['original/', 'tile-image/', 'preview/', 'share/'];
+//
+// incoming/ is here too. Guessing one of its keys means guessing a filename, and
+// every file waiting there is the same bytes as an original/ object named by its
+// hash, which is public regardless — so moving it would mean copying the whole
+// upload queue to hide nothing that original/ does not already expose.
+const PUBLIC_PREFIXES = ['original/', 'tile-image/', 'preview/', 'share/', 'incoming/'];
 
 export const resolvePrivatePrefix = (config: StorageConfig | null) => {
     const prefix = config?.privatePrefix?.replace(/^\/+|\/+$/g, '');

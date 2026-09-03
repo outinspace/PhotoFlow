@@ -28,8 +28,7 @@ describe('what moves under the private prefix', () => {
         keys.META_STATE,
         keys.META_HEARTBEAT,
         keys.deviceLog('phone'),
-        keys.reprocessRequest('abc'),
-        keys.INCOMING
+        keys.reprocessRequest('abc')
     ])('%s is prefixed', key => {
         expect(resolveKey(config('s3cret'), key)).toBe(`s3cret/${key}`);
     });
@@ -42,7 +41,11 @@ describe('what moves under the private prefix', () => {
         'tile-image/abc123.jpeg',
         'preview/abc123.mp4',
         'share/album/somesecret.json',
-        'share/item/abc123.json'
+        'share/item/abc123.json',
+        // Same bytes as an original/ object named by its hash, so moving the upload
+        // queue would hide nothing and cost hundreds of gigabytes of copying.
+        keys.INCOMING,
+        `${keys.INCOMING}IMG_1234_1730928000000.HEIC`
     ])('%s stays where it is', key => {
         expect(resolveKey(config('s3cret'), key)).toBe(key);
     });

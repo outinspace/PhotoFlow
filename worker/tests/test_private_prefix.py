@@ -28,7 +28,6 @@ def storage(prefix: str) -> S3Storage:
     keys.META_HEARTBEAT,
     keys.device_log("phone"),
     keys.reprocess_request("abc"),
-    keys.INCOMING,
 ])
 def test_a_guessable_key_moves_under_the_prefix(key):
     assert storage("s3cret").resolve(key) == f"s3cret/{key}"
@@ -39,6 +38,10 @@ def test_a_guessable_key_moves_under_the_prefix(key):
     "tile-image/abc123.jpeg",
     "preview/abc123.mp4",
     "share/album/somesecret.json",
+    # Same bytes as an original/ object named by its hash, so moving the upload
+    # queue would hide nothing and cost hundreds of gigabytes of copying.
+    keys.INCOMING,
+    keys.INCOMING + "IMG_1234_1730928000000.HEIC",
 ])
 def test_an_already_unguessable_key_stays_put(key):
     assert storage("s3cret").resolve(key) == key

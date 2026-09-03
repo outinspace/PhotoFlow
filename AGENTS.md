@@ -28,9 +28,12 @@ Read `Readme.md` for the architecture and the reasoning behind it.
   Callers everywhere name keys as `keys.py` / `keys.ts` declare them; the prefix is
   applied in exactly two places, `S3Storage.resolve` and `resolveKey` in
   `src/storage/config.ts`. **Never** add a new fixed-path object outside that
-  translation, and never move `original/`, `tile-image/`, `preview/` or `share/`
-  under it — those are content hashes and share secrets, already unguessable, and
-  they are read from the CDN by URL. Both lists have tests that fail if this slips.
+  translation, and never move `original/`, `tile-image/`, `preview/`, `share/` or
+  `incoming/` under it — the first four are content hashes and share secrets read
+  from the CDN by URL, and a file in `incoming/` is the same bytes as an `original/`
+  object that is public anyway, so moving the upload queue would hide nothing and
+  cost hundreds of gigabytes of copying. Both lists have tests that fail if this
+  slips.
 - **`src/types.ts` matches `worker/photoflow/models.py`.** A shard entry is dropped
   straight into the gallery without translation.
 - **The mutation merge is implemented twice** — `worker/photoflow/steps/compact.py` and
