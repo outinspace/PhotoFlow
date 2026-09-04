@@ -134,7 +134,14 @@ class S3Storage(Storage):
             region_name=config.region,
             # botocore pools ten connections by default; more workers than that
             # would spend their time queueing for one.
-            config=BotoConfig(max_pool_connections=max(10, workers * 2)),
+            config=BotoConfig(
+                max_pool_connections=max(10, workers * 2),
+                # The bucket answers SlowDown when the account is pushed too hard,
+                # and a multipart copy can burn its whole retry budget on one part.
+                # Adaptive backs the whole client off when it sees throttling, so
+                # the other workers slow down too rather than each finding out.
+                retries={"max_attempts": 10, "mode": "adaptive"},
+            ),
         )
 
     def list(self, prefix: str) -> list[StoredObject]:

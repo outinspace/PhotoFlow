@@ -446,3 +446,33 @@ def test_an_unreadable_file_is_absent_rather_than_shifting_the_others(tmp_path):
 
     assert str(good) in tags
     assert tags[str(good)]["ImageWidth"] == 800
+
+
+@requires_media_tools
+def test_a_throttled_upload_is_left_for_the_next_run(tmp_path):
+    """A bucket answering SlowDown costs one file, not the whole import."""
+
+    class ThrottleOnce(MemoryStorage):
+        throttled = False
+
+        def copy(self, source_key, destination_key, content_type):
+            if not self.throttled and source_key.endswith("IMG_0001.JPG"):
+                self.throttled = True
+                raise RuntimeError("SlowDown: too many requests")
+            super().copy(source_key, destination_key, content_type)
+
+    storage = ThrottleOnce({
+        keys.INCOMING + "IMG_0001.JPG": make_jpeg(tmp_path / "a.jpg"),
+        keys.INCOMING + "IMG_0002.JPG": make_jpeg(tmp_path / "b.jpg", colour=(20, 120, 200)),
+    })
+
+    first = run_pipeline(storage, tmp_path)
+
+    assert len(first.items) == 1
+    assert storage.exists(keys.INCOMING + "IMG_0001.JPG")
+    assert any("could not ingest" in note for note in first.notes)
+
+    second = run_pipeline(storage, tmp_path)
+
+    assert len(second.items) == 2
+    assert not storage.list(keys.INCOMING)

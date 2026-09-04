@@ -82,12 +82,13 @@ def run(context) -> None:
     ingested: list[Ingested] = []
     skipped = 0
     ignored = 0
+    failed = 0
 
     counts = threading.Lock()
     seen = threading.Lock()
 
     def ingest_one(numbered) -> None:
-        nonlocal skipped, ignored
+        nonlocal skipped, ignored, failed
         index, entry = numbered
 
         file_name = os.path.basename(entry.key)
@@ -102,25 +103,46 @@ def run(context) -> None:
         # hold the same filename; sharing one temp path would make the second
         # download overwrite the first before either is read.
         local_path = os.path.join(context.work_dir, f"{index}-{file_name}")
-        context.storage.download(entry.key, local_path)
+        claimed = None
 
-        hash_sha256 = hash_file(local_path)
+        # The bucket answers SlowDown when a large import pushes the account too
+        # hard, and a raised error here abandons the whole run: every file already
+        # downloaded and hashed is thrown away and the catalog is left unwritten.
+        # The upload stays in incoming/ instead, so the next run picks it up.
+        try:
+            context.storage.download(entry.key, local_path)
 
-        # Claimed under a lock: two copies of the same photo in one batch would
-        # otherwise both pass this check and both be catalogued.
-        with seen:
-            duplicate = hash_sha256 in context.known_hashes
-            if not duplicate:
-                context.known_hashes.add(hash_sha256)
+            hash_sha256 = hash_file(local_path)
 
-        if duplicate:
+            # Claimed under a lock: two copies of the same photo in one batch would
+            # otherwise both pass this check and both be catalogued.
+            with seen:
+                duplicate = hash_sha256 in context.known_hashes
+                if not duplicate:
+                    context.known_hashes.add(hash_sha256)
+                    claimed = hash_sha256
+
+            if duplicate:
+                with counts:
+                    skipped += 1
+                os.remove(local_path)
+                context.storage.delete(entry.key)
+                return
+
+            context.storage.copy(entry.key, keys.original(hash_sha256), content_type_for(file_name))
+        except Exception as error:
             with counts:
-                skipped += 1
-            os.remove(local_path)
-            context.storage.delete(entry.key)
+                failed += 1
+            # A claim this file made goes back, or a second copy of the same photo
+            # later in the batch would be dropped as a duplicate of a file that
+            # never stored.
+            if claimed:
+                with seen:
+                    context.known_hashes.discard(claimed)
+            if os.path.exists(local_path):
+                os.remove(local_path)
+            context.note(f"could not ingest {file_name}, leaving it in incoming: {error}")
             return
-
-        context.storage.copy(entry.key, keys.original(hash_sha256), content_type_for(file_name))
 
         ingested.append(
             Ingested(
@@ -139,7 +161,10 @@ def run(context) -> None:
     progress.track_map(ingest_one, list(enumerate(context.pending)), "ingesting", context.workers)
 
     context.ingested = ingested + _fetch_for_reprocessing(context)
-    context.note(f"ingested {len(ingested)}, skipped {skipped} duplicates, ignored {ignored} non-media")
+    context.note(
+        f"ingested {len(ingested)}, skipped {skipped} duplicates, "
+        f"ignored {ignored} non-media, failed {failed}"
+    )
 
 
 def _fetch_for_reprocessing(context) -> list[Ingested]:
