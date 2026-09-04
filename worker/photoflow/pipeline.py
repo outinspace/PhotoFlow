@@ -11,9 +11,20 @@ from dataclasses import dataclass, field
 
 from . import keys, progress
 from .config import Config
-from .models import HeartbeatDocument, ItemRecord, StepReport
+from .models import HeartbeatDocument, ItemRecord, MigrationRecord, StepReport
 from .storage import Storage
-from .steps import backfill, cleanup, compact, derive, discover, embed, extract, ingest, publish
+from .steps import (
+    backfill,
+    cleanup,
+    compact,
+    derive,
+    discover,
+    embed,
+    extract,
+    ingest,
+    migrations,
+    publish,
+)
 
 
 @dataclass
@@ -41,6 +52,9 @@ class Context:
     # Embeddings produced this run, keyed by itemId.
     new_embeddings: dict[int, bytes] = field(default_factory=dict)
     merged_state: dict = field(default_factory=dict)
+    # The catalog's migration log as it stands after this run, filled by the
+    # migrations step and written by publish.
+    applied_migrations: list[MigrationRecord] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     def note(self, message: str) -> None:
@@ -58,6 +72,7 @@ class StepResult:
 
 STEPS = [
     discover.run,
+    migrations.run,
     ingest.run,
     backfill.run,
     extract.run,

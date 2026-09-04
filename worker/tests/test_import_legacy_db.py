@@ -7,7 +7,7 @@ database's ids mean nothing here. Each file's content hash is the join.
 import sqlite3
 
 from photoflow import keys
-from photoflow.migrate import DEVICE_ID, load_catalog_index, next_seq, plan_operations, write_log
+from photoflow.import_legacy_db import DEVICE_ID, load_catalog_index, next_seq, plan_operations, write_log
 from photoflow.models import DeviceLogDocument
 from photoflow.steps.compact import merge
 from photoflow.storage import MemoryStorage

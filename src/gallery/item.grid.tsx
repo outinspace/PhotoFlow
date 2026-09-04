@@ -398,5 +398,11 @@ function formatVisibleRange(items: Item[], layout: GridLayout, sort: string) {
         return `Uploaded ${format(rangeStartItem.primaryFile.uploadTimeUtc, rangeDateFormat)}`;
     }
 
+    // Its captureTime is the upload time standing in for the date it does not
+    // have, and dating the row by that would be a lie about the photo.
+    if (!rangeStartItem.hasCaptureDate) {
+        return 'No date';
+    }
+
     return format(rangeStartItem.captureTime, rangeDateFormat);
 }

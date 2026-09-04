@@ -105,6 +105,9 @@ def run(context) -> None:
                 "metadata": METADATA_VERSION,
                 "embedding": EMBEDDING_VERSION,
             },
+            # The migrations step fills this in; falling back to what was already
+            # there means calling publish without that step cannot blank the log.
+            migrations=context.applied_migrations or (previous.migrations if previous else []),
             shards=shards,
             embeddings=EmbeddingsInfo(
                 dim=EMBEDDING_DIM,

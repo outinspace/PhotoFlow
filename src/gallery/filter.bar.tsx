@@ -226,6 +226,13 @@ export const useFilterBar = (items: Item[]) => {
 
         tempItems.sort((a, b) => {
             if (filters.sort === 'capture-date') {
+                // Items nothing knew the date of go last rather than into the
+                // timeline under the upload time standing in for it. Sorting by
+                // upload date is how you go and look at them.
+                if (a.hasCaptureDate !== b.hasCaptureDate) {
+                    return a.hasCaptureDate ? -1 : 1;
+                }
+
                 return b.captureTime.localeCompare(a.captureTime);
             } else if (filters.sort === 'upload-date') {
                 return b.primaryFile.uploadTimeUtc.localeCompare(a.primaryFile.uploadTimeUtc);

@@ -1,6 +1,10 @@
 export interface Item {
     itemId: number;
     isFavorite: boolean;
+    // Null in the catalog when nothing said when the photo was taken. By the time
+    // anything here reads it, computeItemProperties has filled in the upload time
+    // so it can always be formatted and parsed; hasCaptureDate is what tells the
+    // two apart.
     captureTime: string;
 
     videoLength: number | null;
@@ -24,6 +28,7 @@ export interface Item {
 
     // Computed
     primaryFile: File;
+    hasCaptureDate: boolean;
     totalBytes: number;
     device: string | null;
     type: 'photo' | 'video' | 'live-photo';

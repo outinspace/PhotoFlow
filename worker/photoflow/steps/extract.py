@@ -46,8 +46,12 @@ def run(context) -> None:
     # Photo uploaded as two files in one batch still lands on one item.
     group_index = {}
     for item in context.items.values():
+        # An undated item has no capture time to group by, so its upload time
+        # stands in — which is the very timestamp its capture date used to hold,
+        # leaving every existing group key exactly where it was.
+        grouped_at = _parse_iso(item.captureTime or min(f.uploadTimeUtc for f in item.files))
         for file in item.files:
-            for key in group_keys_for(file.originalFileName, _parse_iso(item.captureTime)):
+            for key in group_keys_for(file.originalFileName, grouped_at):
                 group_index[key] = item.itemId
 
     failures = 0
@@ -67,13 +71,16 @@ def run(context) -> None:
             tags = {}
 
         capture_time = _capture_time(tags)
-        if capture_time is None:
+        dated = capture_time is not None
+        if not dated:
             capture_time = capture_time_from_filename(entry.original_file_name)
             if capture_time is not None:
+                dated = True
                 from_name += 1
             else:
-                # Nothing anywhere says when this was taken, so it sorts as if it
-                # were taken now. The count below is how that gets noticed.
+                # Nothing anywhere says when this was taken, so it is stored with
+                # no capture date at all and the gallery sorts it to the end.
+                # Grouping still needs a timestamp, and the upload time is it.
                 undated += 1
                 capture_time = _parse_iso(now)
 
@@ -100,7 +107,7 @@ def run(context) -> None:
                 item_id = item_id_from_group_key(candidates[0])
                 context.items[item_id] = ItemRecord(
                     itemId=item_id,
-                    captureTime=capture_time.isoformat(),
+                    captureTime=capture_time.isoformat() if dated else None,
                 )
 
             item = context.items[item_id]
@@ -124,7 +131,7 @@ def run(context) -> None:
     if undated:
         context.note(
             f"{undated} files carry no capture date at all, in metadata or filename, "
-            "so they are dated as of this run"
+            "so they are stored without one and sort to the end of the gallery"
         )
 
 

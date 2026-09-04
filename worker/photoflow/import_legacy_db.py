@@ -13,8 +13,8 @@ worker's ordinary compaction merges it in with no special handling.
 Old and new ids differ, so the join is the content hash: the old database stored
 one per file, and the new catalog stores the same hash as the file's id.
 
-    uv run photoflow-migrate photoflow.db --dry-run
-    uv run photoflow-migrate photoflow.db
+    uv run photoflow-import-legacy-db photoflow.db --dry-run
+    uv run photoflow-import-legacy-db photoflow.db
 """
 
 import argparse

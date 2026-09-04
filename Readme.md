@@ -203,7 +203,7 @@ the old tenant database (**Menu → Export Data** in the old app):
 cd worker
 uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
 uv run photoflow-worker
-uv run photoflow-migrate photoflow.db --dry-run
+uv run photoflow-import-legacy-db photoflow.db --dry-run
 ```
 
 Both commands take `--dry-run`; run it first and read the report. They match old

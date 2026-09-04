@@ -42,7 +42,11 @@ class FileRecord(Strict):
 
 class ItemRecord(Strict):
     itemId: int
-    captureTime: str
+    # Null when nothing anywhere said when the photo was taken — not in its
+    # metadata and not in its filename. The gallery falls back to the upload time
+    # to display it and sorts it to the end, rather than showing a date that was
+    # really the moment the worker read the file.
+    captureTime: str | None = None
     files: list[FileRecord] = Field(default_factory=list)
 
     # Which model version produced this item's search vector. Absent means it has
@@ -92,6 +96,13 @@ class Counts(Strict):
     files: int
 
 
+class MigrationRecord(Strict):
+    """One entry in the catalog's migration log: which one ran, and when."""
+
+    name: str
+    appliedAt: str
+
+
 class ManifestDocument(Strict):
     manifestVersion: int
     generatedAt: str
@@ -101,6 +112,10 @@ class ManifestDocument(Strict):
     # excluded from output, so a manifest written before that still parses without
     # this reappearing in the one that replaces it.
     urls: dict | None = Field(default=None, exclude=True)
+    # Which catalog migrations this library has had. Named rather than counted, so
+    # one added out of order still runs. Empty on a manifest written before
+    # migrations existed, which is exactly right: nothing had run yet.
+    migrations: list[MigrationRecord] = Field(default_factory=list)
     shards: list[ShardEntry] = Field(default_factory=list)
     embeddings: EmbeddingsInfo
     counts: Counts

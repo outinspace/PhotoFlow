@@ -23,7 +23,7 @@ dev = [
 
 [project.scripts]
 photoflow-worker = "photoflow.__main__:main"
-photoflow-migrate = "photoflow.migrate:main"
+photoflow-import-legacy-db = "photoflow.import_legacy_db:main"
 photoflow-copy-media = "photoflow.copy_media:main"
 
 [build-system]

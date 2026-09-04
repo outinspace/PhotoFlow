@@ -28,6 +28,12 @@ export const computeItemProperties = (item: Item) => {
     item.deletedTimeUtc = item.deletedTimeUtc ?? null;
 
     item.primaryFile = item.files.find(file => file.contentType.startsWith('image')) ?? item.files[0];
+
+    // A photo whose date nothing knew is stored without one. The upload time
+    // stands in so every consumer can format and group by a real date, and the
+    // flag is what the gallery sorts on to keep those out of the timeline. Read
+    // before the fallback, which is what makes the distinction survive it.
+    item.hasCaptureDate = !!item.captureTime;
     item.captureTime = item.captureTime ?? item.primaryFile.uploadTimeUtc;
 
     item.totalBytes = item.files.reduce((sum, file) => sum + file.sizeBytes, 0);
