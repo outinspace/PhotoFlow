@@ -10,6 +10,10 @@ import { DeviceLog, MergedState, OperationInput } from './mutations';
 
 const DEVICE_ID_KEY = 'photoflow.deviceId';
 const LOG_KEY = 'photoflow.log';
+// Kept apart from the log because the log is pruned once the worker has absorbed
+// it. A sequence derived from whatever operations are left would restart below
+// this device's cursor, and every merge silently skips anything at or below it.
+const SEQ_KEY = 'photoflow.seq';
 
 // Mutations arrive in bursts — favouriting a few photos, selecting twenty and
 // adding them to an album. Batching turns those into one upload.
@@ -45,15 +49,26 @@ export const readLocalLog = (): DeviceLog => {
 
 const writeLocalLog = (log: DeviceLog) => localStorage.setItem(LOG_KEY, JSON.stringify(log));
 
+const readSeq = (): number => Number(localStorage.getItem(SEQ_KEY)) || 0;
+
+const raiseSeq = (seq: number) => {
+    if (seq > readSeq()) {
+        localStorage.setItem(SEQ_KEY, String(seq));
+    }
+};
+
 export const appendOperations = (operations: OperationInput[]) => {
     const log = readLocalLog();
     const ts = new Date().toISOString();
 
-    let seq = log.ops.reduce((highest, op) => Math.max(highest, op.seq), 0);
+    // The operations still in the log count too, for a device upgrading from
+    // before the mark was recorded.
+    let seq = log.ops.reduce((highest, op) => Math.max(highest, op.seq), readSeq());
     for (const operation of operations) {
         log.ops.push({ ...operation, seq: ++seq, ts });
     }
 
+    raiseSeq(seq);
     writeLocalLog(log);
     scheduleFlush();
 };
@@ -93,6 +108,11 @@ export const flush = async (): Promise<void> => {
 export const pruneCompactedOperations = (state: MergedState) => {
     const log = readLocalLog();
     const cursor = state.cursors?.[log.deviceId] ?? 0;
+
+    // The cursor is the authority on how far this device has counted: the
+    // operations below it are about to leave the log, but their numbers must
+    // never be handed out again.
+    raiseSeq(cursor);
 
     const remaining = log.ops.filter(op => op.seq > cursor);
     if (remaining.length === log.ops.length) {
