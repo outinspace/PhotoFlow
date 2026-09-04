@@ -41,6 +41,10 @@ it writes a one-byte object, tries to read it back with no signature, and will n
 connect if that succeeds.
 
 **Set a CORS rule**, or the browser is refused before a request leaves the page.
+Running `photoflow-worker` from a terminal offers to write it for you and to check
+that the bucket is private — it asks nothing when both are already right, and asks
+nothing at all in CI, where there is nobody to answer. Setting it by hand works too.
+
 Reads carry their signature in the query string and are not preflighted; writes carry
 it in headers and are, which is why `PUT` and the signing headers have to be allowed:
 
@@ -55,7 +59,9 @@ it in headers and are, which is why `PUT` and the signing headers have to be all
 ```
 
 On Backblaze B2 this means a custom rule. The built-in "share everything" preset is
-read-only and will not work.
+read-only and will not work. B2's S3 endpoint has no CORS calls, so the worker uses
+B2's own API there; that needs a key with `writeBuckets`, and it prints the rule to
+paste when the key it has cannot do it.
 
 Turn on **object versioning** if your provider offers it. Nothing in Photoflow ever
 deletes or rewrites an original, but versioning protects you from a mistake outside it.

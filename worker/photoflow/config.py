@@ -49,6 +49,9 @@ class Config:
     # Last, and defaulted, so that every existing caller stays valid.
     video_quality_hardware: int = 40
     video_quality_software: int = 28
+    # Where the app is served from. The CORS rule the first run offers to write
+    # names this origin, and the browser is refused if it names another.
+    app_origin: str = "https://photoflow.outin.space"
 
     @staticmethod
     def from_env() -> "Config":
@@ -70,4 +73,7 @@ class Config:
             video_quality_software=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_SOFTWARE", "28")),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),
             healthcheck_url=os.environ.get("PHOTOFLOW_HEALTHCHECK_URL") or None,
+            app_origin=os.environ.get(
+                "PHOTOFLOW_APP_ORIGIN", "https://photoflow.outin.space"
+            ).rstrip("/"),
         )

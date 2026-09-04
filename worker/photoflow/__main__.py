@@ -6,6 +6,7 @@ import sys
 import tempfile
 import urllib.request
 
+from .bucket_setup import ensure_ready
 from .config import Config, ConfigError
 from .pipeline import Context, run
 from .storage import S3Storage
@@ -37,6 +38,11 @@ def main() -> int:
         return 2
 
     storage = S3Storage(config, workers=arguments.workers)
+
+    # Only asks when something is wrong and there is a terminal to answer from.
+    if not ensure_ready(config, storage):
+        return 2
+
     batch = 0
 
     while True:
