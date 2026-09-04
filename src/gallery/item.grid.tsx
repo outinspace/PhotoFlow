@@ -16,6 +16,8 @@ import { anchorScrollTop, computeAnchor, useGridAnchor } from './use.grid.anchor
 import { useGridPinch } from './use.grid.pinch';
 import { useItemSelection } from './use.item.selection';
 import { readPreviewItemId, usePreviewItem } from './use.preview.item';
+import { PREFETCH_AHEAD_ITEMS, setTilesToPrefetch } from '../common/tile.loader';
+import { usePrefetchThumbnails } from '../hooks/use.settings';
 
 // Each zoom button tap changes the column count by roughly this factor, so a few taps cross
 // the whole range on a phone as well as on a wide desktop.
@@ -58,6 +60,34 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const [gesture, setGesture] = useState<GridGesture | null>(null);
 
     const layout = useGridLayout(scrollContainerRef, items.length, gesture);
+
+    // What to read ahead once the screen itself is served: the photos just after the
+    // ones on show, in the order the gallery will reach them.
+    const [prefetchEnabled] = usePrefetchThumbnails();
+    const firstVisibleIndex = layout.firstVisibleRow * layout.columns;
+
+    useEffect(() => {
+        if (!prefetchEnabled) {
+            setTilesToPrefetch([]);
+            return;
+        }
+
+        const sources: string[] = [];
+        const until = Math.min(items.length, firstVisibleIndex + PREFETCH_AHEAD_ITEMS);
+        for (let index = firstVisibleIndex; index < until; index++) {
+            const source = items[index]?.primaryFile.tileImageSource;
+            if (source) {
+                sources.push(source);
+            }
+        }
+
+        setTilesToPrefetch(sources);
+
+        // Navigating away from the grid stops it. A full-screen preview does not:
+        // the grid stays mounted behind it, and reading ahead is exactly what
+        // should be happening while one photo is being looked at.
+        return () => setTilesToPrefetch([]);
+    }, [items, firstVisibleIndex, prefetchEnabled]);
 
     useGridAnchor({
         items,

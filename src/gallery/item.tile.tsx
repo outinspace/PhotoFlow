@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, memo } from 'react';
 import { Item } from '../types';
 import { HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
+import { loadTile } from '../common/tile.loader';
 import { useThumbHashDataUrl } from '../common/thumb.hash.cache';
 import { useMediaUrl } from '../api/useMediaUrl';
 
@@ -43,8 +44,17 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
     const tileRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
     const loadedRef = useRef(cached);
+    // Held while this tile is queued or loading, and called to give up its place.
+    const releaseRef = useRef<(() => void) | null>(null);
 
     const tilePlaceholderUrl = useThumbHashDataUrl(cached ? null : item.primaryFile.thumbHash);
+
+    // Both cancels and releases: the loader takes one call either way, so this can
+    // be used by the image's own handlers and by scrolling out of view alike.
+    const releaseSlot = () => {
+        releaseRef.current?.();
+        releaseRef.current = null;
+    };
 
     useEffect(() => {
         const element = tileRef.current;
@@ -59,13 +69,9 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
         // Its src is set during render instead, so there's nothing to wait for.
         if (loadedTileSources.has(source)) return;
 
-        let timeoutId: number | null = null;
-
         const cancelPending = () => {
-            if (timeoutId !== null) {
-                clearTimeout(timeoutId);
-                timeoutId = null;
-            }
+            releaseSlot();
+
             const img = imgRef.current;
             if (img && img.getAttribute('src')) {
                 img.src = '';
@@ -73,20 +79,19 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
             }
         };
 
-        const startLoad = () => {
-            const img = imgRef.current;
-            if (!img) return;
-            img.src = tileUrl;
-        };
-
         const unobserve = observeVisibility(element, (isIntersecting) => {
             if (isIntersecting) {
-                if (loadedRef.current || timeoutId !== null) return;
-                timeoutId = window.setTimeout(() => {
-                    timeoutId = null;
-                    startLoad();
-                }, 200);
+                // Already loaded, or already waiting its turn.
+                if (loadedRef.current || releaseRef.current) return;
+
+                releaseRef.current = loadTile(() => {
+                    if (imgRef.current) {
+                        imgRef.current.src = tileUrl;
+                    }
+                });
             } else if (!loadedRef.current) {
+                // Scrolled away. A request that had not started is dropped here
+                // rather than left to arrive for a tile nobody is looking at.
                 cancelPending();
             }
         });
@@ -139,6 +144,8 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                 }}
                 decoding='async'
                 onLoad={() => {
+                    releaseSlot();
+
                     const source = item.primaryFile.tileImageSource;
                     if (source && imgRef.current?.getAttribute('src')) {
                         loadedTileSources.add(source);
@@ -146,6 +153,9 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                         setImageLoaded(true);
                     }
                 }}
+                // Freed on failure too, or one broken picture would hold a
+                // connection back from every tile after it.
+                onError={releaseSlot}
             />
             {item.isFavorite && (
                 <div className='absolute bottom-1 left-1 text-slate-100 shadow'>

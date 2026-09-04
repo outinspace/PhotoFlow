@@ -4,9 +4,11 @@ import {
     useAutoplayVideos,
     useDefaultToMemories,
     usePhotoAnimations,
+    usePrefetchThumbnails,
     useSlideshowInterval,
     SLIDESHOW_INTERVAL_OPTIONS_SECONDS
 } from '../hooks/use.settings';
+import { PREFETCH_AHEAD_ITEMS } from '../common/tile.loader';
 
 const Settings = () => {
     const [photoAnimationsEnabled, setPhotoAnimationsEnabled] = usePhotoAnimations();
@@ -14,6 +16,7 @@ const Settings = () => {
     const [autoplayVideosEnabled, setAutoplayVideosEnabled] = useAutoplayVideos();
     const [defaultToMemoriesEnabled, setDefaultToMemoriesEnabled] = useDefaultToMemories();
     const [slideshowSeconds, setSlideshowSeconds] = useSlideshowInterval();
+    const [prefetchEnabled, setPrefetchEnabled] = usePrefetchThumbnails();
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
@@ -110,6 +113,32 @@ const Settings = () => {
                             <span
                                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                                     defaultToMemoriesEnabled ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                            />
+                        </button>
+                    </div>
+                </div>
+                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
+                    <div className='flex items-center justify-between mb-2'>
+                        <div>
+                            <div className='font-medium text-slate-900'>Prefetch Thumbnails</div>
+                            <div className='text-sm text-slate-600 mt-1'>
+                                Once the photos on screen have loaded, quietly download the next{' '}
+                                {PREFETCH_AHEAD_ITEMS.toLocaleString()} so scrolling on is instant.
+                                Turn this off to save data on a metered connection.
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setPrefetchEnabled(!prefetchEnabled)}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                prefetchEnabled ? 'bg-blue-600' : 'bg-slate-300'
+                            }`}
+                            role="switch"
+                            aria-checked={prefetchEnabled}
+                        >
+                            <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    prefetchEnabled ? 'translate-x-5' : 'translate-x-0'
                                 }`}
                             />
                         </button>

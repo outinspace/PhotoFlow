@@ -1,5 +1,5 @@
 import { AwsClient } from 'aws4fetch';
-import { getStorageConfig, requireStorageConfig, resolveMediaBaseUrl, resolveRegion, StorageConfig } from './config';
+import { bucketBaseUrl, getStorageConfig, requireStorageConfig, resolveMediaBaseUrl, resolveRegion, StorageConfig, virtualHostBaseUrl } from './config';
 
 // The bucket is private, so nothing in it can be read without a signature. Every
 // read here — the catalog, the mutation logs, and every thumbnail the gallery
@@ -65,9 +65,16 @@ const urlUnder = (base: string, key: string) => {
 };
 
 // Data — the catalog, the mutation logs — and every write always go to the bucket
-// endpoint. Only pictures may go somewhere else; see resolveMediaBaseUrl.
-const objectUrl = (config: StorageConfig, key: string) =>
-    urlUnder(`${config.endpoint}/${config.bucket}/`, key);
+// endpoint. Only pictures may go somewhere else; see mediaBaseFor.
+const objectUrl = (config: StorageConfig, key: string) => urlUnder(bucketBaseUrl(config), key);
+
+/**
+ * A key that cannot exist, used to ask a host whether it accepts a signature.
+ *
+ * Storage answers a valid signature for a missing object with 404 and an invalid
+ * one with 403, so the two are told apart without needing a picture to be there.
+ */
+export const MISSING_MEDIA_KEY = `tile-image/${'0'.repeat(64)}.jpeg`;
 
 // SigV4 will not presign anything for longer than seven days, because the signing
 // key is derived from the date. Nothing here needs longer: the app re-signs
@@ -106,7 +113,7 @@ export const peekMediaUrl = (source: string): string | null => {
     }
 
     return signedUrls.get(
-        signatureCacheKey(resolveMediaBaseUrl(config), config, source, signingStamp())
+        signatureCacheKey(mediaBaseFor(config, source), config, source, signingStamp())
     ) ?? null;
 };
 
@@ -117,7 +124,7 @@ export const peekMediaUrl = (source: string): string | null => {
  * anything, so at that point there is no stored config to sign with.
  */
 export const presignWith = (config: StorageConfig, key: string): Promise<string> =>
-    presignUnder(`${config.endpoint}/${config.bucket}/`, config, key);
+    presignUnder(bucketBaseUrl(config), config, key);
 
 /**
  * The same, but under whichever host pictures are read from — a CDN when one is
@@ -125,7 +132,94 @@ export const presignWith = (config: StorageConfig, key: string): Promise<string>
  * is saved and every thumbnail starts depending on it.
  */
 export const presignMediaWith = (config: StorageConfig, key: string): Promise<string> =>
-    presignUnder(resolveMediaBaseUrl(config), config, key);
+    presignUnder(mediaBaseFor(config, key), config, key);
+
+// Whether pictures may be split across the bucket's second hostname. Decided once
+// per session, and remembered per bucket between sessions.
+//
+// Once per session because it must not change while the app is running: a picture
+// signed for one host and later re-signed for the other is a second download and a
+// second entry in the service worker's cache for the same image. So the first load
+// after connecting reads from one host, and every load after that from both.
+//
+// Only a positive answer is stored. A negative one may have been a network failure
+// rather than a host that cannot serve this form, and one probe per load is a lower
+// price than never using the second host again.
+const SECOND_HOST_KEY = 'photoflow.secondHost';
+
+let secondHostDecidedFor = '';
+let secondHostAllowed = false;
+
+const mayUseSecondHost = (config: StorageConfig, alternate: string) => {
+    const bucket = bucketBaseUrl(config);
+    if (secondHostDecidedFor === bucket) {
+        return secondHostAllowed;
+    }
+
+    secondHostDecidedFor = bucket;
+    secondHostAllowed = storedSecondHostFlag(bucket);
+
+    // Guarded on window rather than on fetch, so this stays out of tests and any
+    // other non-browser caller: it is an optimisation, and it costs a request.
+    if (!secondHostAllowed && typeof window !== 'undefined') {
+        void probeSecondHost(bucket, config, alternate);
+    }
+
+    return secondHostAllowed;
+};
+
+const storedSecondHostFlag = (bucket: string) => {
+    try {
+        return localStorage.getItem(`${SECOND_HOST_KEY}.${bucket}`) === 'true';
+    } catch {
+        return false;
+    }
+};
+
+const probeSecondHost = async (bucket: string, config: StorageConfig, alternate: string) => {
+    try {
+        const res = await fetch(await presignUnder(alternate, config, MISSING_MEDIA_KEY), { cache: 'no-store' });
+
+        // 403 is the host refusing the signature, which is what a provider that
+        // does not serve this form looks like. Anything else means it does.
+        if (res.status !== 403) {
+            localStorage.setItem(`${SECOND_HOST_KEY}.${bucket}`, 'true');
+        }
+    } catch {
+        // Unreachable, or answering without the CORS header the browser needs.
+        // Either way the second host is no use here.
+    }
+};
+
+// Deterministic, so one picture always has one URL. Choosing at random would give
+// the service worker two cache entries for every tile and download each twice.
+const splitsToSecondHost = (key: string) => {
+    let sum = 0;
+    for (let index = 0; index < key.length; index++) {
+        sum += key.charCodeAt(index);
+    }
+    return sum % 2 === 1;
+};
+
+/**
+ * Which host a picture is read from.
+ *
+ * A CDN, when configured, is a single host and is used exactly as given. Otherwise
+ * pictures are split across the bucket's own two addresses — see
+ * virtualHostBaseUrl for why that is worth doing.
+ */
+const mediaBaseFor = (config: StorageConfig, key: string) => {
+    if (config.publicBaseUrl) {
+        return resolveMediaBaseUrl(config);
+    }
+
+    const alternate = virtualHostBaseUrl(config);
+    if (alternate && mayUseSecondHost(config, alternate) && splitsToSecondHost(key)) {
+        return alternate;
+    }
+
+    return bucketBaseUrl(config);
+};
 
 const presignUnder = async (base: string, config: StorageConfig, key: string): Promise<string> => {
     // An empty key is the bucket root, and a signed GET of the bucket root is a

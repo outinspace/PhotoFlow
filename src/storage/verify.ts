@@ -6,7 +6,7 @@
 // a short ladder of requests, each of which fails for exactly one reason, and
 // reports the first rung that breaks.
 
-import { canSignRequests, listResponse, presignMediaWith, presignWith, signedRequestWith, unsignedObjectUrl } from './bucket';
+import { canSignRequests, listResponse, MISSING_MEDIA_KEY, presignMediaWith, presignWith, signedRequestWith, unsignedObjectUrl } from './bucket';
 import { StorageConfig } from './config';
 import * as keys from './keys';
 
@@ -29,12 +29,6 @@ export type VerifyFailure =
 // lists — meta/log/ and meta/reprocess/ are both scanned, and a stray file in
 // either would be read as a device log or a rebuild request.
 const ACCESS_PROBE_KEY = 'meta/.access-check';
-
-// A key that cannot exist, used to ask a CDN whether it forwards a signed request
-// intact. Storage answers a valid signature for a missing object with 404 and an
-// invalid one with 403, so the two cases are told apart without needing a photo to
-// already be there.
-const MISSING_MEDIA_KEY = `tile-image/${'0'.repeat(64)}.jpeg`;
 
 export interface VerifyResult {
     ok: boolean;

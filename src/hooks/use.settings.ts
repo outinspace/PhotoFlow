@@ -43,6 +43,11 @@ export const useDefaultToMemories = () => useStoredSetting(DEFAULT_TO_MEMORIES_K
 // Route guards run outside React and need this before any component has mounted.
 export const getDefaultToMemories = () => parseDisabledByDefault(localStorage.getItem(DEFAULT_TO_MEMORIES_KEY));
 
+// On by default. A bucket endpoint allows only a handful of parallel downloads, so
+// reading ahead is most of what makes scrolling feel instant, and the data it uses
+// is the user's own. Off is for a metered connection.
+export const usePrefetchThumbnails = () => useStoredSetting('settings_prefetch_thumbnails', parseEnabledByDefault);
+
 // The map opens flat and stays on whichever projection was last chosen.
 export const useMapGlobe = () => useStoredSetting('settings_map_globe', parseDisabledByDefault);
 

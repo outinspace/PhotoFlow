@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { StorageConfig, deriveRegion, normalizeConfig, resolveMediaBaseUrl, resolveRegion } from '../config';
+import { StorageConfig, deriveRegion, normalizeConfig, resolveMediaBaseUrl, resolveRegion, virtualHostBaseUrl } from '../config';
 
 const base: StorageConfig = {
     endpoint: 'https://s3.us-west-004.backblazeb2.com',
@@ -65,5 +65,24 @@ describe('normalising what was typed', () => {
     it('treats a blank optional field as absent rather than empty', () => {
         // An empty string would otherwise win over the value derived from the endpoint.
         expect(normalizeConfig({ ...base, region: '  ' }).region).toBeUndefined();
+    });
+});
+
+describe('the bucket\u2019s second hostname', () => {
+    // S3 serves the same bucket at endpoint/bucket/key and at bucket.endpoint/key,
+    // which the browser counts as two hosts and so allows twice the connections to.
+    it('puts the bucket in front of the endpoint', () => {
+        expect(virtualHostBaseUrl(base)).toBe('https://my-photos.s3.us-west-004.backblazeb2.com/');
+    });
+
+    it.each([
+        ['a name that cannot be a hostname', { bucket: 'my.photos' }],
+        ['a name with capitals', { bucket: 'MyPhotos' }],
+        // A wildcard certificate covers one label, so a dotted name would fail TLS.
+        ['a bare host, such as a development server', { endpoint: 'http://localhost:9000' }],
+        ['an endpoint that is an address rather than a name', { endpoint: 'http://192.168.1.5:9000' }],
+        ['an endpoint that is not a URL at all', { endpoint: 'not a url' }],
+    ])('has none for %s', (_, override) => {
+        expect(virtualHostBaseUrl({ ...base, ...override })).toBeNull();
     });
 });

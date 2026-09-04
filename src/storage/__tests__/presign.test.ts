@@ -112,6 +112,59 @@ describe('presigning a read', () => {
             .not.toBe(params(viaBucket).get('X-Amz-Signature'));
     });
 
+    it('splits pictures across the bucket\u2019s two hostnames', async () => {
+        // A bucket endpoint speaks HTTP/1.1, where a browser allows about six
+        // connections per hostname, so the gallery reads from both of the bucket's
+        // own addresses. Both are signed for the host the request actually reaches.
+        //
+        // A bucket of its own, because the decision is cached per bucket for the
+        // session and the cases above have already settled it for the usual one.
+        const split = { ...config, bucket: 'split-photos' };
+        vi.stubGlobal('localStorage', {
+            getItem: (key: string) =>
+                key === 'photoflow.secondHost.https://s3.us-west-004.backblazeb2.com/split-photos/'
+                    ? 'true'
+                    : null,
+            setItem: () => undefined,
+            removeItem: () => undefined
+        });
+
+        try {
+            const urls = await Promise.all(
+                Array.from({ length: 12 }, (_, index) => presignMediaWith(split, `tile-image/${index}.jpeg`))
+            );
+
+            expect(new Set(urls.map(url => new URL(url).host))).toEqual(new Set([
+                's3.us-west-004.backblazeb2.com',
+                'split-photos.s3.us-west-004.backblazeb2.com'
+            ]));
+
+            // The second host carries the bucket in the hostname, so the key alone
+            // is the path.
+            const second = urls.find(url => url.includes('//split-photos.'))!;
+            expect(new URL(second).pathname).toMatch(/^\/tile-image\/\d+\.jpeg$/);
+            expect(params(second).get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
+
+            // One picture keeps one URL. Alternating would download every tile
+            // twice and give the service worker two cache entries for each.
+            expect(await presignMediaWith(split, 'tile-image/0.jpeg')).toBe(urls[0]);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('keeps a picture on the CDN rather than splitting, when one is configured', async () => {
+        // A CDN is a single host and multiplexes anyway, so there is nothing to
+        // split and its address is used exactly as given.
+        const withCdn = { ...config, bucket: 'cdn-photos', publicBaseUrl: 'https://photos.example.com/' };
+
+        const urls = await Promise.all(
+            Array.from({ length: 6 }, (_, index) => presignMediaWith(withCdn, `tile-image/${index}.jpeg`))
+        );
+
+        expect(new Set(urls.map(url => new URL(url).host))).toEqual(new Set(['photos.example.com']));
+    });
+
     it('signs for the bucket in the config, not a hardcoded one', async () => {
         // One deployment serves any number of people, so nothing outside the
         // browser's own settings may name a bucket.

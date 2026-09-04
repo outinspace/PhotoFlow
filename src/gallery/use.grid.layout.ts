@@ -1,5 +1,6 @@
 import { RefObject, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useGridColumns } from '../hooks/use.settings';
+import { reportGridScroll } from '../common/tile.loader';
 
 // Tiles are square and together fill the container width exactly, so the container size and
 // a column count describe the whole layout. Zoom is therefore just a column count, which is
@@ -97,7 +98,23 @@ export const useGridLayout = (
     useLayoutEffect(() => {
         const element = scrollContainerRef.current!;
 
-        const handleScroll = () => setScrollTop(element.scrollTop);
+        // Thumbnails are held back while the grid is moving too fast to look at, so
+        // the velocity is measured here — this is the only scroll handler there is,
+        // and a second listener on the same element would only cost more.
+        let lastTop = element.scrollTop;
+        let lastAt = performance.now();
+
+        const handleScroll = () => {
+            const top = element.scrollTop;
+            const at = performance.now();
+
+            reportGridScroll(Math.abs(top - lastTop) / Math.max(1, at - lastAt));
+            lastTop = top;
+            lastAt = at;
+
+            setScrollTop(top);
+        };
+
         element.addEventListener('scroll', handleScroll, { passive: true });
         return () => element.removeEventListener('scroll', handleScroll);
     }, [scrollContainerRef]);

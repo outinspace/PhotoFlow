@@ -76,6 +76,46 @@ const trailingSlash = (url: string) => url.replace(/\/+$/, '') + '/';
 export const resolveMediaBaseUrl = (config: StorageConfig) =>
     trailingSlash(config.publicBaseUrl || `${config.endpoint}/${config.bucket}`);
 
+/** The bucket's own address, which every read that is not a picture uses. */
+export const bucketBaseUrl = (config: StorageConfig) => `${config.endpoint}/${config.bucket}/`;
+
+// A bucket name that is also a valid DNS label. One that is not — anything with a
+// dot, or in capitals — cannot form a hostname, and a dot would break the
+// wildcard certificate every provider serves.
+const DNS_LABEL = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
+
+/**
+ * The same bucket reached under its own hostname, or null where it has none.
+ *
+ * S3 accepts both `endpoint/bucket/key` and `bucket.endpoint/key`, and they are
+ * two hostnames as far as the browser is concerned. That matters because a bucket
+ * endpoint speaks HTTP/1.1, where browsers allow about six connections per
+ * hostname: splitting pictures across both doubles what the gallery can load at
+ * once, with nothing to configure and no change at the provider.
+ *
+ * Not every endpoint has this form. A hostname with no dot is a bare host such as
+ * a development MinIO on localhost, and one ending in a digit is an IP address;
+ * neither resolves with a bucket prefixed to it. Whatever survives those checks is
+ * still only a candidate — see the probe in bucket.ts, which proves it before any
+ * picture depends on it.
+ */
+export const virtualHostBaseUrl = (config: StorageConfig): string | null => {
+    if (!DNS_LABEL.test(config.bucket)) {
+        return null;
+    }
+
+    try {
+        const { protocol, host, hostname } = new URL(config.endpoint);
+        if (!hostname.includes('.') || !/[a-z]$/i.test(hostname)) {
+            return null;
+        }
+
+        return `${protocol}//${config.bucket}.${host}/`;
+    } catch {
+        return null;
+    }
+};
+
 export const normalizeConfig = (config: StorageConfig): StorageConfig => ({
     ...config,
     endpoint: config.endpoint.trim().replace(/\/+$/, ''),
