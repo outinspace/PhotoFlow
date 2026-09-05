@@ -61,9 +61,19 @@ export const appendOperations = (operations: OperationInput[]) => {
     const log = readLocalLog();
     const ts = new Date().toISOString();
 
+    // Minted from the clock, not counted up. Counting up needs the mark below to
+    // already hold this device's published cursor, and the only thing that puts
+    // it there is reading the compacted state — so an operation appended before
+    // that read lands, which is ordinary because the gallery renders from the
+    // persisted query cache, would start again at 1. That sits at or below the
+    // cursor, and every merge on both sides skips anything at or below it: the
+    // operation is dropped, and then pruned, with nothing to say why. A cursor
+    // counts operations and so never comes near a millisecond clock, which is
+    // what makes the clock a floor no published cursor can be above.
+    //
     // The operations still in the log count too, for a device upgrading from
     // before the mark was recorded.
-    let seq = log.ops.reduce((highest, op) => Math.max(highest, op.seq), readSeq());
+    let seq = log.ops.reduce((highest, op) => Math.max(highest, op.seq), Math.max(readSeq(), Date.now()));
     for (const operation of operations) {
         log.ops.push({ ...operation, seq: ++seq, ts });
     }

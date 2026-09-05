@@ -9,7 +9,7 @@ import { DeviceLog, emptyState, mergedStateFrom, MergedState } from '../storage/
 // anything newer still lives in per-device logs, including this device's, which is
 // read locally so a tap shows up instantly.
 
-const fetchMutationState = async (): Promise<MergedState> => {
+export const fetchMutationState = async (): Promise<MergedState> => {
     const compacted = (await readJson<MergedState>(keys.META_STATE)) ?? emptyState();
 
     const deviceId = getDeviceId();
