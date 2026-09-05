@@ -14,18 +14,23 @@ concurrency:
 jobs:
   process:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 120
     permissions:
       contents: write
-
+    strategy:
+      fail-fast: false
+      matrix:
+        tenant: [wilson, wilsonfamof8]
+    concurrency:
+      group: photoflow-${{ matrix.tenant }}
+      cancel-in-progress: false
     env:
-      PHOTOFLOW_S3_ENDPOINT: ${{ secrets.PHOTOFLOW_S3_ENDPOINT }}
-      PHOTOFLOW_S3_BUCKET: ${{ secrets.PHOTOFLOW_S3_BUCKET }}
-      PHOTOFLOW_S3_ACCESS_KEY_ID: ${{ secrets.PHOTOFLOW_S3_ACCESS_KEY_ID }}
-      PHOTOFLOW_S3_SECRET_ACCESS_KEY: ${{ secrets.PHOTOFLOW_S3_SECRET_ACCESS_KEY }}
-      PHOTOFLOW_S3_REGION: ${{ vars.PHOTOFLOW_S3_REGION }}
-      PHOTOFLOW_MAX_FILES_PER_RUN: ${{ vars.PHOTOFLOW_MAX_FILES_PER_RUN }}
-      PHOTOFLOW_HEALTHCHECK_URL: ${{ secrets.PHOTOFLOW_HEALTHCHECK_URL }}
+      PHOTOFLOW_S3_ENDPOINT: https://s3.us-west-004.backblazeb2.com
+      PHOTOFLOW_S3_BUCKET: ${{ secrets[format('{0}_S3_BUCKET', matrix.tenant)] }}
+      PHOTOFLOW_S3_ACCESS_KEY_ID: ${{ secrets[format('{0}_S3_ACCESS_KEY_ID', matrix.tenant)] }}
+      PHOTOFLOW_S3_SECRET_ACCESS_KEY: ${{ secrets[format('{0}_S3_SECRET_ACCESS_KEY', matrix.tenant)] }} 
+      PHOTOFLOW_MAX_FILES_PER_RUN: 1000
+      PHOTOFLOW_S3_REGION: us-west-004
 
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +57,12 @@ jobs:
 
       # A scheduled workflow is disabled automatically after ~60 days without repo
       # activity, which would stop backups silently. This commit keeps it alive.
-      - name: Record the run
-        if: github.event_name == 'schedule'
-        run: |
-          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-run.txt
-          git config user.name "photoflow-worker"
-          git config user.email "photoflow-worker@users.noreply.github.com"
-          git add .github/last-run.txt
-          git diff --quiet --cached || git commit -m "chore: nightly run $(cat .github/last-run.txt)"
-          git push
+      # - name: Record the run
+      #   if: github.event_name == 'schedule'
+      #   run: |
+      #     date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-run.txt
+      #     git config user.name "photoflow-worker"
+      #     git config user.email "photoflow-worker@users.noreply.github.com"
+      #     git add .github/last-run.txt
+      #     git diff --quiet --cached || git commit -m "chore: nightly run $(cat .github/last-run.txt)"
+      #     git push
