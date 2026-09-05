@@ -30,6 +30,12 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
 
     // Signed here rather than in the markup: the bucket is private, so a URL only
     // exists once it has been signed, and that is asynchronous.
+    //
+    // Which is why the videos below take a src of their own rather than a <source>
+    // child. A <video> whose only <source> has no src yet gives up on the spot and
+    // then waits for a source element to be inserted; filling in the src of the one
+    // already there does not wake it, so the video would never load at all. Setting
+    // src on the element itself starts the load whenever it arrives.
     const tileUrl = useMediaUrl(imageFile?.tileImageSource);
     const previewUrl = useMediaUrl(imageFile?.previewSource);
     const videoPreviewUrl = useMediaUrl(videoFile?.previewSource);
@@ -156,6 +162,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                 <video
                     ref={livePhotoVideoRef}
                     playsInline
+                    src={videoPreviewUrl ?? undefined}
                     preload={autoplayLivePhotos ? "auto" : "none"}
                     className={`select-none pointer-events-none transition-opacity duration-300 ${(showLivePhoto || (showSmoothAnimation && !isFadingOut)) ? 'opacity-100' : 'opacity-0'}`}
                     style={{
@@ -171,14 +178,13 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                             setShowLivePhoto(false);
                         }
                     }}
-                >
-                    <source src={videoPreviewUrl ?? undefined} />
-                </video>
+                />
             )}
             {videoFile && !isLivePhoto && (
                 <video
                     ref={videoRef}
                     playsInline
+                    src={videoPreviewUrl ?? undefined}
                     controls
                     style={{
                         position: 'absolute',
@@ -187,9 +193,7 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
                         width: '100%',
                         zIndex: zIndex.previewVideo
                     }}
-                >
-                    <source src={videoPreviewUrl ?? undefined} />
-                </video>
+                />
             )}
         </div>
     );

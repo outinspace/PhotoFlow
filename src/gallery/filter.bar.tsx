@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
 import { useAlbums } from '../api/useAlbums';
@@ -21,6 +21,39 @@ const defaultFilterState: FilterState = {
     city: '',
     region: '',
     device: ''
+};
+
+// The filters live in the URL under their own names, so a refresh, a bookmark or a
+// shared link opens the same view — the same reason the anchor item is there. Only
+// what differs from the default is written, so an unfiltered gallery keeps a clean
+// address.
+const filterNames = Object.keys(defaultFilterState) as (keyof FilterState)[];
+
+const readFilters = (): FilterState => {
+    const params = new URLSearchParams(window.location.search);
+
+    const filters = { ...defaultFilterState };
+    for (const name of filterNames) {
+        filters[name] = params.get(name) ?? defaultFilterState[name];
+    }
+
+    return filters;
+};
+
+const writeFilters = (filters: FilterState) => {
+    const url = new URL(window.location.href);
+
+    for (const name of filterNames) {
+        if (filters[name] === defaultFilterState[name]) {
+            url.searchParams.delete(name);
+        } else {
+            url.searchParams.set(name, filters[name]);
+        }
+    }
+
+    // Replaced rather than pushed: a filter is a change of view, not a place, and
+    // pushing would put every dropdown touch between the gallery and the back button.
+    window.history.replaceState({}, '', url.toString());
 };
 
 export const countActiveFilters = (filters: FilterState): number => {
@@ -199,8 +232,29 @@ export const FilterSheet = ({ items, filters, setFilters, isOpen, onDismiss }: F
     );
 };
 
-export const useFilterBar = (items: Item[]) => {
-    const [filters, setFilters] = useState<FilterState>(defaultFilterState);
+export const useFilterBar = (items: Item[], enableUrlPersistence: boolean) => {
+    const [filters, setStoredFilters] = useState<FilterState>(() =>
+        enableUrlPersistence ? readFilters() : defaultFilterState
+    );
+
+    const setFilters = useCallback((value: FilterState) => {
+        setStoredFilters(value);
+
+        if (enableUrlPersistence) {
+            writeFilters(value);
+        }
+    }, [enableUrlPersistence]);
+
+    // Opening a photo pushes a history entry, so back and forward can land on a URL
+    // whose filters are not the ones on screen. Follow the URL, as the open photo does.
+    useEffect(() => {
+        if (!enableUrlPersistence) return;
+
+        const handlePopState = () => setStoredFilters(readFilters());
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [enableUrlPersistence]);
 
     const { data: albums } = useAlbums();
 

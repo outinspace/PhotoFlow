@@ -35,8 +35,10 @@ class FileRecord(Strict):
     tileVersion: int | None = None
     previewVersion: int | None = None
     thumbHash: str | None = None
-    # True when the original is already browser-playable and is served as its own
-    # preview, so no near-duplicate transcode was stored.
+    # Videos used to be served as their own preview when the original was already
+    # browser-playable. They no longer are, and nothing reads or sets this. It stays
+    # declared because unknown fields are rejected, and a shard for a month nothing
+    # has touched since still carries it.
     previewIsOriginal: bool = False
 
 

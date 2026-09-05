@@ -46,9 +46,6 @@ export interface File {
     tileVersion: number | null;
     previewVersion: number | null;
     thumbHash: string | null;
-    // True when the original is already browser-playable and is served as its own
-    // preview, so the worker stored no near-duplicate transcode.
-    previewIsOriginal: boolean;
 
     // Computed. Each holds either a bucket key, which the app signs when it renders,
     // or an absolute already-signed URL — which is what a shared document carries,

@@ -162,8 +162,9 @@ covers both; the connect screen checks exactly that.
 - **Search embeddings are precomputed** by the job, about 516 bytes a photo. The
   browser downloads them once and encodes only your search phrase locally.
 - **Originals are never modified or deleted** by anything in this repo.
-- **Videos are usually not transcoded.** A clip already H.264 at 1080p or less is
-  served as its own preview instead of being stored twice.
+- **Every video gets a transcoded preview**, including one already in a codec the
+  browser plays: what a camera writes is laid out for a file rather than for a
+  network, and starting playback promptly is what the preview is for.
 
 ## Running the worker locally
 

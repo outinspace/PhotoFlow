@@ -41,7 +41,7 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const clickTimerRef = useRef<number | null>(null);
 
-    const { filterProps, filteredItems } = useFilterBar(allItems);
+    const { filterProps, filteredItems } = useFilterBar(allItems, enableUrlPersistence);
     const items = disableFilteringSorting ? allItems : filteredItems;
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -66,8 +66,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     const [prefetchEnabled] = usePrefetchThumbnails();
     const firstVisibleIndex = layout.firstVisibleRow * layout.columns;
 
+    // A video in the preview needs a sustained read from the same handful of
+    // connections the thumbnails queue on, and unlike an <img> its request carries
+    // no priority the page can lower. So reading ahead stands down for one. A photo
+    // is a single request that is over in a moment, and reading ahead while one is
+    // being looked at is exactly what should be happening.
+    const previewingVideo = previewItemIndex !== null && items[previewItemIndex]?.type === 'video';
+
     useEffect(() => {
-        if (!prefetchEnabled) {
+        if (!prefetchEnabled || previewingVideo) {
             setTilesToPrefetch([]);
             return;
         }
@@ -83,11 +90,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
 
         setTilesToPrefetch(sources);
 
-        // Navigating away from the grid stops it. A full-screen preview does not:
-        // the grid stays mounted behind it, and reading ahead is exactly what
-        // should be happening while one photo is being looked at.
+        // Navigating away from the grid stops it too: the grid stays mounted behind
+        // a preview, so nothing else would.
         return () => setTilesToPrefetch([]);
-    }, [items, firstVisibleIndex, prefetchEnabled]);
+    }, [items, firstVisibleIndex, prefetchEnabled, previewingVideo]);
 
     useGridAnchor({
         items,

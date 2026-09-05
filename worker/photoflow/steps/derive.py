@@ -12,7 +12,7 @@ import threading
 
 from PIL import Image, ImageOps
 
-from .. import keys, progress, video
+from .. import keys, progress
 from ..timestamps import now_iso
 from ..thumbhash import rgba_to_thumb_hash
 
@@ -28,15 +28,13 @@ TRANSCODE_TIMEOUT_SECONDS = 60 * 60
 
 def run(context) -> None:
     now = now_iso()
-    passed_through = 0
-    transcoded = 0
     failures = 0
 
     work = list(context.ingested) + list(context.backfill)
     counts = threading.Lock()
 
     def derive_one(entry) -> None:
-        nonlocal passed_through, transcoded, failures
+        nonlocal failures
 
         item = context.items.get(getattr(entry, "item_id", None))
         if item is None:
@@ -52,12 +50,8 @@ def run(context) -> None:
         try:
             if entry.content_type.startswith("image/"):
                 _derive_image(context, entry, record)
-            elif _derive_video(context, entry, record):
-                with counts:
-                    passed_through += 1
             else:
-                with counts:
-                    transcoded += 1
+                _derive_video(context, entry, record)
 
             record.lastProcessedTimeUtc = now
             record.failedProcessingTimeUtc = None
@@ -71,10 +65,7 @@ def run(context) -> None:
     # exiftool in their own processes, so this scales past one core.
     progress.track_map(derive_one, work, "deriving", context.workers)
 
-    context.note(
-        f"derived {len(work)} files "
-        f"({passed_through} videos passed through, {transcoded} transcoded, {failures} failed)"
-    )
+    context.note(f"derived {len(work)} files ({failures} failed)")
 
 
 def _derive_image(context, entry, record) -> None:
@@ -99,8 +90,7 @@ def _derive_image(context, entry, record) -> None:
             record.previewVersion = PREVIEW_VERSION
 
 
-def _derive_video(context, entry, record) -> bool:
-    """Returns True when the original was good enough to serve as its own preview."""
+def _derive_video(context, entry, record) -> None:
     if entry.needs_tile:
         poster_path = os.path.join(context.work_dir, f"{entry.file_id}.poster.jpeg")
         _extract_poster(entry.local_path, poster_path)
@@ -115,21 +105,15 @@ def _derive_video(context, entry, record) -> bool:
             record.tileVersion = TILE_VERSION
 
     if not entry.needs_preview:
-        return record.previewIsOriginal
+        return
 
-    info = video.probe(entry.local_path)
-
-    if video.can_pass_through(info, context.config.passthrough_max_height):
-        record.previewIsOriginal = True
-        record.previewVersion = PREVIEW_VERSION
-        return True
-
+    # Every video is transcoded, including one already in a browser-safe codec: what
+    # a camera writes is meant for a file, not for a network, and a clip that plays
+    # in the browser is not the same thing as one that starts playing promptly.
     preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.mp4")
     _transcode(entry.local_path, preview_path, context.config)
     context.storage.upload(preview_path, keys.preview(entry.file_id, ".mp4"), "video/mp4")
-    record.previewIsOriginal = False
     record.previewVersion = PREVIEW_VERSION
-    return False
 
 
 def _draft_to_preview(source: Image.Image) -> None:

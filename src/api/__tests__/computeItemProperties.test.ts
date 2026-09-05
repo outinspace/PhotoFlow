@@ -18,8 +18,7 @@ const shardItem = (captureTime: string | null) => ({
             failedProcessingTimeUtc: null,
             tileVersion: 1,
             previewVersion: 1,
-            thumbHash: null,
-            previewIsOriginal: false
+            thumbHash: null
         }
     ]
 } as unknown as Item);

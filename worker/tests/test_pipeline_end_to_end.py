@@ -112,16 +112,15 @@ def test_a_live_photo_pair_becomes_one_item(tmp_path):
 
 
 @requires_media_tools
-def test_a_small_h264_clip_is_served_as_its_own_preview(tmp_path):
+def test_a_clip_already_in_a_browser_safe_codec_is_still_transcoded(tmp_path):
     storage = MemoryStorage({keys.INCOMING + "CLIP.MP4": make_video(tmp_path / "clip.mp4")})
 
     context = run_pipeline(storage, tmp_path)
     file = next(iter(context.items.values())).files[0]
 
-    assert file.previewIsOriginal is True
     assert file.tileVersion == derive.TILE_VERSION
-    # No transcoded near-duplicate was stored, which is the point of passthrough.
-    assert not storage.exists(keys.preview(file.fileId, ".mp4"))
+    assert file.previewVersion == derive.PREVIEW_VERSION
+    assert storage.exists(keys.preview(file.fileId, ".mp4"))
 
 
 @requires_media_tools
@@ -131,7 +130,7 @@ def test_an_oversized_clip_is_transcoded_into_a_preview(tmp_path):
     context = run_pipeline(storage, tmp_path)
     file = next(iter(context.items.values())).files[0]
 
-    assert file.previewIsOriginal is False
+    assert file.previewVersion == derive.PREVIEW_VERSION
     assert storage.exists(keys.preview(file.fileId, ".mp4"))
 
 

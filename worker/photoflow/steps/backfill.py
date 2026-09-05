@@ -1,28 +1,30 @@
 """Repair catalogued files that are missing a derived output.
 
-Two things create this work. A migration from the old API leaves every file
+Three things create this work. A migration from the old API leaves every file
 without a thumbnail, because those used to live in a bucket shared between
-tenants and now belong in the owner's own. And any run whose model was
-unavailable leaves items without a search vector.
+tenants and now belong in the owner's own. Any run whose model was unavailable
+leaves items without a search vector. And a catalog migration can clear a derived
+version to ask for that output to be made again.
 
 Sources are chosen to be as small as possible: a 300px tile is made from the
 2000px preview rather than the original, and a search vector from the tile.
 Re-downloading originals would mean pulling the whole library back out of storage
-to rebuild files a fraction of their size.
+to rebuild files a fraction of their size. A missing preview is the exception —
+only the original can produce one.
 """
 
 import os
 
 from .. import keys, progress
 from .ingest import Ingested
-from .derive import TILE_VERSION
+from .derive import PREVIEW_VERSION, TILE_VERSION
 from .embed import EMBEDDING_VERSION
 
 
 def run(context) -> None:
     already_queued = {entry.file_id for entry in context.ingested}
 
-    needs_tile: list = []
+    needs_deriving: list = []
     needs_embedding: dict[int, object] = {}
 
     for item in context.items.values():
@@ -39,23 +41,32 @@ def run(context) -> None:
                 continue
             # A file that failed processing is left alone; retrying it every night
             # forever is what the reprocess request is for.
-            if file.tileVersion != TILE_VERSION and not file.failedProcessingTimeUtc:
-                needs_tile.append((item, file))
+            if file.failedProcessingTimeUtc:
+                continue
+            if file.tileVersion != TILE_VERSION or file.previewVersion != PREVIEW_VERSION:
+                needs_deriving.append((item, file))
 
-    if not needs_tile and not needs_embedding:
+    if not needs_deriving and not needs_embedding:
         context.note("nothing to backfill")
         return
 
     limit = context.config.max_backfill_per_run
     queued: dict[str, Ingested] = {}
 
-    for item, file in progress.track(needs_tile[:limit], "fetching sources for tiles"):
-        entry = _fetch(context, item, file, needs_tile=True, needs_embedding=False)
+    for item, file in progress.track(needs_deriving[:limit], "fetching sources to derive"):
+        entry = _fetch(
+            context,
+            item,
+            file,
+            needs_tile=file.tileVersion != TILE_VERSION,
+            needs_preview=file.previewVersion != PREVIEW_VERSION,
+            needs_embedding=False,
+        )
         if entry:
             queued[file.fileId] = entry
 
     # Embedding is per item, and the tile it reads is produced above, so an item
-    # already queued for a tile only needs its flag set rather than a second fetch.
+    # already queued for deriving only needs its flag set rather than a second fetch.
     remaining = limit - len(queued)
     for item in progress.track(list(needs_embedding.values()), "fetching sources for embeddings"):
         if remaining <= 0:
@@ -69,7 +80,9 @@ def run(context) -> None:
             queued[primary.fileId].needs_embedding = True
             continue
 
-        entry = _fetch(context, item, primary, needs_tile=False, needs_embedding=True)
+        entry = _fetch(
+            context, item, primary, needs_tile=False, needs_preview=False, needs_embedding=True
+        )
         if entry:
             queued[primary.fileId] = entry
             remaining -= 1
@@ -84,7 +97,8 @@ def run(context) -> None:
 
     context.note(
         f"backfilling {len(context.backfill)} files "
-        f"({len(needs_tile)} missing tiles, {len(needs_embedding)} missing embeddings outstanding)"
+        f"({len(needs_deriving)} missing a tile or preview, "
+        f"{len(needs_embedding)} missing embeddings outstanding)"
     )
 
 
@@ -98,7 +112,9 @@ def _primary_file(item):
     )
 
 
-def _fetch(context, item, file, needs_tile: bool, needs_embedding: bool) -> Ingested | None:
+def _fetch(
+    context, item, file, needs_tile: bool, needs_preview: bool, needs_embedding: bool
+) -> Ingested | None:
     source_key, extension = _smallest_source(context, file)
     local_path = os.path.join(context.work_dir, f"backfill-{file.fileId}{extension}")
 
@@ -120,13 +136,15 @@ def _fetch(context, item, file, needs_tile: bool, needs_embedding: bool) -> Inge
         item_id=item.itemId,
         upload_time_utc=file.uploadTimeUtc,
         needs_tile=needs_tile,
-        needs_preview=False,
+        needs_preview=needs_preview,
         needs_embedding=needs_embedding,
     )
 
 
 def _smallest_source(context, file) -> tuple[str, str]:
-    if file.previewVersion and not file.previewIsOriginal:
+    # A file that needs a preview made has none to read, so it falls through to the
+    # original — which is the only thing a preview can be derived from anyway.
+    if file.previewVersion:
         if file.contentType.startswith("image/"):
             return keys.preview(file.fileId, ".jpeg"), ".jpeg"
         return keys.preview(file.fileId, ".mp4"), ".mp4"

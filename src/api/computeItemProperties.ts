@@ -48,12 +48,6 @@ const computePreviewSource = (file: Item['files'][number]) => {
         return null;
     }
 
-    // A clip that was already browser-playable has no separate preview file; the
-    // original is the preview, which is why no transcode was stored for it.
-    if (file.previewIsOriginal) {
-        return file.originalSource;
-    }
-
     const previewExtension = file.contentType.startsWith('image') ? '.jpeg' : '.mp4';
     return `${keys.preview(file.fileId, previewExtension)}?t=${file.lastProcessedTimeUtc}`;
 }
