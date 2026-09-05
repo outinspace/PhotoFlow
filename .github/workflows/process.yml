@@ -2,7 +2,6 @@ name: Process photos
 
 on:
   schedule:
-    # 07:00 UTC nightly. Uploads that arrive during the day are picked up here.
     - cron: '0 7 * * *'
   workflow_dispatch:
 
