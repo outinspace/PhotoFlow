@@ -1,13 +1,14 @@
 # Photoflow
 
-A self-hosted photo library — an alternative to iCloud Photos and Google Photos —
-that runs with **no server and no API**.
+A self-hosted photo library that runs with **no server and no API**. It is an
+alternative to iCloud Photos and Google Photos for people who want to keep their
+photos as ordinary files in a bucket they control.
 
-Your photos live in your own S3-compatible bucket. A job on a cron schedule turns new
-uploads into a static catalog, and the app reads that catalog straight out of the
-bucket. There is no backend between the two, so the bill is your storage and nothing
-else. [Backblaze B2](https://www.backblaze.com/cloud-storage) is the cheap option and
-the one to start with; GitHub Actions runs the scheduled job on its free tier.
+Your photos live in your own S3-compatible bucket. A scheduled job turns new uploads
+into a static catalog, and the app reads that catalog straight out of the bucket.
+There is no backend between the two, so the bill is your storage and nothing else.
+[Backblaze B2](https://www.backblaze.com/cloud-storage) is the cheap option and the
+one to start with; GitHub Actions runs the scheduled job on its free tier.
 
 The bucket stays **private**. Every read is signed in the browser with a bucket API
 key that only ever exists in that browser's local storage, so nothing is world
@@ -28,6 +29,13 @@ everything ever signed with it.
   need no account at the other end.
 - **First-class Apple Live Photos.** Both halves stay together as one photo.
 - **You own the storage.** It is your bucket, your keys, and ordinary files in it.
+  Originals are never modified or deleted by anything in this repo.
+
+## Status
+
+Photoflow is young. Its author uses it every day, and the catalog has a migration
+system so upgrades carry an existing library forward, but expect rough edges. Open an
+issue when something breaks.
 
 ## Setup
 
@@ -42,7 +50,7 @@ connect if that succeeds.
 
 **Set a CORS rule**, or the browser is refused before a request leaves the page.
 Running `photoflow-worker` from a terminal offers to write it for you and to check
-that the bucket is private — it asks nothing when both are already right, and asks
+that the bucket is private. It asks nothing when both are already right, and asks
 nothing at all in CI, where there is nobody to answer. Setting it by hand works too.
 
 Reads carry their signature in the query string and are not preflighted; writes carry
@@ -70,12 +78,12 @@ deletes or rewrites an original, but versioning protects you from a mistake outs
 
 Scope each one to this bucket and nothing else in your account.
 
-- **A worker key** — read and write. Used by the scheduled job.
-- **An app key** — read, write and list. Used by your browser. It needs list to find
+- **A worker key**: read and write. Used by the scheduled job.
+- **An app key**: read, write and list. Used by your browser. It needs list to find
   other devices' mutation logs, and write because uploads, favourites and albums are
   all written straight from the browser. This key is also the revocation lever:
   deleting it invalidates every URL ever signed with it, share links included.
-- **An upload key** *(optional)* — write-only, scoped to `incoming/`, for your
+- **An upload key** *(optional)*: write-only, scoped to `incoming/`, for your
   phone's backup app. A leaked key there can add junk but cannot read or destroy
   anything.
 
@@ -91,14 +99,21 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
 | `PHOTOFLOW_HEALTHCHECK_URL` | *(optional)* a [healthchecks.io](https://healthchecks.io) ping URL |
 
-Optional variables are listed in [`worker/.env.example`](worker/.env.example), which
-is the full and authoritative set of settings.
+| Variable | Default |
+| --- | --- |
+| `PHOTOFLOW_S3_REGION` | `us-east-1` (B2 needs the region from the endpoint, e.g. `us-west-004`) |
+| `PHOTOFLOW_MAX_FILES_PER_RUN` | `1000` |
 
-Then enable Actions on the fork — forks start with workflows disabled — and run
+The full set of settings, with what each one does, is in
+[`worker/.env.example`](worker/.env.example).
+
+Then enable Actions on the fork, since forks start with workflows disabled, and run
 **Process photos** once by hand to check it works. It is scheduled nightly after that.
 
 Set up the healthcheck. Without it, a job that quietly stops running is invisible
-until you notice photos are missing.
+until you notice photos are missing. Note also that GitHub disables a scheduled
+workflow in a repository with no commits for 60 days; pushing any commit to the fork
+turns it back on.
 
 ### 4. Deploy the app
 
@@ -107,9 +122,9 @@ npm install
 npm run build
 ```
 
-Deploy `src/dist/` to any static host. There is nothing to configure at build
-time and no file to edit afterwards: nothing in the output names a bucket, which is
-what lets one deployment serve any number of people, each with their own.
+Deploy `src/dist/` to any static host. There is nothing to configure at build time
+and no file to edit afterwards. Nothing in the output names a bucket, which is what
+lets one deployment serve any number of people, each with their own.
 
 **It must be served over HTTPS**, or over plain `http` on `localhost` exactly. The
 app signs its own requests with WebCrypto, and browsers only expose that in a secure
@@ -118,7 +133,7 @@ context.
 Open it and enter your endpoint, bucket and app key. The region is worked out from
 the endpoint. Everything is stored in that browser and sent nowhere else. If the
 connection fails, the screen names the step that broke rather than showing a generic
-error.
+error. A second device is connected by scanning a QR code from the first.
 
 ### 5. Set up phone backup
 
@@ -134,8 +149,8 @@ a bucket endpoint caps the browser at roughly six parallel connections where a C
 gives it HTTP/2+3 multiplexing. The address is entered on the connect screen, so each
 person can point at their own.
 
-It covers **pictures only** — the catalog and every write go to the bucket endpoint
-regardless — so a misconfigured CDN costs slow images rather than a library that will
+It covers **pictures only**. The catalog and every write go to the bucket endpoint
+regardless, so a misconfigured CDN costs slow images rather than a library that will
 not load. It has to forward the host header and path unchanged, because the signature
 covers both; the connect screen checks exactly that.
 
@@ -166,11 +181,29 @@ covers both; the connect screen checks exactly that.
   browser plays: what a camera writes is laid out for a file rather than for a
   network, and starting playback promptly is what the preview is for.
 
-## Running the worker locally
+The pipeline is nine steps run in order, listed in
+[`worker/photoflow/pipeline.py`](worker/photoflow/pipeline.py).
+
+## Development
+
+```
+src/      the app: React, TanStack Router and Query, Tailwind, Vite
+worker/   the scheduled job: Python, run with uv
+dev/      a local S3 server and a seed script, for working without a real bucket
+```
+
+Front-end and worker tests need no credentials and touch no network:
+
+```bash
+npm test                               # front end
+cd worker && uv run --extra dev pytest # worker
+```
+
+Run the worker locally against your own bucket with a `.env` copied from
+[`worker/.env.example`](worker/.env.example):
 
 ```bash
 cd worker
-cp .env.example .env   # then fill it in
 uv run photoflow-worker              # one file at a time
 uv run photoflow-worker --workers 8  # a laptop getting through a large import
 ```
@@ -178,55 +211,26 @@ uv run photoflow-worker --workers 8  # a laptop getting through a large import
 `--workers` defaults to 1, so CI behaves as it always has. Somewhere around the
 number of cores is the useful setting; far beyond it buys nothing.
 
-The pipeline is nine steps run in order, listed in
-[`worker/photoflow/pipeline.py`](worker/photoflow/pipeline.py). Tests need no
-credentials and touch no network:
-
-```bash
-npm test                               # front end
-cd worker && uv run --extra dev pytest # worker
-```
-
-You can also exercise the whole thing against a local S3 server with generated
-photos, no bucket and no cost:
+Or exercise the whole thing against a local S3 server with generated photos, no
+bucket and no cost:
 
 ```bash
 docker compose -f dev/docker-compose.yml up -d
 uv run --project worker --with pillow python dev/seed.py
+npm start
 ```
 
 That creates a private bucket and fills `incoming/` with sample photos and clips,
-then prints what to connect the app to. Reset with
+then prints the worker command to run and what to connect the app to. Reset with
 `docker compose -f dev/docker-compose.yml down -v`.
 
-## Coming from the older API-backed Photoflow
+## Contributing
 
-Photos are migrated the way any photo arrives: they land in `incoming/` and the
-worker catalogues them. If they are already in a bucket at the same provider, copy
-them across server side, then carry your favourites, deletions and albums over from
-the old tenant database (**Menu → Export Data** in the old app):
+Issues and pull requests are welcome. Keep changes small and include a test where
+one fits; both test suites run in CI. Anything that touches how files are laid out
+in the bucket needs a catalog migration in `worker/photoflow/migrations/`, so that
+existing libraries keep working.
 
-```bash
-cd worker
-uv run photoflow-copy-media OLD-BUCKET TENANT-ID photoflow.db --dry-run
-uv run photoflow-worker
-uv run photoflow-import-legacy-db photoflow.db --dry-run
-```
+## License
 
-Both commands take `--dry-run`; run it first and read the report. They match old
-photos to new ones by content hash, so nothing depends on the old ids. Share links
-are not carried over — re-share those albums from the app, and the report names them.
-
-## Known gaps
-
-This is a prototype. What is not done yet:
-
-- **The first import of a large library** should be run locally rather than in CI, as
-  thousands of video transcodes will exhaust free CI minutes.
-  `PHOTOFLOW_MAX_FILES_PER_RUN` caps each run; raise it locally to get through the
-  backlog at once.
-- **Processing is nightly**, so photos uploaded today get thumbnails tomorrow. Run
-  the workflow by hand if you want them sooner.
-- **The CLIP model choice is unverified for redistribution.** The default
-  (`Xenova/clip-vit-base-patch32`) is an ONNX export of a permissively licensed
-  model, but confirm the licence before publishing a fork that ships weights.
+[MIT](LICENSE).
