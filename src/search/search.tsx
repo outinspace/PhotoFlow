@@ -37,8 +37,8 @@ const Search = () => {
     const { data: results, isFetching, error, isLoadingVectors, model } = useSearch(debouncedQuery);
     const { recent, addRecent, clearRecent } = useRecentSearches();
 
-    // Only the first search of a session pays for this; afterwards the browser has
-    // the model cached and it never appears.
+    // Only the first search on this device pays for this; afterwards the model is
+    // in the browser cache and it never appears again.
     const isDownloadingModel = model.status === 'downloading';
 
     const items = useMemo<Item[]>(() => {

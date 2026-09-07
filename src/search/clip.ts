@@ -23,8 +23,8 @@ export interface ItemVector {
 
 // The text model is tens of megabytes and is fetched the first time anyone
 // searches, so its progress has to be visible — otherwise the first search looks
-// like it has hung. Once fetched the browser caches it, and later sessions skip
-// straight past 'downloading'.
+// like it has hung. Once it is in the browser cache no later load reports
+// 'downloading' again, however many times the app is restarted.
 export type ModelStatus = 'idle' | 'preparing' | 'downloading' | 'ready';
 
 export interface ModelLoadState {
@@ -73,10 +73,28 @@ const trackDownload = () => {
             total += file.total;
         }
 
-        // Only bytes actually crossing the network flip this on, so a model served
-        // from cache never shows a progress bar it would immediately dismiss.
         setModelLoad({ status: 'downloading', percent: total ? Math.round((loaded / total) * 100) : 0 });
     };
+};
+
+// The library reports the same progress events whether the weights are arriving
+// over the network or being read back out of the browser cache, so those events
+// cannot tell a first download from a later load. Asking the cache does: the
+// weights are stored under the model repo's `.onnx` URL, and only a device that
+// has never finished a download comes up empty. Without this the progress bar and
+// its "one-time download" line reappeared on every launch.
+export const isModelCached = async (modelRepo: string) => {
+    if (typeof caches === 'undefined') {
+        return false;
+    }
+
+    try {
+        const cached = await (await caches.open('transformers-cache')).keys();
+        return cached.some(({ url }) => url.includes(modelRepo) && url.endsWith('.onnx'));
+    } catch {
+        // The cache can be visible but unreadable under some privacy settings.
+        return false;
+    }
 };
 
 let textEncoder: Promise<(text: string) => Promise<Float32Array>> | null = null;
@@ -90,7 +108,9 @@ const loadTextEncoder = async (modelRepo: string) => {
 
     env.allowLocalModels = false;
 
-    const progress_callback = trackDownload();
+    // Left off once the weights are cached, which also lets the library read them
+    // in one go rather than streaming them past a progress callback.
+    const progress_callback = (await isModelCached(modelRepo)) ? undefined : trackDownload();
 
     const tokenizer = await AutoTokenizer.from_pretrained(modelRepo, { progress_callback });
     const model = await CLIPTextModelWithProjection.from_pretrained(modelRepo, { dtype: 'q8', progress_callback });
