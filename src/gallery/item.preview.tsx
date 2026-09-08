@@ -6,9 +6,9 @@ import ItemInfoSheet from './item.info.sheet';
 import { differenceInDays, format } from 'date-fns';
 import { ItemActionMenu } from './item.action.menu';
 import { Ellipsis } from '../common/ellipsis';
-import { animated } from '@react-spring/web';
+import { animated, useSpring } from '@react-spring/web';
+import { useDrag } from '@use-gesture/react';
 import ItemMedia from './item.media';
-import { usePreviewGestures } from './use.preview.gestures';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
 import { usePhotoAnimations, useSlideshowInterval } from '../hooks/use.settings';
@@ -28,9 +28,9 @@ const SLIDESHOW_VIDEO_MAX_SECONDS = 15;
 const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, onClose, readonly }: Props) => {
     const [showInfoSheet, setShowInfoSheet] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
     const [slideshow, setSlideshow] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const surfaceRef = useRef<HTMLDivElement>(null);
     const favoriteItem = useFavoriteItem();
     const unfavoriteItem = useUnfavoriteItem();
     const [photoAnimationsEnabled] = usePhotoAnimations();
@@ -38,20 +38,155 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
 
     const item: Item | undefined = items[itemIndex];
 
-    const { carousel, zoom, isZoomed, animateMoveNext, animateMovePrevious } = usePreviewGestures({
-        surfaceRef,
-        item,
-        itemIndex,
-        // A video keeps the browser's own touch handling so that its controls still work.
-        canZoom: item?.type !== 'video',
-        photoAnimationsEnabled,
-        onMoveNext,
-        onMovePrevious,
-        onClose
+    const [swipeSpring, swipeApi] = useSpring(() => ({ x: 0, y: 0, opacity: 1, scale: 1 }));
+    const currentGestureDirection = useRef<'vertical' | 'horizontal'>();
+
+    const dragBindings = useDrag(async ({ down, movement, event, touches }) => {
+        event.stopPropagation();
+
+        // Prevent new gestures during animations
+        if (isAnimating) {
+            return;
+        }
+
+        if (touches > 1) {
+            return; // Prevent dragging during pinch gestures
+        }
+        
+        const visualViewport = window.visualViewport;
+        if (visualViewport && visualViewport.scale > 1) {
+            return; // Prevent dragging if zoomed in
+        }
+
+        let [omx, omy] = movement;
+
+        if (!currentGestureDirection.current) {
+            if (Math.abs(omy) > 10) {
+                currentGestureDirection.current = 'vertical';
+            } else if (Math.abs(omx) > 10) {
+                currentGestureDirection.current = 'horizontal';
+            }
+        }
+
+        if (currentGestureDirection.current === 'vertical') {
+            omx = 0;
+        }
+
+        if (currentGestureDirection.current === 'horizontal') {
+            omy = 0;
+        }
+
+
+        // Smoothly transition between swipe and dismiss
+        const dismissPercent = omy / (window.innerHeight / 2);
+        const swipePercent = omx / (window.innerWidth / 2);
+        const mx = omx * (1 - dismissPercent);
+        const my = omy * (1 - swipePercent);
+
+        if (down) {
+            swipeApi.start({
+                x: mx,
+                y: my,
+                opacity: 1 - Math.abs(my) / window.innerHeight,
+                scale: 1 - Math.abs(my) / window.innerHeight,
+                immediate: true
+            });
+            return;
+        }
+
+        if (Math.abs(mx) > window.innerWidth / 6) {
+            // Snap to next/previous if swiped far enough
+            setIsAnimating(true);
+            const direction = mx > 0 ? -1 : 1;
+            if (direction === -1) {
+                await Promise.all(swipeApi.start({
+                    x: window.innerWidth,
+                    config: { tension: 300, clamp: true }
+                }));
+                onMovePrevious?.();
+            } else {
+                await Promise.all(swipeApi.start({
+                    x: -window.innerWidth,
+                    config: { tension: 300, clamp: true }
+                }));
+                onMoveNext?.();
+            }
+            swipeApi.start({ x: 0, immediate: true });
+            setIsAnimating(false);
+        } else if (Math.abs(my) > window.innerHeight / 4) {
+            // Animate closed
+            setIsAnimating(true);
+            await Promise.all(swipeApi.start({
+                x: 0,
+                y: 0,
+                opacity: 0,
+                scale: 0,
+                config: { tension: 300, clamp: true }
+            }));
+
+            onClose?.();
+            setIsAnimating(false);
+        } else {
+            // Reset if swipe is canceled
+            swipeApi.start({
+                x: 0,
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                config: { tension: 300, clamp: true }
+            });
+        }
+
+        if (!down) {
+            currentGestureDirection.current = undefined;
+        }
+    }, {
+        filterTaps: true
     });
 
+    let animateMoveNext: Function;
+    let animateMovePrev: Function;
+
+    if (onMoveNext) {
+        animateMoveNext = async () => {
+            if (isAnimating) return;
+            
+            if (photoAnimationsEnabled) {
+                setIsAnimating(true);
+                await Promise.all(swipeApi.start({
+                    x: -window.innerWidth,
+                    config: { tension: 500, clamp: true }
+                }));
+                onMoveNext();
+                swipeApi.start({ x: 0, immediate: true });
+                setIsAnimating(false);
+            } else {
+                onMoveNext();
+            }
+        };
+    }
+
+    if (onMovePrevious) {
+        animateMovePrev = async () => {
+            if (isAnimating) return;
+            
+            if (photoAnimationsEnabled) {
+                setIsAnimating(true);
+                await Promise.all(swipeApi.start({
+                    x: window.innerWidth,
+                    config: { tension: 500, clamp: true }
+                }));
+                onMovePrevious();
+                swipeApi.start({ x: 0, immediate: true });
+                setIsAnimating(false);
+            } else {
+                onMovePrevious();
+            }
+        };
+    }
+
     useKeyBindings([
-        { cmd: ['ArrowLeft'], callback: () => animateMovePrevious?.() },
+        { cmd: ['ArrowLeft'], callback: () => animateMovePrev?.() },
         { cmd: ['ArrowRight'], callback: () => animateMoveNext?.() },
         { cmd: ['Escape'], callback: () => onClose?.() }
     ], [onMovePrevious, onMoveNext, onClose]);
@@ -122,12 +257,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     return (
         <animated.div
             ref={containerRef}
-            className='fixed top-0 bottom-0 left-0 right-0 flex z-10 bg-black overflow-hidden'
-            style={{ opacity: carousel.opacity }}
+            className='fixed top-0 bottom-0 left-0 right-0 flex z-10 bg-black'
+            style={{ opacity: swipeSpring.opacity }}
         >
             <div
-                ref={surfaceRef}
-                className={`absolute top-0 left-0 w-full h-full ${item.type === 'video' ? 'touch-manipulation' : 'touch-none'}`}
+                {...dragBindings()}
+                className='absolute top-0 left-0 w-full h-full touch-manipulation'
             >
                 {[itemIndex - 1, itemIndex, itemIndex + 1]
                     .filter((i) => i >= 0 && i < items.length)
@@ -136,36 +271,22 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                             key={i}
                             className='absolute top-0 bottom-0 left-0 right-0'
                             style={{
-                                x: carousel.x.to((val) => {
+                                x: swipeSpring.x.to((val) => {
                                     return (i - itemIndex) * window.innerWidth + val;
                                 }),
-                                y: carousel.y,
-                                scale: carousel.scale
+                                y: swipeSpring.y,
+                                scale: swipeSpring.scale
                             }}
                         >
-                            {/* The zoom rides in its own layer inside the carousel's, so panning a
-                                zoomed photo can't be confused with the swipe that moves between them.
-                                Only the photo being looked at takes the zoom: a neighbour at six times
-                                its size would reach well past its own width and cover the one in
-                                front. */}
-                            <animated.div
-                                className='absolute top-0 bottom-0 left-0 right-0'
-                                style={{
-                                    x: zoom.x.to(val => (i === itemIndex ? val : 0)),
-                                    y: zoom.y.to(val => (i === itemIndex ? val : 0)),
-                                    scale: zoom.scale.to(val => (i === itemIndex ? val : 1))
-                                }}
-                            >
-                                <ItemMedia
-                                    isPrimary={i === itemIndex}
-                                    item={items[i]}
-                                />
-                            </animated.div>
+                            <ItemMedia
+                                isPrimary={i === itemIndex}
+                                item={items[i]}
+                            />
                         </animated.div>
                     ))}
             </div>
             <div
-                className={`absolute left-0 top-0 flex z-10 p-3 text-shadow transition-opacity duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
                 {onClose && (
                     <Xmark
                         onClick={() => onClose?.()}
@@ -186,7 +307,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                     </div>
                 </div>
             </div>
-            <div className={`absolute top-0 right-0 z-10 flex p-3 text-white transition-opacity duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
                 <button
                     onClick={() => setShowInfoSheet(true)}
                     className='ml-3'

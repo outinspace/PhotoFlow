@@ -130,12 +130,8 @@ const ItemMedia = ({ item, isPrimary }: Props) => {
     });
 
     return (
-        // Absolute, not fixed. A fixed pane is only held inside the preview's carousel because
-        // that carousel happens to be transformed, and react-spring drops the transform entirely
-        // whenever it sits at rest — at which point the neighbouring photos escape to the
-        // viewport and pile up on the one being looked at.
         <div
-            className={`absolute top-0 bottom-0 left-0 right-0 ${isLivePhoto && showLivePhoto && 'animate-[pulse_0.5s_ease-in-out_1]'}`}
+            className={`fixed top-0 bottom-0 left-0 right-0 ${isLivePhoto && showLivePhoto && 'animate-[pulse_0.5s_ease-in-out_1]'}`}
             {...longPressHandlers()}
         >
             {imageFile && <>
