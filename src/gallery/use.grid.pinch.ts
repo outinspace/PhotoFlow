@@ -90,8 +90,8 @@ export const useGridPinch = ({ scrollContainerRef, contentRef, layout, itemCount
     const velocityRef = useRef(0);
     const lastSampleRef = useRef({ tileSize: 0, time: 0 });
 
-    // The photo preview zooms with the browser's own page zoom, so multi-touch is left alone
-    // whenever the page is already zoomed — otherwise there'd be no way to zoom back out.
+    // Nothing here zooms the page, but the browser can still be talked into it elsewhere. If it
+    // ever is, multi-touch is left alone so there is a pinch left that can zoom back out.
     const canPinch = () =>
         enabled &&
         layout.tileSize > 0 &&
