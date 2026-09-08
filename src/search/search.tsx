@@ -31,7 +31,7 @@ const ModelDownload = ({ percent }: { percent: number }) => (
 
 const Search = () => {
     const [query, setQuery] = useState('');
-    const debouncedQuery = useDebouncedValue(query.trim(), 300);
+    const debouncedQuery = useDebouncedValue(query.trim(), 500);
 
     const { data: libraryItems } = useItems();
     const { data: results, isFetching, error, isLoadingVectors, model } = useSearch(debouncedQuery);
