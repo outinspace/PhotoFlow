@@ -54,6 +54,7 @@ jobs:
       - name: Run the pipeline
         working-directory: worker
         run: |
+          df -h
           df -h /
           uv run photoflow-worker
           df -h /
