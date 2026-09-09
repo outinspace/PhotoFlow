@@ -194,6 +194,8 @@ def _fetch_for_reprocessing(context) -> list[Ingested]:
         try:
             context.storage.download(keys.original(file_id), local_path)
         except Exception as error:
+            if os.path.exists(local_path):
+                os.remove(local_path)
             context.note(f"could not fetch {file.originalFileName} to reprocess: {error}")
             continue
 

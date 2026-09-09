@@ -49,6 +49,11 @@ class Config:
     # Where the app is served from. The CORS rule the first run offers to write
     # names this origin, and the browser is refused if it names another.
     app_origin: str = "https://photoflow.outin.space"
+    # What a run may put in its work directory, shared by ingest and backfill.
+    # Both download everything before derive touches the first file, so it all sits
+    # on disk at once, and a file count cannot bound that: a thousand phone photos
+    # fit on a CI runner and a few hundred 4K clips do not.
+    max_bytes_per_run: int = 6 * 1024**3
 
     @staticmethod
     def from_env() -> "Config":
@@ -65,6 +70,9 @@ class Config:
             region=os.environ.get("PHOTOFLOW_S3_REGION", "us-east-1"),
             max_files_per_run=int(os.environ.get("PHOTOFLOW_MAX_FILES_PER_RUN", "2000")),
             max_backfill_per_run=int(os.environ.get("PHOTOFLOW_MAX_BACKFILL_PER_RUN", "500")),
+            max_bytes_per_run=int(
+                os.environ.get("PHOTOFLOW_MAX_BYTES_PER_RUN", str(6 * 1024**3))
+            ),
             video_quality_hardware=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_HARDWARE", "40")),
             video_quality_software=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_SOFTWARE", "28")),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),

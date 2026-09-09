@@ -30,6 +30,7 @@ jobs:
       PHOTOFLOW_S3_SECRET_ACCESS_KEY: ${{ secrets[format('{0}_S3_SECRET_ACCESS_KEY', matrix.tenant)] }} 
       PHOTOFLOW_MAX_FILES_PER_RUN: 1000
       PHOTOFLOW_S3_REGION: us-west-004
+      PHOTOFLOW_MAX_BYTES_PER_RUN: 6442450944
 
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +53,10 @@ jobs:
 
       - name: Run the pipeline
         working-directory: worker
-        run: uv run photoflow-worker
+        run: |
+          df -h /
+          uv run photoflow-worker
+          df -h /
 
       # A scheduled workflow is disabled automatically after ~60 days without repo
       # activity, which would stop backups silently. This commit keeps it alive.

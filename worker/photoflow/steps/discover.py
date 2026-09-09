@@ -34,13 +34,13 @@ def run(context) -> None:
         if entry.size > 0 and not entry.key.endswith("/")
     ]
 
-    limit = context.config.max_files_per_run
-    context.pending = incoming[:limit]
+    context.pending = _batch(incoming, context.config)
+    deferred = len(incoming) - len(context.pending)
 
-    if len(incoming) > limit:
+    if deferred:
         context.note(
-            f"{len(incoming)} files waiting, processing {limit} this run "
-            f"({len(incoming) - limit} deferred to the next run)"
+            f"{len(incoming)} files waiting, processing {len(context.pending)} this run "
+            f"({deferred} deferred to the next run)"
         )
     else:
         context.note(f"{len(incoming)} files waiting")
@@ -55,3 +55,21 @@ def run(context) -> None:
 
     if context.reprocess:
         context.note(f"{len(context.reprocess)} files requested for reprocessing")
+
+
+def _batch(incoming, config):
+    """Take what fits this run, by count and by size.
+
+    A single file larger than the whole budget is still taken, since deferring it
+    would defer it every run.
+    """
+    taken = []
+    total = 0
+
+    for entry in incoming[: config.max_files_per_run]:
+        if taken and total + entry.size > config.max_bytes_per_run:
+            break
+        taken.append(entry)
+        total += entry.size
+
+    return taken

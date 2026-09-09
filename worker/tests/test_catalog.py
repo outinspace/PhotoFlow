@@ -1,10 +1,12 @@
+import dataclasses
 import json
 
 from photoflow import keys
 from photoflow.config import Config
 from photoflow.models import FileRecord, ItemRecord
 from photoflow.pipeline import Context
-from photoflow.steps import discover, publish
+from photoflow.steps import backfill, discover, publish
+from photoflow.steps.ingest import Ingested
 from photoflow.storage import MemoryStorage
 
 
@@ -192,3 +194,80 @@ def test_a_stable_month_keeps_its_updatedAt_so_clients_can_skip_it():
 def _shard_entry(storage, month):
     manifest = storage.get_json(keys.CATALOG_MANIFEST)
     return next(entry for entry in manifest["shards"] if entry["month"] == month)
+
+
+def test_a_batch_of_large_files_is_cut_to_fit_the_disk_the_run_has():
+    storage = MemoryStorage()
+    for index in range(6):
+        storage.put(f"{keys.INCOMING}clip{index}.mp4", b"x" * 400, "video/mp4")
+
+    ctx = context(storage)
+    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    discover.run(ctx)
+
+    # Two fit under 1000 bytes; the third would cross it and waits for the next run.
+    assert len(ctx.pending) == 2
+
+
+def test_a_file_bigger_than_the_whole_budget_is_still_taken():
+    storage = MemoryStorage()
+    storage.put(f"{keys.INCOMING}huge.mp4", b"x" * 5000, "video/mp4")
+
+    ctx = context(storage)
+    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    discover.run(ctx)
+
+    assert len(ctx.pending) == 1
+
+
+def test_a_migration_asking_for_500_video_previews_only_fetches_what_fits(tmp_path):
+    """The state migration 002 leaves: previewVersion cleared on a lot of clips.
+
+    Only the original can produce a preview, so each of these is a full-size fetch
+    rather than the small one a tile repair reads.
+    """
+    storage = MemoryStorage()
+    clips = {}
+
+    for index in range(10):
+        record = item(index, "2026-03")
+        video = record.files[0]
+        video.contentType = "video/quicktime"
+        video.originalFileName = f"IMG_{index}.MOV"
+        video.previewVersion = None
+        clips[index] = record
+        storage.put(keys.original(video.fileId), b"x" * 400, "video/quicktime")
+
+    ctx = context(storage)
+    ctx.work_dir = str(tmp_path)
+    ctx.items = clips
+    ctx.ingested = []
+    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    backfill.run(ctx)
+
+    assert len(ctx.backfill) == 3
+
+
+def test_backfill_leaves_room_for_what_ingest_already_downloaded(tmp_path):
+    storage = MemoryStorage()
+    record = item(1, "2026-03")
+    record.files[0].previewVersion = None
+    storage.put(keys.original(record.files[0].fileId), b"x" * 400, "video/quicktime")
+
+    ctx = context(storage)
+    ctx.work_dir = str(tmp_path)
+    ctx.items = {1: record}
+    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    ctx.ingested = [
+        Ingested(
+            file_id="already",
+            hash_sha256="already",
+            original_file_name="IMG_9999.MOV",
+            content_type="video/quicktime",
+            size_bytes=1000,
+            local_path=str(tmp_path / "IMG_9999.MOV"),
+        )
+    ]
+    backfill.run(ctx)
+
+    assert ctx.backfill == []

@@ -51,9 +51,19 @@ def run(context) -> None:
         return
 
     limit = context.config.max_backfill_per_run
+    # A count alone cannot bound this. Repairing a tile reads a preview, but
+    # repairing a preview can only read the original, so a migration that clears
+    # previewVersion on a library's videos asks for hundreds of full-size clips at
+    # once. Ingest's downloads are still on disk and derive has not run yet, so
+    # what is fetched here shares the run's budget with them.
+    budget = context.config.max_bytes_per_run - sum(e.size_bytes for e in context.ingested)
+    fetched = 0
     queued: dict[str, Ingested] = {}
 
     for item, file in progress.track(needs_deriving[:limit], "fetching sources to derive"):
+        if fetched >= budget:
+            break
+
         entry = _fetch(
             context,
             item,
@@ -64,12 +74,13 @@ def run(context) -> None:
         )
         if entry:
             queued[file.fileId] = entry
+            fetched += os.path.getsize(entry.local_path)
 
     # Embedding is per item, and the tile it reads is produced above, so an item
     # already queued for deriving only needs its flag set rather than a second fetch.
     remaining = limit - len(queued)
     for item in progress.track(list(needs_embedding.values()), "fetching sources for embeddings"):
-        if remaining <= 0:
+        if remaining <= 0 or fetched >= budget:
             break
 
         primary = _primary_file(item)
@@ -86,6 +97,7 @@ def run(context) -> None:
         if entry:
             queued[primary.fileId] = entry
             remaining -= 1
+            fetched += os.path.getsize(entry.local_path)
 
     context.backfill = list(queued.values())
 
@@ -121,6 +133,10 @@ def _fetch(
     try:
         context.storage.download(source_key, local_path)
     except Exception as error:
+        # A download that died partway still wrote whatever it got, which when the
+        # disk is what failed is the last thing that should be left sitting on it.
+        if os.path.exists(local_path):
+            os.remove(local_path)
         context.note(f"could not fetch {file.originalFileName} to repair: {error}")
         return None
 
