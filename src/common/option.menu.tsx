@@ -68,24 +68,29 @@ export const OptionMenu = ({ isOpen, onDismiss, options, value, onSelect }: Prop
             ))}
             {menuTransitions((styles, state) => state && (
                 <animated.div
-                    className='absolute left-0 top-full mt-1 z-20 w-64 max-h-[60vh] overflow-y-auto rounded-lg drop-shadow text-black'
+                    className='absolute left-0 top-full mt-1 z-20 w-64 max-h-[60vh] flex flex-col overflow-hidden rounded-lg drop-shadow text-black'
                     style={styles}
                 >
-                    {options.map(option => (
-                        <div
-                            key={option.value}
-                            className={menuRowClasses}
-                            onClick={() => {
-                                onSelect(option.value);
-                                onDismiss();
-                            }}
-                        >
-                            <span className='flex-auto'>{option.label}</span>
-                            {value === option.value && (
-                                <Check className='size-5 text-sky-600' />
-                            )}
-                        </div>
-                    ))}
+                    {/* The shell animates and casts the shadow, a plain box inside it
+                        scrolls. A filter on a scrolling box stops the browser
+                        repainting rows as they scroll into view. */}
+                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50'>
+                        {options.map(option => (
+                            <div
+                                key={option.value}
+                                className={menuRowClasses}
+                                onClick={() => {
+                                    onSelect(option.value);
+                                    onDismiss();
+                                }}
+                            >
+                                <span className='flex-auto'>{option.label}</span>
+                                {value === option.value && (
+                                    <Check className='size-5 text-sky-600' />
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </animated.div>
             ))}
         </>

@@ -255,64 +255,68 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
             ))}
             {menuTransitions((styles, state) => state && (
                 <animated.div
-                    className='absolute left-0 bottom-0 z-20 my-12 w-72 max-h-[60vh] overflow-y-auto rounded-lg drop-shadow text-black'
+                    className='absolute left-0 bottom-0 z-20 my-12 w-72 max-h-[60vh] flex flex-col overflow-hidden rounded-lg drop-shadow text-black'
                     style={styles}
                 >
-                    {!openFacet && (
-                        <>
-                            {facets.map(facet => {
-                                const selected = facet.options.find(option => option.value === filters[facet.key]);
-
-                                return (
-                                    <div
-                                        key={facet.key}
-                                        className={menuRowClasses}
-                                        onClick={() => setOpenFacetKey(facet.key)}
-                                    >
-                                        <span className='shrink-0'>{facet.label}</span>
-                                        <span className={`flex-auto min-w-0 text-right truncate ${filters[facet.key] === facet.options[0].value ? 'text-slate-500' : 'text-sky-600'}`}>
-                                            {selected?.label ?? facet.options[0].label}
-                                        </span>
-                                        <NavArrowRight className='size-4 text-slate-400' />
-                                    </div>
-                                );
-                            })}
-                            {activeFilterCount > 0 && (
-                                <div
-                                    className={`${menuRowClasses} font-medium`}
-                                    onClick={() => {
-                                        setFilters(defaultFilterState);
-                                        onDismiss();
-                                    }}
-                                >
-                                    Reset Filters
-                                </div>
-                            )}
-                        </>
-                    )}
                     {openFacet && (
-                        <div className='filter-panel-in'>
-                            <div
-                                className={`${menuRowClasses} gap-1 font-semibold bg-slate-100`}
-                                onClick={() => setOpenFacetKey(null)}
-                            >
-                                <NavArrowLeft className='size-4 text-slate-500' />
-                                {openFacet.label}
-                            </div>
-                            {openFacet.options.map(option => (
-                                <div
-                                    key={option.value}
-                                    className={menuRowClasses}
-                                    onClick={() => handleSelect(openFacet.key, option.value)}
-                                >
-                                    <span className='flex-auto'>{option.label}</span>
-                                    {filters[openFacet.key] === option.value && (
-                                        <Check className='size-5 text-sky-600' />
-                                    )}
-                                </div>
-                            ))}
+                        <div
+                            className={`${menuRowClasses} filter-panel-in flex-none gap-1 font-semibold bg-slate-100`}
+                            onClick={() => setOpenFacetKey(null)}
+                        >
+                            <NavArrowLeft className='size-4 text-slate-500' />
+                            {openFacet.label}
                         </div>
                     )}
+                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50'>
+                        {!openFacet && (
+                            <>
+                                {facets.map(facet => {
+                                    const selected = facet.options.find(option => option.value === filters[facet.key]);
+
+                                    return (
+                                        <div
+                                            key={facet.key}
+                                            className={menuRowClasses}
+                                            onClick={() => setOpenFacetKey(facet.key)}
+                                        >
+                                            <span className='shrink-0'>{facet.label}</span>
+                                            <span className={`flex-auto min-w-0 text-right truncate ${filters[facet.key] === facet.options[0].value ? 'text-slate-500' : 'text-sky-600'}`}>
+                                                {selected?.label ?? facet.options[0].label}
+                                            </span>
+                                            <NavArrowRight className='size-4 text-slate-400' />
+                                        </div>
+                                    );
+                                })}
+                                {activeFilterCount > 0 && (
+                                    <div
+                                        className={`${menuRowClasses} font-medium`}
+                                        onClick={() => {
+                                            setFilters(defaultFilterState);
+                                            onDismiss();
+                                        }}
+                                    >
+                                        Reset Filters
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        {openFacet && (
+                            <div className='filter-panel-in'>
+                                {openFacet.options.map(option => (
+                                    <div
+                                        key={option.value}
+                                        className={menuRowClasses}
+                                        onClick={() => handleSelect(openFacet.key, option.value)}
+                                    >
+                                        <span className='flex-auto'>{option.label}</span>
+                                        {filters[openFacet.key] === option.value && (
+                                            <Check className='size-5 text-sky-600' />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </animated.div>
             ))}
         </>
