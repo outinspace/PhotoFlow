@@ -83,20 +83,24 @@ const Albums = () => {
                     </select>
                     <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
                         <button
-                            className={`p-2 flex items-center gap-1 ${viewMode === 'thumbnail'
+                            className={`px-3 min-h-11 flex items-center gap-1 cursor-pointer ${viewMode === 'thumbnail'
                                 ? 'bg-slate-200 text-sky-500'
                                 : 'bg-slate-100 hover:bg-slate-200'
                                 }`}
                             onClick={() => setViewMode('thumbnail')}
+                            title='Grid view'
+                            aria-label='Grid view'
                         >
                             <ViewGrid className='size-5' />
                         </button>
                         <button
-                            className={`p-2 flex items-center gap-1 border-l border-slate-200 ${viewMode === 'list'
+                            className={`px-3 min-h-11 flex items-center gap-1 border-l border-slate-200 cursor-pointer ${viewMode === 'list'
                                 ? 'bg-slate-200 text-sky-500'
                                 : 'bg-slate-100 hover:bg-slate-200'
                                 }`}
                             onClick={() => setViewMode('list')}
+                            title='List view'
+                            aria-label='List view'
                         >
                             <List className='size-5' />
                         </button>
