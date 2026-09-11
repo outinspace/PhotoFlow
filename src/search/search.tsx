@@ -19,7 +19,7 @@ const EXAMPLE_QUERIES = ['beach', 'birthday cake', 'boats on a lake', 'documents
 const ModelDownload = ({ percent }: { percent: number }) => (
     <div className='space-y-1.5'>
         <span>Setting up search on this device — {percent}%</span>
-        <div className='h-1 w-full max-w-xs overflow-hidden rounded-full bg-gray-200'>
+        <div className='h-1 w-full max-w-xs overflow-hidden rounded-full bg-slate-200'>
             <div
                 className='h-full rounded-full bg-sky-500 transition-[width] duration-300'
                 style={{ width: `${percent}%` }}
