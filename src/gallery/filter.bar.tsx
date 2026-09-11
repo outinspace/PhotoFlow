@@ -127,6 +127,7 @@ export const FilterControls = ({ items, filters, setFilters }: FilterControlsPro
                 onChange={e => handleSelect({ sort: e.target.value })}
             >
                 <option value='capture-date'>Sort by Capture Date</option>
+                <option value='capture-date-asc'>Sort by Capture Date (Oldest First)</option>
                 <option value='upload-date'>Sort by Upload Date</option>
                 <option value='file-size'>Sort by File Size</option>
                 <option value='random'>Sort by Random</option>
@@ -279,15 +280,16 @@ export const useFilterBar = (items: Item[], enableUrlPersistence: boolean) => {
         };
 
         tempItems.sort((a, b) => {
-            if (filters.sort === 'capture-date') {
+            if (filters.sort === 'capture-date' || filters.sort === 'capture-date-asc') {
                 // Items nothing knew the date of go last rather than into the
-                // timeline under the upload time standing in for it. Sorting by
-                // upload date is how you go and look at them.
+                // timeline under the upload time standing in for it — in both
+                // directions. Sorting by upload date is how you go and look at them.
                 if (a.hasCaptureDate !== b.hasCaptureDate) {
                     return a.hasCaptureDate ? -1 : 1;
                 }
 
-                return b.captureTime.localeCompare(a.captureTime);
+                const newestFirst = b.captureTime.localeCompare(a.captureTime);
+                return filters.sort === 'capture-date' ? newestFirst : -newestFirst;
             } else if (filters.sort === 'upload-date') {
                 return b.primaryFile.uploadTimeUtc.localeCompare(a.primaryFile.uploadTimeUtc);
             } else if (filters.sort === 'file-size') {
