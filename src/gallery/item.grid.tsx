@@ -3,7 +3,7 @@ import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
 import { format } from 'date-fns';
-import { FilterSheet, useFilterBar, countActiveFilters } from './filter.bar';
+import { FilterMenu, useFilterBar, countActiveFilters } from './filter.bar';
 import { Filter, CheckCircle, Xmark } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
@@ -332,6 +332,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 )}
                             </button>
                         )}
+                        {!disableFilteringSorting && (
+                            <FilterMenu
+                                items={allItems}
+                                filters={filterProps.filters}
+                                setFilters={filterProps.setFilters}
+                                isOpen={filterBarVisible}
+                                onDismiss={() => setFilterBarVisible(false)}
+                            />
+                        )}
                     </div>
 
                     <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none'>
@@ -344,15 +353,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                     </div>
                 </div>
             </div>
-            {!disableFilteringSorting && (
-                <FilterSheet
-                    items={allItems}
-                    filters={filterProps.filters}
-                    setFilters={filterProps.setFilters}
-                    isOpen={filterBarVisible}
-                    onDismiss={() => setFilterBarVisible(false)}
-                />
-            )}
             {previewItemIndex !== null && (
                 <ItemPreview
                     readonly={readonly}

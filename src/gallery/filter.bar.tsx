@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { animated, useTransition } from '@react-spring/web';
 import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
+import { Check, NavArrowLeft, NavArrowRight } from 'iconoir-react';
 import { useAlbums } from '../api/useAlbums';
-import { BottomSheet } from '../common/bottom.sheet';
 
 interface FilterState {
     sort: string;
@@ -67,13 +68,35 @@ export const countActiveFilters = (filters: FilterState): number => {
     if (filters.device !== '') count++;
     return count;
 };
-interface FilterControlsProps {
-    items: Item[];
-    filters: FilterState;
-    setFilters: (value: FilterState) => any;
+const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+];
+
+interface FilterOption {
+    value: string;
+    label: string;
 }
 
-export const FilterControls = ({ items, filters, setFilters }: FilterControlsProps) => {
+interface Facet {
+    key: keyof FilterState;
+    label: string;
+    options: FilterOption[];
+}
+
+// Year, month, city, region and device are whatever the items themselves carry, so
+// the menu never offers a filter that would empty the grid.
+const useFacets = (items: Item[]): Facet[] => {
     const distinctValues = (selector: (i: Item) => string | number | null, isNumeric: boolean = false) => {
         const valueMap: Record<string | number, boolean> = items.reduce((distinctValues, item) => {
             const key = selector(item) ?? '';
@@ -101,107 +124,60 @@ export const FilterControls = ({ items, filters, setFilters }: FilterControlsPro
     const years = useMemo(() => distinctValues(i => getYear(i.captureTime), true), [items]);
     const months = useMemo(() => distinctValues(i => getMonth(i.captureTime), true), [items]);
 
-    const handleSelect = (filtersToUpdate: Partial<FilterState>) => {
-        const newFilters: FilterState = { ...filters, ...filtersToUpdate };
-
-        setFilters(newFilters);
-    };
-
-    return (
-        <div className='flex flex-col gap-2'>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.type}
-                onChange={e => handleSelect({ type: e.target.value })}
-            >
-                <option value=''>All Items</option>
-                <option value='favorites'>Favorites</option>
-                <option value='photos'>Photos</option>
-                <option value='videos'>Videos</option>
-                <option value='live-photos'>Live Photos</option>
-                <option value='unsorted'>Unsorted</option>
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.sort}
-                onChange={e => handleSelect({ sort: e.target.value })}
-            >
-                <option value='capture-date'>Sort by Capture Date</option>
-                <option value='capture-date-asc'>Sort by Capture Date (Oldest First)</option>
-                <option value='upload-date'>Sort by Upload Date</option>
-                <option value='file-size'>Sort by File Size</option>
-                <option value='random'>Sort by Random</option>
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.year}
-                onChange={e => handleSelect({ year: e.target.value })}
-            >
-                <option value=''>All Years</option>
-                {years.map(year => (
-                    <option key={year} value={year}>{year ?? 'Unknown'}</option>
-                ))}
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.month}
-                onChange={e => handleSelect({ month: e.target.value })}
-            >
-                <option value=''>All Months</option>
-                {months.map(month => (
-                    <option key={month} value={month}>{monthNames[month as number] ?? 'Unknown'}</option>
-                ))}
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.city}
-                onChange={e => handleSelect({ city: e.target.value })}
-            >
-                <option value=''>All Cities</option>
-                {cities.map(city => (
-                    <option key={city} value={city}>{city.toString().substring(0, 20)}</option>
-                ))}
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.region}
-                onChange={e => handleSelect({ region: e.target.value })}
-            >
-                <option value=''>All Regions</option>
-                {regions.map(region => (
-                    <option key={region} value={region}>{region}</option>
-                ))}
-            </select>
-            <select 
-                className='bg-white border border-slate-200 rounded-lg p-2 text-slate-900' 
-                value={filters.device}
-                onChange={e => handleSelect({ device: e.target.value })}
-            >
-                <option value=''>All Devices</option>
-                {devices.map(device => (
-                    <option key={device} value={device}>{device.toString().substr(0, 20)}</option>
-                ))}
-            </select>
-        </div>
-    );
+    return useMemo(() => [
+        {
+            key: 'type', label: 'Show', options: [
+                { value: '', label: 'All Items' },
+                { value: 'favorites', label: 'Favorites' },
+                { value: 'photos', label: 'Photos' },
+                { value: 'videos', label: 'Videos' },
+                { value: 'live-photos', label: 'Live Photos' },
+                { value: 'unsorted', label: 'Unsorted' }
+            ]
+        },
+        {
+            key: 'sort', label: 'Sort by', options: [
+                { value: 'capture-date', label: 'Capture Date' },
+                { value: 'capture-date-asc', label: 'Capture Date (Oldest First)' },
+                { value: 'upload-date', label: 'Upload Date' },
+                { value: 'file-size', label: 'File Size' },
+                { value: 'random', label: 'Random' }
+            ]
+        },
+        {
+            key: 'year', label: 'Year', options: [
+                { value: '', label: 'All Years' },
+                ...years.map(year => ({ value: year.toString(), label: year.toString() }))
+            ]
+        },
+        {
+            key: 'month', label: 'Month', options: [
+                { value: '', label: 'All Months' },
+                ...months.map(month => ({ value: month.toString(), label: monthNames[month as number] ?? 'Unknown' }))
+            ]
+        },
+        {
+            key: 'city', label: 'City', options: [
+                { value: '', label: 'All Cities' },
+                ...cities.map(city => ({ value: city.toString(), label: city.toString().substring(0, 20) }))
+            ]
+        },
+        {
+            key: 'region', label: 'Region', options: [
+                { value: '', label: 'All Regions' },
+                ...regions.map(region => ({ value: region.toString(), label: region.toString() }))
+            ]
+        },
+        {
+            key: 'device', label: 'Device', options: [
+                { value: '', label: 'All Devices' },
+                ...devices.map(device => ({ value: device.toString(), label: device.toString().substring(0, 20) }))
+            ]
+        }
+    ], [years, months, cities, regions, devices]);
 };
 
-const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-];
-
-interface FilterSheetProps {
+interface FilterMenuProps {
     items: Item[];
     filters: FilterState;
     setFilters: (value: FilterState) => any;
@@ -209,27 +185,138 @@ interface FilterSheetProps {
     onDismiss: () => any;
 }
 
-export const FilterSheet = ({ items, filters, setFilters, isOpen, onDismiss }: FilterSheetProps) => {
+// One anchored menu that drills down a level at a time: the top level lists each
+// filter with the value it currently holds, and picking a row swaps the panel for
+// that filter's values. Anchored rather than a sheet so the grid stays visible
+// behind it, and so the same thing happens on a phone and on a desktop.
+export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: FilterMenuProps) => {
+    const facets = useFacets(items);
+    const [openFacetKey, setOpenFacetKey] = useState<keyof FilterState | null>(null);
+    const openFacet = facets.find(facet => facet.key === openFacetKey);
     const activeFilterCount = countActiveFilters(filters);
-    const handleReset = () => {
-        setFilters(defaultFilterState);
+
+    // Closing leaves the panel where it was, so reset it — otherwise the next open
+    // lands inside whichever filter was touched last.
+    useEffect(() => {
+        if (!isOpen) {
+            setOpenFacetKey(null);
+        }
+    }, [isOpen]);
+
+    const menuTransitions = useTransition(isOpen, {
+        from: {
+            y: 20,
+            opacity: 0
+        },
+        enter: {
+            y: 0,
+            opacity: 1
+        },
+        leave: {
+            y: 20,
+            opacity: 0
+        },
+        config: { tension: 500 }
+    });
+
+    const shadowTransitions = useTransition(isOpen, {
+        from: {
+            opacity: 0
+        },
+        enter: {
+            opacity: 1
+        },
+        leave: {
+            opacity: 0
+        },
+        config: { tension: 500 }
+    });
+
+    const rowClasses = 'border-b last:border-none border-slate-200 px-3 py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2 cursor-pointer';
+
+    const handleSelect = (key: keyof FilterState, value: string) => {
+        setFilters({ ...filters, [key]: value });
+        setOpenFacetKey(null);
     };
 
     return (
-        <BottomSheet isOpen={isOpen} onDismiss={onDismiss}>
-            <div className='flex flex-col'>
-                <h2 className='text-xl font-bold text-slate-900 mb-3'>Filters</h2>
-                <FilterControls items={items} filters={filters} setFilters={setFilters} />
-                {activeFilterCount > 0 && (
-                    <button
-                        onClick={handleReset}
-                        className='mt-4 py-2 px-4 bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-900 font-medium rounded-lg transition-colors'
-                    >
-                        Reset Filters
-                    </button>
-                )}
-            </div>
-        </BottomSheet>
+        <>
+            {shadowTransitions((styles, state) => state && (
+                <animated.div
+                    className='fixed bg-black/50 top-0 bottom-0 left-0 right-0 z-20'
+                    style={{
+                        width: '10000px',
+                        height: '10000px',
+                        marginLeft: '-5000px',
+                        marginTop: '-5000px',
+                        ...styles
+                    }}
+                    onClick={() => onDismiss()}
+                />
+            ))}
+            {menuTransitions((styles, state) => state && (
+                <animated.div
+                    className='absolute left-0 bottom-0 z-20 my-12 w-72 max-h-[60vh] overflow-y-auto rounded-lg drop-shadow text-black'
+                    style={styles}
+                >
+                    {!openFacet && (
+                        <>
+                            {facets.map(facet => {
+                                const selected = facet.options.find(option => option.value === filters[facet.key]);
+
+                                return (
+                                    <div
+                                        key={facet.key}
+                                        className={rowClasses}
+                                        onClick={() => setOpenFacetKey(facet.key)}
+                                    >
+                                        <span className='shrink-0'>{facet.label}</span>
+                                        <span className={`flex-auto min-w-0 text-right truncate ${filters[facet.key] === facet.options[0].value ? 'text-slate-500' : 'text-sky-600'}`}>
+                                            {selected?.label ?? facet.options[0].label}
+                                        </span>
+                                        <NavArrowRight className='size-4 text-slate-400' />
+                                    </div>
+                                );
+                            })}
+                            {activeFilterCount > 0 && (
+                                <div
+                                    className={`${rowClasses} font-medium`}
+                                    onClick={() => {
+                                        setFilters(defaultFilterState);
+                                        onDismiss();
+                                    }}
+                                >
+                                    Reset Filters
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {openFacet && (
+                        <div className='filter-panel-in'>
+                            <div
+                                className={`${rowClasses} gap-1 font-semibold bg-slate-100`}
+                                onClick={() => setOpenFacetKey(null)}
+                            >
+                                <NavArrowLeft className='size-4 text-slate-500' />
+                                {openFacet.label}
+                            </div>
+                            {openFacet.options.map(option => (
+                                <div
+                                    key={option.value}
+                                    className={rowClasses}
+                                    onClick={() => handleSelect(openFacet.key, option.value)}
+                                >
+                                    <span className='flex-auto'>{option.label}</span>
+                                    {filters[openFacet.key] === option.value && (
+                                        <Check className='size-5 text-sky-600' />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </animated.div>
+            ))}
+        </>
     );
 };
 
