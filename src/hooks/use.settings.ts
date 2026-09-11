@@ -59,7 +59,7 @@ const parseGridColumns = (stored: string | null) => {
 
 export const useGridColumns = () => useStoredSetting('settings_grid_columns', parseGridColumns);
 
-export const SLIDESHOW_INTERVAL_OPTIONS_SECONDS = [3, 4, 7, 10];
+export const SLIDESHOW_INTERVAL_OPTIONS_SECONDS = [3, 5, 7, 10];
 
 const parseSlideshowInterval = (stored: string | null) => {
     const value = Number(stored);
