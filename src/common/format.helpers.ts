@@ -9,3 +9,8 @@ export function formatBytes(bytes: number, decimals = 2) {
 
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 };
+
+// "1 Videos" was on screen under the menu for anyone with a single video.
+export function pluralize(count: number, singular: string, plural = `${singular}s`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+};

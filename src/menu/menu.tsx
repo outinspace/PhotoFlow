@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { router } from '../routes';
 import PageHeader from '../common/page.header';
 import { useItems } from '../api/useItems';
-import { formatBytes } from '../common/format.helpers';
+import { formatBytes, pluralize } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
 import { clearStorageConfig } from '../storage/config';
 import { clearCachedCatalog } from '../storage/catalog';
@@ -136,10 +136,10 @@ const GalleryStats = () => {
 
     return (
         <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light text-xs'>
-            <div>{`${photosCount} Photos · ${videosCount} Videos · ${formattedBytes} Total`}</div>
+            <div>{`${pluralize(photosCount, 'Photo')} · ${pluralize(videosCount, 'Video')} · ${formattedBytes} Total`}</div>
             {processingItemsCount > 0 && (
                 <div>
-                    {`${processingItemsCount} items processing`}
+                    {`${pluralize(processingItemsCount, 'item')} processing`}
                 </div>
             )}
             <br />
