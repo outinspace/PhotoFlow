@@ -1,10 +1,15 @@
 @import "tailwindcss";
 
-body {
-  font-family: "Inter Variable";
+/* Every colour in the app is written for a light background. Without this the
+   browser paints its own canvas, so on a machine set to dark mode the pages that
+   are not full-bleed photos render near-black text on near-black. */
+:root {
+    color-scheme: light;
 }
 
 body {
+    font-family: "Inter Variable";
+    background: #f8fafc;
     margin: 0;
     overflow: hidden;
 }
