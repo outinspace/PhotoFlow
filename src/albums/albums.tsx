@@ -106,7 +106,13 @@ const Albums = () => {
                         </button>
                     </div>
                 </div>
-                {viewMode === 'thumbnail' ? (
+                {sortedAlbums.length === 0 ? (
+                    // The only way to make an album is from a gallery selection, which
+                    // is not somewhere you would think to look, so the empty state says so.
+                    <div className='p-4 text-sm text-slate-500'>
+                        No albums yet. Select photos in the gallery, then choose Create New Album.
+                    </div>
+                ) : viewMode === 'thumbnail' ? (
                     <div
                         className='w-full p-4 grid justify-items-center justify-around'
                         style={{
