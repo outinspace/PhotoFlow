@@ -2,12 +2,18 @@ import { useMemo, useState, useEffect } from 'react';
 import { useAlbumsWithItems } from '../api/useAlbumsWithItems';
 import { AlbumWithItems } from '../types';
 import { useNavigate } from '@tanstack/react-router';
-import { ViewGrid, List } from 'iconoir-react';
+import { NavArrowDown, ViewGrid, List } from 'iconoir-react';
 import { parseISO } from 'date-fns';
 import { TopBar } from '../common/top.bar';
 import { MediaImage } from '../common/media.image';
+import { OptionMenu } from '../common/option.menu';
 
 type SortOption = 'modified-recent' | 'name-asc';
+
+const SORT_OPTIONS = [
+    { value: 'modified-recent', label: 'Modified Date' },
+    { value: 'name-asc', label: 'Name' }
+];
 type ViewMode = 'thumbnail' | 'list';
 
 const STORAGE_KEYS = {
@@ -23,6 +29,8 @@ const Albums = () => {
         const stored = localStorage.getItem(STORAGE_KEYS.SORT_OPTION);
         return (stored === 'modified-recent' || stored === 'name-asc') ? stored : 'modified-recent';
     });
+
+    const [sortMenuOpen, setSortMenuOpen] = useState(false);
 
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         const stored = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
@@ -73,14 +81,22 @@ const Albums = () => {
             />
             <div className='flex flex-col overflow-auto'>
                 <div className='m-4 flex items-center gap-4 justify-between'>
-                    <select
-                        className='bg-slate-100 p-2 rounded-lg'
-                        value={sortOption}
-                        onChange={e => setSortOption(e.target.value as SortOption)}
-                    >
-                        <option value='modified-recent'>Sort by Modified Date</option>
-                        <option value='name-asc'>Sort by Name</option>
-                    </select>
+                    <div className='relative'>
+                        <button
+                            className='flex items-center gap-1 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 min-h-11 rounded-lg cursor-pointer'
+                            onClick={() => setSortMenuOpen(true)}
+                        >
+                            Sort by {SORT_OPTIONS.find(option => option.value === sortOption)?.label}
+                            <NavArrowDown className='size-4 text-slate-500' />
+                        </button>
+                        <OptionMenu
+                            isOpen={sortMenuOpen}
+                            onDismiss={() => setSortMenuOpen(false)}
+                            options={SORT_OPTIONS}
+                            value={sortOption}
+                            onSelect={value => setSortOption(value as SortOption)}
+                        />
+                    </div>
                     <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
                         <button
                             className={`px-3 min-h-11 flex items-center gap-1 cursor-pointer ${viewMode === 'thumbnail'

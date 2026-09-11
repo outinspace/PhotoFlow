@@ -4,6 +4,7 @@ import { Item } from '../types';
 import { getMonth, getYear } from 'date-fns';
 import { Check, NavArrowLeft, NavArrowRight } from 'iconoir-react';
 import { useAlbums } from '../api/useAlbums';
+import { menuRowClasses } from '../common/option.menu';
 
 interface FilterState {
     sort: string;
@@ -232,8 +233,6 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
         config: { tension: 500 }
     });
 
-    const rowClasses = 'border-b last:border-none border-slate-200 px-3 py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2 cursor-pointer';
-
     const handleSelect = (key: keyof FilterState, value: string) => {
         setFilters({ ...filters, [key]: value });
         setOpenFacetKey(null);
@@ -267,7 +266,7 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
                                 return (
                                     <div
                                         key={facet.key}
-                                        className={rowClasses}
+                                        className={menuRowClasses}
                                         onClick={() => setOpenFacetKey(facet.key)}
                                     >
                                         <span className='shrink-0'>{facet.label}</span>
@@ -280,7 +279,7 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
                             })}
                             {activeFilterCount > 0 && (
                                 <div
-                                    className={`${rowClasses} font-medium`}
+                                    className={`${menuRowClasses} font-medium`}
                                     onClick={() => {
                                         setFilters(defaultFilterState);
                                         onDismiss();
@@ -294,7 +293,7 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
                     {openFacet && (
                         <div className='filter-panel-in'>
                             <div
-                                className={`${rowClasses} gap-1 font-semibold bg-slate-100`}
+                                className={`${menuRowClasses} gap-1 font-semibold bg-slate-100`}
                                 onClick={() => setOpenFacetKey(null)}
                             >
                                 <NavArrowLeft className='size-4 text-slate-500' />
@@ -303,7 +302,7 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
                             {openFacet.options.map(option => (
                                 <div
                                     key={option.value}
-                                    className={rowClasses}
+                                    className={menuRowClasses}
                                     onClick={() => handleSelect(openFacet.key, option.value)}
                                 >
                                     <span className='flex-auto'>{option.label}</span>
