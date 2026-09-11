@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 
 interface TopBarButton {
     icon: any;
+    label: string;
     className?: string;
     onClick: Function;
     children?: ReactNode;
@@ -22,14 +23,16 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
     return (
         // Sticky so a page that scrolls its whole body keeps the bar. Most pages put
         // it outside their scrolling element instead, where this is simply inert.
-        <div className='sticky top-0 z-10 flex justify-between items-center bg-white p-3 border-b border-slate-200'>
+        <div className='sticky top-0 z-10 flex justify-between items-center bg-white px-2 py-1 min-h-14 border-b border-slate-200'>
             {!hideBack && (
-                <div className='hover:bg-slate-200 rounded p-1'>
-                    <ArrowLeft
-                        className='size-6 text-sky-500'
-                        onClick={() => history.go(-1)}
-                    />
-                </div>
+                <button
+                    className='hover:bg-slate-200 rounded p-2 cursor-pointer'
+                    onClick={() => history.go(-1)}
+                    title='Back'
+                    aria-label='Back'
+                >
+                    <ArrowLeft className='size-6 text-sky-500' />
+                </button>
             )}
             <div
                 className='font-bold text-slate-900 truncate text-ellipsis'
@@ -40,13 +43,16 @@ export const TopBar = ({ title, rightButtons, onTitleClick, hideBack }: Props) =
             </div>
             <div className='flex'>
                 {rightButtons?.map((btn, i) => (
-                    <div key={i} className='ml-2 p-1 hover:bg-slate-200 rounded text-slate-500'>
-                        <btn.icon
-                            className={`size-6 ${btn.className}`}
-                            onClick={() => btn.onClick()}
-                        />
+                    <button
+                        key={i}
+                        className='ml-2 p-2 hover:bg-slate-200 rounded text-slate-500 cursor-pointer'
+                        onClick={() => btn.onClick()}
+                        title={btn.label}
+                        aria-label={btn.label}
+                    >
+                        <btn.icon className={`size-6 ${btn.className}`} />
                         {btn.children}
-                    </div>
+                    </button>
                 ))}
             </div>
         </div>

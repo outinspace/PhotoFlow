@@ -105,6 +105,7 @@ export const AlbumLayout = () => {
                 rightButtons={[
                     {
                         icon: Ellipsis,
+                        label: 'Album actions',
                         className: 'text-slate-900',
                         onClick: () => setActionMenuActive(true),
                         children: (
