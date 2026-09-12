@@ -6,6 +6,7 @@ are only ever read here, never rewritten.
 """
 
 import functools
+import json
 import os
 import subprocess
 import threading
@@ -21,9 +22,11 @@ PREVIEW_VERSION = 1
 
 TILE_WIDTH = 300
 PREVIEW_WIDTH = 2000
+PREVIEW_VIDEO_HEIGHT = 1080
 THUMBHASH_MAX = 100
 
 TRANSCODE_TIMEOUT_SECONDS = 60 * 60
+PROBE_TIMEOUT_SECONDS = 60
 
 
 def run(context) -> None:
@@ -107,9 +110,10 @@ def _derive_video(context, entry, record) -> None:
     if not entry.needs_preview:
         return
 
-    # Every video is transcoded, including one already in a browser-safe codec: what
-    # a camera writes is meant for a file, not for a network, and a clip that plays
-    # in the browser is not the same thing as one that starts playing promptly.
+    # Every video gets a preview of its own, including one already in a browser-safe
+    # codec: what a camera writes is meant for a file, not for a network, and a clip
+    # that plays in the browser is not the same thing as one that starts playing
+    # promptly. Making that preview is a re-encode only when the clip needs one.
     preview_path = os.path.join(context.work_dir, f"{entry.file_id}.preview.mp4")
     _transcode(entry.local_path, preview_path, context.config)
     context.storage.upload(preview_path, keys.preview(entry.file_id, ".mp4"), "video/mp4")
@@ -184,20 +188,105 @@ def _encoder_arguments(config) -> list[str]:
 
 
 def _transcode(source: str, destination: str, config) -> None:
+    """Make the mp4 the gallery streams, re-encoding only when there is a reason to.
+
+    A clip that already is what the encoder would emit needs nothing but its moov
+    atom moved to the front, and that is a copy of the same bytes rather than a
+    second pass through x264: about a second instead of ten, with no generation
+    loss. The faststart flag is on both paths because it is the whole point of the
+    cheap one.
+    """
+    if _is_already_preview_ready(source):
+        encoding = ["-c", "copy"]
+    else:
+        encoding = [
+            "-vf", f"scale=-2:'min({PREVIEW_VIDEO_HEIGHT},ih)'",
+            *_encoder_arguments(config),
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k",
+        ]
+
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error",
             "-i", source,
-            "-vf", "scale=-2:'min(1080,ih)'",
-            *_encoder_arguments(config),
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "128k",
+            *encoding,
             "-movflags", "+faststart",
             destination,
         ],
         check=True,
         timeout=TRANSCODE_TIMEOUT_SECONDS,
     )
+
+
+def _is_already_preview_ready(source: str) -> bool:
+    """Whether copying this clip's streams gives what the encoder would have made.
+
+    Each test below matches something the encode forces: H.264, 8-bit 4:2:0, no
+    taller than the cap, and AAC audio if there is any. Anything else — HEVC from a
+    recent iPhone, 10-bit, a 4K source, the PCM a camera writes — is re-encoded, and
+    so is a clip ffprobe cannot read, because the cheap path has to be the certain
+    one.
+
+    ponytail: bitrate is not checked, so a 20Mbps clip from a camera is copied at
+    its full size rather than shrunk to the ~3Mbps the encode would have produced.
+    Add a ceiling on bit_rate here if preview downloads matter more than CI minutes.
+    """
+    try:
+        streams = _probe(source)
+    except Exception:
+        return False
+
+    video = [stream for stream in streams if stream.get("codec_type") == "video"]
+    audio = [stream for stream in streams if stream.get("codec_type") == "audio"]
+
+    if len(video) != 1 or len(audio) > 1:
+        return False
+    if audio and audio[0].get("codec_name") != "aac":
+        return False
+    if video[0].get("codec_name") != "h264" or video[0].get("pix_fmt") != "yuv420p":
+        return False
+
+    height = _display_height(video[0])
+
+    return height is not None and height <= PREVIEW_VIDEO_HEIGHT
+
+
+def _probe(source: str) -> list[dict]:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_streams", "-of", "json", source],
+        capture_output=True,
+        check=True,
+        timeout=PROBE_TIMEOUT_SECONDS,
+    )
+    return json.loads(result.stdout).get("streams", [])
+
+
+def _display_height(stream) -> int | None:
+    """The height a browser shows, which is not the stored one for phone video.
+
+    A phone records portrait as a landscape frame plus a rotation matrix, so a
+    1920x1080 stream is displayed 1080x1920. ffmpeg applies that rotation before the
+    scale filter runs, so the cap above has always meant this number; reading the
+    stored height instead would wave every portrait clip through at three times the
+    pixels a preview is supposed to have.
+    """
+    width, height = stream.get("width"), stream.get("height")
+    if not width or not height:
+        return None
+
+    # Where ffmpeg 6 and later report it, falling back to the tag older files carry
+    # as a string. An unreadable value returns None, which asks for the encode.
+    rotation = next(
+        (side["rotation"] for side in stream.get("side_data_list", []) if "rotation" in side),
+        stream.get("tags", {}).get("rotate", 0),
+    )
+    try:
+        quarter_turned = abs(int(float(rotation))) % 180 == 90
+    except (TypeError, ValueError):
+        return None
+
+    return width if quarter_turned else height
 
 
 def _register_heif() -> None:

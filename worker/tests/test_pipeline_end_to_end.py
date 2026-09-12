@@ -40,6 +40,31 @@ def make_video(path, seconds=1, height=480):
     return path.read_bytes()
 
 
+def video_stream_md5(path) -> str:
+    """A digest of the encoded video stream alone, ignoring how it is packaged.
+
+    This is what tells a remux from a re-encode: moving the moov atom rewrites the
+    container and leaves every coded frame identical, so the digest only changes
+    when the pixels went back through an encoder.
+    """
+    result = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-map", "0:v", "-c", "copy", "-f", "md5", "-"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def rewrite_clip(source, destination, *arguments, before_input=()):
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", *before_input, "-i", str(source),
+         *arguments, str(destination)],
+        check=True,
+    )
+    return destination
+
+
 def run_pipeline(storage, work_dir):
     context = Context(config=config(), storage=storage, work_dir=str(work_dir))
     discover.run(context)
@@ -112,8 +137,9 @@ def test_a_live_photo_pair_becomes_one_item(tmp_path):
 
 
 @requires_media_tools
-def test_a_clip_already_in_a_browser_safe_codec_is_still_transcoded(tmp_path):
-    storage = MemoryStorage({keys.INCOMING + "CLIP.MP4": make_video(tmp_path / "clip.mp4")})
+def test_a_clip_already_in_a_browser_safe_codec_is_remuxed_not_re_encoded(tmp_path):
+    source = tmp_path / "clip.mp4"
+    storage = MemoryStorage({keys.INCOMING + "CLIP.MP4": make_video(source)})
 
     context = run_pipeline(storage, tmp_path)
     file = next(iter(context.items.values())).files[0]
@@ -121,6 +147,73 @@ def test_a_clip_already_in_a_browser_safe_codec_is_still_transcoded(tmp_path):
     assert file.tileVersion == derive.TILE_VERSION
     assert file.previewVersion == derive.PREVIEW_VERSION
     assert storage.exists(keys.preview(file.fileId, ".mp4"))
+
+    # It still gets a preview object of its own rather than being served as its
+    # original, but the frames inside it are the ones that arrived.
+    preview = tmp_path / "preview.mp4"
+    preview.write_bytes(storage.get(keys.preview(file.fileId, ".mp4")))
+    assert video_stream_md5(preview) == video_stream_md5(source)
+
+
+@requires_media_tools
+def test_an_oversized_clip_really_is_re_encoded(tmp_path):
+    source = tmp_path / "big.mp4"
+    storage = MemoryStorage({keys.INCOMING + "BIG.MP4": make_video(source, height=1440)})
+
+    context = run_pipeline(storage, tmp_path)
+    file = next(iter(context.items.values())).files[0]
+
+    preview = tmp_path / "preview.mp4"
+    preview.write_bytes(storage.get(keys.preview(file.fileId, ".mp4")))
+    assert video_stream_md5(preview) != video_stream_md5(source)
+
+
+@requires_media_tools
+def test_a_clip_the_encoder_would_only_repackage_is_copied(tmp_path):
+    plain = tmp_path / "clip.mp4"
+    make_video(plain)
+
+    # Exactly at the cap, which is the boundary the encode leaves untouched.
+    at_the_cap = tmp_path / "1080.mp4"
+    make_video(at_the_cap, height=1080)
+
+    with_aac = rewrite_clip(plain, tmp_path / "aac.mp4",
+                            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                            "-shortest", "-c:v", "copy", "-c:a", "aac")
+
+    for clip in (plain, at_the_cap, with_aac):
+        assert derive._is_already_preview_ready(str(clip)), clip.name
+
+
+@requires_media_tools
+def test_a_clip_the_encoder_would_change_is_not_copied(tmp_path):
+    source = tmp_path / "clip.mp4"
+    make_video(source, height=1080)
+
+    taller = rewrite_clip(source, tmp_path / "tall.mp4", "-vf", "scale=-2:1440",
+                          "-c:v", "libx264", "-pix_fmt", "yuv420p")
+    hevc = rewrite_clip(source, tmp_path / "hevc.mp4", "-c:v", "libx265",
+                        "-tag:v", "hvc1", "-pix_fmt", "yuv420p")
+    ten_bit = rewrite_clip(source, tmp_path / "deep.mp4", "-c:v", "libx264",
+                           "-pix_fmt", "yuv420p10le")
+    # A phone writes portrait as a landscape frame plus a rotation matrix, so this
+    # one is 1920x1080 on disk and 1080x1920 on screen.
+    portrait = rewrite_clip(source, tmp_path / "portrait.mp4", "-c", "copy",
+                            before_input=("-display_rotation", "90"))
+    pcm = rewrite_clip(source, tmp_path / "pcm.mov",
+                       "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                       "-shortest", "-c:v", "copy", "-c:a", "pcm_s16le")
+
+    for clip in (taller, hevc, ten_bit, portrait, pcm):
+        assert not derive._is_already_preview_ready(str(clip)), clip.name
+
+
+@requires_media_tools
+def test_a_clip_ffprobe_cannot_read_is_left_to_the_encoder(tmp_path):
+    broken = tmp_path / "broken.mp4"
+    broken.write_bytes(b"not a video")
+
+    assert not derive._is_already_preview_ready(str(broken))
 
 
 @requires_media_tools
