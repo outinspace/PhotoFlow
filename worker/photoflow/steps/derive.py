@@ -180,7 +180,12 @@ def _encoder_arguments(config) -> list[str]:
     if _has_hardware_encoder():
         # VideoToolbox has no CRF; -q:v is its own scale, where higher is better.
         return ["-c:v", "h264_videotoolbox", "-q:v", str(config.video_quality_hardware)]
-    return ["-c:v", "libx264", "-preset", "fast", "-crf", str(config.video_quality_software)]
+    # veryfast rather than fast: it encodes in two thirds of the time for a file of
+    # about the same size, since CRF holds quality and the preset only trades speed
+    # against compression. The next two steps down are a false economy — superfast
+    # is barely quicker again and more than doubles the file, and ultrafast trebles
+    # it, both having dropped CABAC.
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(config.video_quality_software)]
 
 
 def _transcode(source: str, destination: str, config) -> None:
