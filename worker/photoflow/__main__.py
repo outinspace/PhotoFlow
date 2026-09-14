@@ -35,6 +35,12 @@ def _main() -> int:
              "large library; leave it alone in CI, where a runner has two cores.",
     )
     parser.add_argument(
+        "--env", metavar="FILE",
+        help="settings file to use instead of worker/.env, for a second bucket on "
+             "the same machine. Only needed for install and uninstall; the "
+             "installed agent carries its settings with it.",
+    )
+    parser.add_argument(
         "--until-empty", action="store_true",
         help="keep running batches of PHOTOFLOW_MAX_FILES_PER_RUN until incoming/ is "
              "empty. Each batch is published before the next starts, so stopping or "
@@ -46,19 +52,19 @@ def _main() -> int:
         print("--workers must be at least 1", file=sys.stderr)
         return 2
 
-    if arguments.command == "uninstall":
-        return launchd.uninstall()
-
     try:
-        config = Config.from_env()
+        config = Config.from_env(arguments.env)
     except ConfigError as error:
         print(f"Configuration error: {error}", file=sys.stderr)
         launchd.report_failure(f"Configuration error: {error}")
         return 2
 
+    if arguments.command == "uninstall":
+        return launchd.uninstall(config.bucket)
+
     if arguments.command == "install":
         try:
-            return launchd.install()
+            return launchd.install(config.bucket)
         except ValueError as error:
             print(error, file=sys.stderr)
             return 2
@@ -98,7 +104,7 @@ def _main() -> int:
     _ping_healthcheck(config, ok=not failed)
 
     if failed:
-        launchd.report_failure("\n".join(f"{r.name}: {r.error}" for r in failed))
+        launchd.report_failure("\n".join(f"{r.name}: {r.error}" for r in failed), config.bucket)
 
     return 1 if failed else 0
 

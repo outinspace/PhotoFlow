@@ -17,17 +17,30 @@ import subprocess
 import sys
 from pathlib import Path
 
+# One agent per bucket, so a Mac can process several libraries. Bucket names are
+# limited to letters, digits, dots and dashes, which are safe in a label and a path.
 LABEL = "space.outin.photoflow"
-PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
-LOG = Path.home() / "Library" / "Logs" / "photoflow.log"
-FAILURE_NOTE = Path.home() / "Library" / "Logs" / "photoflow-failed.txt"
+LOGS = Path.home() / "Library" / "Logs"
+FAILURE_NOTE = LOGS / "photoflow-failed.txt"
 TOOLS = ("ffmpeg", "exiftool")
 DEFAULT_TIME = "09:00"
 # The checkout's worker/ directory when running from one; site-packages otherwise.
 PROJECT = Path(__file__).resolve().parents[1]
 
 
-def install() -> int:
+def label(bucket: str) -> str:
+    return f"{LABEL}.{bucket}"
+
+
+def plist_path(bucket: str) -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / f"{label(bucket)}.plist"
+
+
+def log_path(bucket: str) -> Path:
+    return LOGS / f"photoflow-{bucket}.log"
+
+
+def install(bucket: str) -> int:
     if sys.platform != "darwin":
         print("install only knows launchd; on another OS schedule `uv run worker` yourself.", file=sys.stderr)
         return 2
@@ -38,27 +51,28 @@ def install() -> int:
         return 2
 
     hour, minute = ask_time()
+    path = plist_path(bucket)
 
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    PLIST.parent.mkdir(parents=True, exist_ok=True)
-    with open(PLIST, "wb") as handle:
-        plistlib.dump(plist(hour, minute), handle)
-    PLIST.chmod(0o600)  # it holds the bucket key
+    LOGS.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as handle:
+        plistlib.dump(plist(bucket, hour, minute), handle)
+    path.chmod(0o600)  # it holds the bucket key
 
-    _launchctl("bootout", f"gui/{os.getuid()}/{LABEL}", check=False)
-    _launchctl("bootstrap", f"gui/{os.getuid()}", str(PLIST))
+    _launchctl("bootout", f"gui/{os.getuid()}/{label(bucket)}", check=False)
+    _launchctl("bootstrap", f"gui/{os.getuid()}", str(path))
 
-    print(f"Installed. Runs daily at {hour:02d}:{minute:02d}; a run missed while asleep happens on wake.")
-    print(f"Log: {LOG}")
-    print(f"Run now: launchctl kickstart gui/{os.getuid()}/{LABEL}")
+    print(f"Installed for {bucket}. Runs daily at {hour:02d}:{minute:02d}; a run missed while asleep happens on wake.")
+    print(f"Log: {log_path(bucket)}")
+    print(f"Run now: launchctl kickstart gui/{os.getuid()}/{label(bucket)}")
     print("Re-run install after changing any PHOTOFLOW_* setting.")
     return 0
 
 
-def uninstall() -> int:
-    _launchctl("bootout", f"gui/{os.getuid()}/{LABEL}", check=False)
-    PLIST.unlink(missing_ok=True)
-    print("Uninstalled.")
+def uninstall(bucket: str) -> int:
+    _launchctl("bootout", f"gui/{os.getuid()}/{label(bucket)}", check=False)
+    plist_path(bucket).unlink(missing_ok=True)
+    print(f"Uninstalled for {bucket}.")
     return 0
 
 
@@ -92,23 +106,23 @@ def program() -> list[str]:
     return [sys.executable, "-m", "photoflow"]
 
 
-def plist(hour: int, minute: int) -> dict:
+def plist(bucket: str, hour: int, minute: int) -> dict:
     # The settings are baked in at install time, so the agent needs no .env and no
     # working directory. PATH is copied too: launchd's own is bare, and ffmpeg and
     # exiftool live wherever Homebrew put them.
     environment = {k: v for k, v in os.environ.items() if k.startswith("PHOTOFLOW_")}
     environment["PATH"] = os.environ.get("PATH", "/usr/bin:/bin")
     return {
-        "Label": LABEL,
+        "Label": label(bucket),
         "ProgramArguments": program(),
         "StartCalendarInterval": {"Hour": hour, "Minute": minute},
-        "StandardOutPath": str(LOG),
-        "StandardErrorPath": str(LOG),
+        "StandardOutPath": str(log_path(bucket)),
+        "StandardErrorPath": str(log_path(bucket)),
         "EnvironmentVariables": environment,
     }
 
 
-def report_failure(reason: str) -> None:
+def report_failure(reason: str, bucket: str | None = None) -> None:
     """Make a failed unattended run visible: write a short note and open it.
 
     Only when there is no terminal to have printed to, so a run started by hand
@@ -120,9 +134,9 @@ def report_failure(reason: str) -> None:
     try:
         FAILURE_NOTE.parent.mkdir(parents=True, exist_ok=True)
         FAILURE_NOTE.write_text(
-            "Photoflow could not process new photos.\n\n"
+            f"Photoflow could not process new photos{f' in {bucket}' if bucket else ''}.\n\n"
             f"{reason.strip()}\n\n"
-            f"Full log: {LOG}\n"
+            f"Full log: {log_path(bucket) if bucket else LOGS}\n"
             "It tries again at the next scheduled run. To try now, run `uv run worker` in a terminal.\n"
         )
         subprocess.run(["open", "-a", "TextEdit", str(FAILURE_NOTE)], check=False)

@@ -10,9 +10,11 @@ def test_plist_runs_this_interpreter_with_the_photoflow_settings(monkeypatch):
     monkeypatch.setenv("PHOTOFLOW_S3_BUCKET", "photos")
     monkeypatch.setenv("UNRELATED", "no")
 
-    generated = plistlib.loads(plistlib.dumps(launchd.plist(9, 30)))
+    generated = plistlib.loads(plistlib.dumps(launchd.plist("photos", 9, 30)))
 
-    assert generated["Label"] == launchd.LABEL
+    # One agent and one log per bucket, so two libraries can share a Mac.
+    assert generated["Label"] == "space.outin.photoflow.photos"
+    assert generated["StandardOutPath"].endswith("photoflow-photos.log")
     assert generated["StartCalendarInterval"] == {"Hour": 9, "Minute": 30}
     # In this checkout the agent goes through uv run, so a git pull is picked up.
     assert generated["ProgramArguments"][1:] == ["run", "--directory", str(launchd.PROJECT), "worker"]

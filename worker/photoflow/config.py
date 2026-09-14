@@ -56,10 +56,13 @@ class Config:
     max_bytes_per_run: int = 6 * 1024**3
 
     @staticmethod
-    def from_env() -> "Config":
-        # Settings come from worker/.env in a checkout, or a .env in the current
-        # directory for an installed copy. Real environment variables take
-        # precedence, so a stale local file can never override what CI passes in.
+    def from_env(env_file: str | None = None) -> "Config":
+        # Settings come from a file named on the command line, else worker/.env in a
+        # checkout, else a .env in the current directory. The first value loaded
+        # wins, and real environment variables beat all of them, so a stale local
+        # file can never override what CI passes in.
+        if env_file:
+            load_dotenv(env_file)
         load_dotenv(ENV_FILE)
         load_dotenv()
 

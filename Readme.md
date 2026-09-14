@@ -149,6 +149,16 @@ only needs to write under `incoming/`. A write-only key restricted to that prefi
 worth making for the phone, since a leaked one can add junk but cannot read or
 destroy anything.
 
+### A second bucket on the same Mac
+
+Each bucket gets its own agent and log, so install once per bucket. Keep a settings
+file per bucket and name it when installing:
+
+```bash
+uv run worker --env ~/family.env install
+uv run worker --env ~/family.env uninstall
+```
+
 ### Other S3 providers
 
 Anything S3-compatible with CORS support works. The worker's `.env` takes the
