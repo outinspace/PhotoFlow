@@ -1,20 +1,18 @@
 # PhotoFlow
 
-A self-hosted photo library that runs with **no server and no API**. It is an
-alternative to iCloud Photos and Google Photos for people who want to keep their
-photos as ordinary files in a bucket they control.
+A photo library with **no server and no API**. An alternative to iCloud Photos and
+Google Photos for people who want their photos kept as ordinary files in a bucket
+they control.
 
-Your photos live in your own S3-compatible bucket. A scheduled job turns new uploads
-into a static catalog, and the app reads that catalog straight out of the bucket.
-There is no backend between the two, so the bill is your storage and nothing else.
-[Backblaze B2](https://www.backblaze.com/cloud-storage) is the cheap option and the
-one to start with. The scheduled job runs on a Mac you already own, or on GitHub
-Actions if you would rather not involve one.
+Your photos live in your own [Backblaze B2](https://www.backblaze.com/cloud-storage)
+bucket. A small program on your Mac runs once a day and turns new uploads into a
+static catalog, and the app at [photoflow.outin.space](https://photoflow.outin.space)
+reads that catalog straight out of the bucket. There is nothing in between, so the
+bill is your storage and nothing else.
 
-The bucket stays **private**. Every read is signed in the browser with a bucket API
-key that only ever exists in that browser's local storage, so nothing is world
-readable and there is no server holding a credential. Deleting the key ends access to
-everything ever signed with it.
+The bucket stays **private**. Every read is signed in your browser with a key that
+never leaves it. There is no server holding a credential, and deleting the key ends
+access to everything ever signed with it.
 
 ## What it does
 
@@ -34,32 +32,104 @@ everything ever signed with it.
 
 ## Status
 
-Photoflow is young. Its author uses it every day, and the catalog has a migration
+PhotoFlow is young. Its author uses it every day, and the catalog has a migration
 system so upgrades carry an existing library forward, but expect rough edges. Open an
 issue when something breaks.
 
 ## Setup
 
-You need an S3-compatible bucket, a Mac or a GitHub account, and somewhere to host a static
-site (Cloudflare Pages, Netlify and GitHub Pages are all free at this scale).
+You need a Backblaze account and a Mac that is usually switched on.
 
-### 1. Create a private bucket
+### 1. Create a bucket and two keys
 
-Create the bucket and **keep it private**. The connect screen refuses a public one:
-it writes a one-byte object, tries to read it back with no signature, and will not
-connect if that succeeds.
+In Backblaze, create a bucket. Make it **private**, and turn on **object versioning**
+so a mistake outside PhotoFlow can be undone.
 
-**Set a CORS rule**, or the browser is refused before a request leaves the page.
-Running `uv run worker` from a terminal offers to write it for you and to check
-that the bucket is private. It asks nothing when both are already right, and asks
-nothing at all in CI, where there is nobody to answer. Setting it by hand works too.
+Then create two application keys, each restricted to that bucket and nothing else:
 
-Reads carry their signature in the query string and are not preflighted; writes carry
-it in headers and are, which is why `PUT` and the signing headers have to be allowed:
+- **A worker key** with read and write access. The program on your Mac uses it.
+- **An app key** with read, write and list access. Your browser uses it. Deleting
+  this key is the emergency lever: it ends access to every URL ever signed with it,
+  share links included.
+
+### 2. Install the worker on your Mac
+
+```bash
+brew install uv ffmpeg exiftool
+git clone https://github.com/outinspace/photoflow
+cd photoflow/worker
+cp .env.example .env
+```
+
+Open `.env` and fill in your bucket's endpoint and name, the region from the
+endpoint, and the worker key. Then run it once by hand:
+
+```bash
+uv run worker
+```
+
+The first run checks that the bucket is private and offers to set the access rule
+the app needs. When both are already right it says nothing. Now schedule it. It
+asks what time of day to run, and suggests 09:00:
+
+```bash
+uv run worker install
+```
+
+A run missed while the Mac was asleep happens when it wakes. A Mac that is switched
+off skips that day; your photos are still safe in the bucket and get catalogued next
+time. If a run fails, a note saying why opens in TextEdit, and the app shows a banner
+once no run has been recorded for three days.
+
+To update, `git pull` in the checkout; the next run uses the new code. To stop,
+`uv run worker uninstall`. Run exactly one worker per bucket.
+
+### 3. Open the app
+
+Go to [photoflow.outin.space](https://photoflow.outin.space) and enter your endpoint,
+bucket and app key. They are stored in that browser and sent nowhere else. On a
+phone, add it to the home screen. A second device is connected by scanning a QR code
+from the first.
+
+### 4. Back up your phone
+
+Photos are picked up from the `incoming/` folder of the bucket, so any app that can
+upload to S3 works. [PhotoSync](https://www.photosync-app.com/) is the usual choice
+on iOS and Android: create an S3 destination, point it at your bucket, set the
+directory to `incoming`, and turn on autotransfer while charging.
+
+For the phone, make a third key that is **write-only and restricted to the
+`incoming/` prefix**. If it leaks, someone can add junk but cannot read or destroy
+anything.
+
+## Advanced
+
+### Hosting the app yourself
+
+The app is a static site. Nothing in the build names a bucket, so one deployment
+serves any number of people.
+
+```bash
+npm install
+npm run build
+```
+
+Deploy `src/dist/` to any static host (Cloudflare Pages, Netlify and GitHub Pages are
+all free at this scale). **It must be served over HTTPS**, or over plain `http` on
+`localhost` exactly; the app signs its requests with WebCrypto, which browsers only
+expose in a secure context. Set `PHOTOFLOW_APP_ORIGIN` in the worker's `.env` to your
+address so the access rule it writes names it.
+
+### The bucket's CORS rule
+
+The browser talks to the bucket directly, so the bucket has to allow it. The worker
+writes this rule on its first interactive run. Setting it by hand works too. Reads
+carry their signature in the query string and are not preflighted; writes carry it
+in headers and are, which is why `PUT` and the signing headers have to be allowed:
 
 ```json
 [{
-  "AllowedOrigins": ["https://your-app-domain"],
+  "AllowedOrigins": ["https://photoflow.outin.space"],
   "AllowedMethods": ["GET", "HEAD", "PUT"],
   "AllowedHeaders": ["*"],
   "ExposeHeaders": ["ETag"],
@@ -67,146 +137,44 @@ it in headers and are, which is why `PUT` and the signing headers have to be all
 }]
 ```
 
-On Backblaze B2 this means a custom rule. The built-in "share everything" preset is
-read-only and will not work. B2's S3 endpoint has no CORS calls, so the worker uses
-B2's own API there; that needs a key with `writeBuckets`, and it prints the rule to
-paste when the key it has cannot do it.
+On Backblaze B2 this means a custom rule; the built-in "share everything" preset is
+read-only. B2's S3 endpoint has no CORS calls, so the worker uses B2's own API,
+which needs a key with `writeBuckets`. It prints the rule to paste when the key it
+has cannot do it.
 
-Turn on **object versioning** if your provider offers it. Nothing in Photoflow ever
-deletes or rewrites an original, but versioning protects you from a mistake outside it.
+### Other S3 providers
 
-### 2. Create the API keys
+Anything S3-compatible with CORS support works. The worker's `.env` takes the
+endpoint and region; the connect screen refuses a public bucket by writing a
+one-byte object and checking it cannot be read back unsigned.
 
-Scope each one to this bucket and nothing else in your account.
+### Every setting
 
-- **A worker key**: read and write. Used by the scheduled job.
-- **An app key**: read, write and list. Used by your browser. It needs list to find
-  other devices' mutation logs, and write because uploads, favourites and albums are
-  all written straight from the browser. This key is also the revocation lever:
-  deleting it invalidates every URL ever signed with it, share links included.
-- **An upload key** *(optional)*: write-only, scoped to `incoming/`, for your
-  phone's backup app. A leaked key there can add junk but cannot read or destroy
-  anything.
-
-### 3. Run the worker
-
-The worker is a Python program that runs nightly. The simplest place for it is a Mac
-that is usually on, and this is the recommended setup. Nothing else is needed
-beyond the bucket.
-
-```bash
-brew install uv ffmpeg exiftool
-git clone https://github.com/outinspace/photoflow
-cd photoflow/worker
-```
-
-Copy [`worker/.env.example`](worker/.env.example) to `worker/.env` and fill in the
-worker key. Run it once by hand to check the bucket, then install the schedule; it
-asks what time of day to run, and suggests 09:00:
-
-```bash
-uv run worker
-uv run worker install
-```
-
-That writes a launchd agent with the settings it was installed with. A run missed
-while the Mac was asleep happens when it wakes; a Mac that is switched off skips
-that day. Output goes to `~/Library/Logs/photoflow.log`. When a scheduled run fails,
-a short note saying why opens in TextEdit, and the app shows a banner once no run
-has been recorded for three days. `uv run worker uninstall` removes the schedule.
-Re-run `install` after changing a setting or the time.
-
-**Updating** is `git pull` in the checkout. The agent starts the worker through
-`uv run`, which brings dependencies up to date first, so the next scheduled run
-uses the new code. Nothing checks for updates on its own.
-
-Run exactly one worker per bucket. The pipeline assumes it is the only thing
-writing the catalog, and launchd already refuses to start a second copy while one
-is running.
-
-#### Alternative: GitHub Actions
-
-If no machine of yours is reliably on, fork this repo and set these under
-**Settings → Secrets and variables → Actions**:
-
-| Secret | Example |
-| --- | --- |
-| `PHOTOFLOW_S3_ENDPOINT` | `https://s3.us-west-004.backblazeb2.com` |
-| `PHOTOFLOW_S3_BUCKET` | `my-photos` |
-| `PHOTOFLOW_S3_ACCESS_KEY_ID` | the worker key |
-| `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
-
-| Variable | Default |
-| --- | --- |
-| `PHOTOFLOW_S3_REGION` | `us-east-1` (B2 needs the region from the endpoint, e.g. `us-west-004`) |
-| `PHOTOFLOW_MAX_FILES_PER_RUN` | `1000` |
-
-Then enable Actions on the fork, since forks start with workflows disabled, and run
-**Process photos** once by hand to check it works. It is scheduled nightly after that.
-GitHub disables a scheduled workflow in a repository with no commits for 60 days;
-pushing any commit to the fork turns it back on. Actions runners have no hardware
-video encoder, so video previews take longer there than on a Mac.
-
-### 4. Deploy the app
-
-```bash
-npm install
-npm run build
-```
-
-Deploy `src/dist/` to any static host. There is nothing to configure at build time
-and no file to edit afterwards. Nothing in the output names a bucket, which is what
-lets one deployment serve any number of people, each with their own.
-
-**It must be served over HTTPS**, or over plain `http` on `localhost` exactly. The
-app signs its own requests with WebCrypto, and browsers only expose that in a secure
-context.
-
-Open it and enter your endpoint, bucket and app key. The region is worked out from
-the endpoint. Everything is stored in that browser and sent nowhere else. If the
-connection fails, the screen names the step that broke rather than showing a generic
-error. A second device is connected by scanning a QR code from the first.
-
-### 5. Set up phone backup
-
-Photos are picked up from `incoming/`, so any app that can upload to S3 works.
-[PhotoSync](https://www.photosync-app.com/) is the usual choice on iOS and Android:
-create an S3 destination, point it at your bucket with the upload key, set the
-directory to `incoming`, and turn on autotransfer while charging.
-
-### Optional: a CDN for pictures
-
-Worth adding once things work. The gallery loads hundreds of thumbnails at once, and
-a bucket endpoint caps the browser at roughly six parallel connections where a CDN
-gives it HTTP/2+3 multiplexing. The address is entered on the connect screen, so each
-person can point at their own.
-
-It covers **pictures only**. The catalog and every write go to the bucket endpoint
-regardless, so a misconfigured CDN costs slow images rather than a library that will
-not load. It has to forward the host header and path unchanged, because the signature
-covers both; the connect screen checks exactly that.
+[`worker/.env.example`](worker/.env.example) lists every setting with what it does,
+including the per-run caps that keep a first import of a large library from filling
+the disk, and `uv run worker --workers 8` for getting through one quickly.
 
 ## How it works
 
 ```
   phone / browser  ──upload──▶  bucket: incoming/
                                      │
-                          scheduled job (worker/)
+                          daily worker (worker/)
                                      │
                                      ▼
                     bucket: original/  tile-image/  preview/
                             catalog/   meta/
                                      │
                                      ▼
-                            this app, in the browser
+                            the app, in the browser
 ```
 
 - **The catalog is static JSON**, one shard per upload month, so a month stops
   changing once it is over and browsers cache it indefinitely.
 - **Favourites, albums and deletions are written by browsers**, each device to its
-  own log file, and merged by the job. One writer per file means no conflicts and no
-  locking.
-- **Search embeddings are precomputed** by the job, about 516 bytes a photo. The
+  own log file, and merged by the worker. One writer per file means no conflicts
+  and no locking.
+- **Search embeddings are precomputed** by the worker, about 516 bytes a photo. The
   browser downloads them once and encodes only your search phrase locally.
 - **Originals are never modified or deleted** by anything in this repo.
 - **Every video gets a transcoded preview**, including one already in a codec the
@@ -220,31 +188,18 @@ The pipeline is nine steps run in order, listed in
 
 ```
 src/      the app: React, TanStack Router and Query, Tailwind, Vite
-worker/   the scheduled job: Python, run with uv
+worker/   the daily worker: Python, run with uv
 dev/      a local S3 server and a seed script, for working without a real bucket
 ```
 
-Front-end and worker tests need no credentials and touch no network:
+Both test suites need no credentials and touch no network:
 
 ```bash
-npm test                               # front end
-cd worker && uv run --extra dev pytest # worker
+npm test                                          # front end
+cd worker && uv run --extra dev python -m pytest  # worker
 ```
 
-Run the worker locally against your own bucket with a `.env` copied from
-[`worker/.env.example`](worker/.env.example):
-
-```bash
-cd worker
-uv run worker              # one file at a time
-uv run worker --workers 8  # a laptop getting through a large import
-```
-
-`--workers` defaults to 1, so CI behaves as it always has. Somewhere around the
-number of cores is the useful setting; far beyond it buys nothing.
-
-Or exercise the whole thing against a local S3 server with generated photos, no
-bucket and no cost:
+To exercise the whole thing against a local S3 server with generated photos:
 
 ```bash
 docker compose -f dev/docker-compose.yml up -d
@@ -259,9 +214,8 @@ then prints the worker command to run and what to connect the app to. Reset with
 ## Contributing
 
 Issues and pull requests are welcome. Keep changes small and include a test where
-one fits; both test suites run in CI. Anything that touches how files are laid out
-in the bucket needs a catalog migration in `worker/photoflow/migrations/`, so that
-existing libraries keep working.
+one fits. Anything that touches how files are laid out in the bucket needs a catalog
+migration in `worker/photoflow/migrations/`, so that existing libraries keep working.
 
 ## License
 
