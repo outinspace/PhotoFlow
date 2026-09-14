@@ -90,9 +90,14 @@ To update, `git pull` in the checkout; the next run uses the new code. To stop,
 ### 3. Open the app
 
 Go to [photoflow.outin.space](https://photoflow.outin.space) and enter your endpoint,
-bucket and key. They are stored in that browser and sent nowhere else. On a
-phone, add it to the home screen. A second device is connected by scanning a QR code
-from Menu > Link Device > Show QR Code.
+bucket and key. They are stored in that browser and sent nowhere else. A second
+device is connected by scanning a QR code from Menu > Link Device > Show QR Code.
+
+On a phone, install it to the home screen after connecting, so it opens full screen
+and keeps working offline. Open [photoflow.outin.space](https://photoflow.outin.space)
+in Safari on iOS and tap Share > Add to Home Screen, or in Chrome on Android and tap
+menu > Add to Home screen. The settings live in the browser profile, so scan the QR
+code in the installed app if the home screen copy opens to the setup form.
 
 ### 4. Back up your phone
 
