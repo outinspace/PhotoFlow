@@ -10,30 +10,22 @@ static catalog, and the app at [photoflow.outin.space](https://photoflow.outin.s
 reads that catalog straight out of the bucket. There is nothing in between, so the
 bill is your storage and nothing else.
 
-The bucket stays **private**. Every read is signed in your browser with a key that
-never leaves it. There is no server holding a credential, and deleting the key ends
-access to everything ever signed with it.
-
-## What it does
-
 - **Mobile first**, and a full desktop app too.
 - **Works offline.** It is a PWA, so the gallery keeps working with no connection.
 - **Fast.** Thumbnails and placeholders are precomputed, and the catalog is cached
   a month at a time rather than fetched per photo.
-- **AI search that runs in your browser.** Search phrases like "red bicycle in the
+- **In-browser AI search** Search phrases like "red bicycle in the
   snow"; no query ever leaves the device.
 - **A map** of everywhere you have taken a photo.
 - **Automatic trip detection**, plus year and "one year ago" views.
-- **Albums**, and **temporary share links** for an album or a single photo, which
-  need no account at the other end.
-- **First-class Apple Live Photos.** Both halves stay together as one photo.
+- **Albums**, and **temporary share links**
+- **Apple Live Photos.** Both halves stay together as one photo.
 - **You own the storage.** It is your bucket, your keys, and ordinary files in it.
   Originals are never modified or deleted by anything in this repo.
 
 ## Status
 
-PhotoFlow is young. Its author uses it every day, and the catalog has a migration
-system so upgrades carry an existing library forward, but expect rough edges. Open an
+PhotoFlow is young. I (Nick) use it every day, but expect rough edges. Open an
 issue when something breaks.
 
 ## Setup
@@ -42,11 +34,10 @@ You need a Backblaze account and a Mac that is usually switched on.
 
 ### 1. Create a bucket and a key
 
-In Backblaze, create a bucket. Make it **private**, and turn on **object versioning**
-so a mistake outside PhotoFlow can be undone.
+In Backblaze, create a bucket. Make it **private**. Don't enable object-versioning as it will inflate your storage costs.
 
 Then create one application key with **read and write** access, restricted to that
-bucket and nothing else. The worker, the app and your phone all use it. Deleting it
+bucket. The worker, the app and your phone all use it. Deleting it
 is the emergency lever: it ends access to every URL ever signed with it, share links
 included.
 
@@ -67,8 +58,7 @@ uv run worker
 ```
 
 The first run checks that the bucket is private and offers to set the access rule
-the app needs. When both are already right it says nothing. Now schedule it. It
-asks what time of day to run, and suggests 09:00:
+the app needs. When both are already right it says nothing. Now schedule it to run daily on your machine:
 
 ```bash
 uv run worker install
@@ -87,7 +77,7 @@ To update, `git pull` in the checkout; the next run uses the new code. To stop,
 Go to [photoflow.outin.space](https://photoflow.outin.space) and enter your endpoint,
 bucket and key. They are stored in that browser and sent nowhere else. On a
 phone, add it to the home screen. A second device is connected by scanning a QR code
-from the first.
+from Menu > Link Device > Show QR Code.
 
 ### 4. Back up your phone
 
@@ -212,12 +202,6 @@ npm start
 That creates a private bucket and fills `incoming/` with sample photos and clips,
 then prints the worker command to run and what to connect the app to. Reset with
 `docker compose -f dev/docker-compose.yml down -v`.
-
-## Contributing
-
-Issues and pull requests are welcome. Keep changes small and include a test where
-one fits. Anything that touches how files are laid out in the bucket needs a catalog
-migration in `worker/photoflow/migrations/`, so that existing libraries keep working.
 
 ## License
 
