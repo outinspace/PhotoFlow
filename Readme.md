@@ -27,6 +27,12 @@ bill is your storage and nothing else.
 - **You own the storage.** It is your bucket, your keys, and ordinary files in it.
   Originals are never modified or deleted by anything in this repo.
 
+<p align="center">
+  <img src="docs/screenshots/scroll.gif" alt="Scrolling the gallery" width="560"><br>
+  <em>Scrolling a year of photos. Placeholders draw instantly and the thumbnails
+  catch up, so the gallery never blocks on the network.</em>
+</p>
+
 |  |  |
 | --- | --- |
 | <img src="docs/screenshots/trip.png" width="420"><br>A trip, detected automatically from the dates and places of the photos in it. | <img src="docs/screenshots/search.png" width="420"><br>Searching for "zebra". The phrase is encoded in the browser; no query leaves the device. |
