@@ -48,6 +48,10 @@ export const getDefaultToMemories = () => parseDisabledByDefault(localStorage.ge
 // is the user's own. Off is for a metered connection.
 export const usePrefetchThumbnails = () => useStoredSetting('settings_prefetch_thumbnails', parseEnabledByDefault);
 
+// Dismissed for good rather than per session: a banner that returns on every visit
+// is worse than no banner.
+export const useInstallPromptDismissed = () => useStoredSetting('settings_install_prompt_dismissed', parseDisabledByDefault);
+
 // The map opens flat and stays on whichever projection was last chosen.
 export const useMapGlobe = () => useStoredSetting('settings_map_globe', parseDisabledByDefault);
 

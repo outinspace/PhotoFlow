@@ -1,6 +1,7 @@
 import { useRouter, useRouterState } from '@tanstack/react-router';
 import { Map, Menu, ViewGrid, Flower, Search } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
+import { InstallPrompt } from './common/install.prompt';
 import { isConfigured } from './storage/config';
 import { ReactNode, useEffect } from 'react';
 import { differenceInCalendarDays } from 'date-fns';
@@ -83,6 +84,7 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
                 ))}
             </div>
             <div className='flex flex-auto flex-col' style={{ overflow: 'auto' }}>
+                <InstallPrompt />
                 <StaleProcessingBanner />
                 {children}
             </div>
