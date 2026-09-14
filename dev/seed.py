@@ -156,7 +156,7 @@ def main() -> int:
     print(f"    PHOTOFLOW_S3_BUCKET={BUCKET} \\")
     print(f"    PHOTOFLOW_S3_ACCESS_KEY_ID={ACCESS_KEY} \\")
     print(f"    PHOTOFLOW_S3_SECRET_ACCESS_KEY={SECRET_KEY} \\")
-    print("    uv run photoflow-worker")
+    print("    uv run worker")
     return 0
 
 

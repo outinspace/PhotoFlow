@@ -56,7 +56,7 @@ jobs:
         working-directory: worker
         run: |
           df -h
-          uv run photoflow-worker
+          uv run worker
           df -h
 
       # A scheduled workflow is disabled automatically after ~60 days without repo

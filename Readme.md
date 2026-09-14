@@ -1,4 +1,4 @@
-# Photoflow
+# PhotoFlow
 
 A self-hosted photo library that runs with **no server and no API**. It is an
 alternative to iCloud Photos and Google Photos for people who want to keep their
@@ -50,7 +50,7 @@ it writes a one-byte object, tries to read it back with no signature, and will n
 connect if that succeeds.
 
 **Set a CORS rule**, or the browser is refused before a request leaves the page.
-Running `photoflow-worker` from a terminal offers to write it for you and to check
+Running `uv run worker` from a terminal offers to write it for you and to check
 that the bucket is private. It asks nothing when both are already right, and asks
 nothing at all in CI, where there is nobody to answer. Setting it by hand works too.
 
@@ -96,24 +96,29 @@ beyond the bucket.
 
 ```bash
 brew install uv ffmpeg exiftool
-uv tool install "git+https://github.com/outinspace/photoflow#subdirectory=worker"
+git clone https://github.com/outinspace/photoflow
+cd photoflow/worker
 ```
 
-Put the settings in a `.env` file in the directory you run it from (copy
-[`worker/.env.example`](worker/.env.example) and fill in the worker key), run it once
-by hand to check the bucket, then install the schedule:
+Copy [`worker/.env.example`](worker/.env.example) to `worker/.env` and fill in the
+worker key. Run it once by hand to check the bucket, then install the schedule; it
+asks what time of day to run, and suggests 09:00:
 
 ```bash
-photoflow-worker
-photoflow-worker install
+uv run worker
+uv run worker install
 ```
 
-That writes a launchd agent which runs at 03:00 with the settings it was installed
-with. A run missed while the Mac was asleep happens when it wakes; a Mac that is
-switched off skips that night. Output goes to `~/Library/Logs/photoflow.log`. When a
-scheduled run fails, a short note saying why opens in TextEdit, and the app shows a
-banner once no run has been recorded for three days. `photoflow-worker uninstall`
-removes the schedule. Re-run `install` after changing a setting.
+That writes a launchd agent with the settings it was installed with. A run missed
+while the Mac was asleep happens when it wakes; a Mac that is switched off skips
+that day. Output goes to `~/Library/Logs/photoflow.log`. When a scheduled run fails,
+a short note saying why opens in TextEdit, and the app shows a banner once no run
+has been recorded for three days. `uv run worker uninstall` removes the schedule.
+Re-run `install` after changing a setting or the time.
+
+**Updating** is `git pull` in the checkout. The agent starts the worker through
+`uv run`, which brings dependencies up to date first, so the next scheduled run
+uses the new code. Nothing checks for updates on its own.
 
 Run exactly one worker per bucket. The pipeline assumes it is the only thing
 writing the catalog, and launchd already refuses to start a second copy while one
@@ -231,8 +236,8 @@ Run the worker locally against your own bucket with a `.env` copied from
 
 ```bash
 cd worker
-uv run photoflow-worker              # one file at a time
-uv run photoflow-worker --workers 8  # a laptop getting through a large import
+uv run worker              # one file at a time
+uv run worker --workers 8  # a laptop getting through a large import
 ```
 
 `--workers` defaults to 1, so CI behaves as it always has. Somewhere around the

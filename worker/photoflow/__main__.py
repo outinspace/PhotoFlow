@@ -26,7 +26,7 @@ def _main() -> int:
     parser = argparse.ArgumentParser(description="Process new photos and repair what is missing.")
     parser.add_argument(
         "command", nargs="?", choices=["install", "uninstall"],
-        help="install: run nightly from this Mac via launchd, with the current settings. "
+        help="install: run daily from this Mac via launchd, with the current settings. "
              "uninstall: stop doing that. No command: run once now.",
     )
     parser.add_argument(
@@ -57,7 +57,11 @@ def _main() -> int:
         return 2
 
     if arguments.command == "install":
-        return launchd.install()
+        try:
+            return launchd.install()
+        except ValueError as error:
+            print(error, file=sys.stderr)
+            return 2
 
     storage = S3Storage(config, workers=arguments.workers)
 

@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-photoflow-worker = "photoflow.__main__:main"
+worker = "photoflow.__main__:main"
 photoflow-import-legacy-db = "photoflow.import_legacy_db:main"
 photoflow-copy-media = "photoflow.copy_media:main"
 

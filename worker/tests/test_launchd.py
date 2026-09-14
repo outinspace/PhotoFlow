@@ -1,6 +1,8 @@
 import plistlib
 import sys
 
+import pytest
+
 from photoflow import launchd
 
 
@@ -8,14 +10,25 @@ def test_plist_runs_this_interpreter_with_the_photoflow_settings(monkeypatch):
     monkeypatch.setenv("PHOTOFLOW_S3_BUCKET", "photos")
     monkeypatch.setenv("UNRELATED", "no")
 
-    generated = plistlib.loads(plistlib.dumps(launchd.plist()))
+    generated = plistlib.loads(plistlib.dumps(launchd.plist(9, 30)))
 
     assert generated["Label"] == launchd.LABEL
-    assert generated["ProgramArguments"] == [sys.executable, "-m", "photoflow"]
+    assert generated["StartCalendarInterval"] == {"Hour": 9, "Minute": 30}
+    # In this checkout the agent goes through uv run, so a git pull is picked up.
+    assert generated["ProgramArguments"][1:] == ["run", "--directory", str(launchd.PROJECT), "worker"]
     assert generated["EnvironmentVariables"]["PHOTOFLOW_S3_BUCKET"] == "photos"
     assert "UNRELATED" not in generated["EnvironmentVariables"]
     assert "PATH" in generated["EnvironmentVariables"]
     assert generated["StandardErrorPath"] == generated["StandardOutPath"]
+
+
+def test_parse_time():
+    assert launchd.parse_time("09:00") == (9, 0)
+    assert launchd.parse_time("21:30") == (21, 30)
+    assert launchd.parse_time("7") == (7, 0)
+    for bad in ("24:00", "9:60", "noon", ""):
+        with pytest.raises(ValueError):
+            launchd.parse_time(bad)
 
 
 def test_report_failure_is_silent_in_a_terminal(monkeypatch, tmp_path):

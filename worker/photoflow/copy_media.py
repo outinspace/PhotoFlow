@@ -199,7 +199,7 @@ def main() -> int:
     counts = run_copies(client, arguments.source_bucket, config.bucket, copies, arguments.workers)
 
     print("\n" + "  ".join(f"{key} {value}" for key, value in counts.items()))
-    print("\nRun photoflow-worker next to catalogue them, then photoflow-import-legacy-db.")
+    print("\nRun the worker next to catalogue them, then photoflow-import-legacy-db.")
 
     return 1 if counts["failed"] else 0
 
