@@ -172,9 +172,10 @@ one-byte object and checking it cannot be read back unsigned.
 
 ### Every setting
 
-[`worker/.env.example`](worker/.env.example) lists every setting with what it does,
-including the per-run caps that keep a first import of a large library from filling
-the disk, and `uv run worker --workers 8` for getting through one quickly.
+[`worker/.env.example`](worker/.env.example) lists every setting with what it does.
+A run works through everything waiting in batches, publishing after each, so an
+interrupted run loses at most one batch; `uv run worker --workers 8` gets through a
+large first import quickly.
 
 ## How it works
 

@@ -33,11 +33,9 @@ class Config:
     access_key_id: str
     secret_access_key: str
     region: str
-    # Cap per run so a first run over a huge library cannot exhaust CI minutes.
-    max_files_per_run: int
-    # Separate cap for repairing already-catalogued files, so a large backlog is
-    # worked through over several nights instead of stalling one run.
-    max_backfill_per_run: int
+    # Files per batch. Every batch is published before the next starts, so this is
+    # how much work a closed lid or a crash can lose. Repairs use the same number.
+    batch_size: int
     clip_model_repo: str
     healthcheck_url: str | None
     # Quality of a transcoded preview, on the scale of whichever encoder runs.
@@ -49,11 +47,6 @@ class Config:
     # Where the app is served from. The CORS rule the first run offers to write
     # names this origin, and the browser is refused if it names another.
     app_origin: str = "https://photoflow.outin.space"
-    # What a run may put in its work directory, shared by ingest and backfill.
-    # Both download everything before derive touches the first file, so it all sits
-    # on disk at once, and a file count cannot bound that: a thousand phone photos
-    # fit on a CI runner and a few hundred 4K clips do not.
-    max_bytes_per_run: int = 6 * 1024**3
 
     @staticmethod
     def from_env(env_file: str | None = None) -> "Config":
@@ -72,11 +65,7 @@ class Config:
             access_key_id=_required("PHOTOFLOW_S3_ACCESS_KEY_ID"),
             secret_access_key=_required("PHOTOFLOW_S3_SECRET_ACCESS_KEY"),
             region=os.environ.get("PHOTOFLOW_S3_REGION", "us-east-1"),
-            max_files_per_run=int(os.environ.get("PHOTOFLOW_MAX_FILES_PER_RUN", "2000")),
-            max_backfill_per_run=int(os.environ.get("PHOTOFLOW_MAX_BACKFILL_PER_RUN", "500")),
-            max_bytes_per_run=int(
-                os.environ.get("PHOTOFLOW_MAX_BYTES_PER_RUN", str(6 * 1024**3))
-            ),
+            batch_size=int(os.environ.get("PHOTOFLOW_BATCH_SIZE", "100")),
             video_quality_hardware=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_HARDWARE", "40")),
             video_quality_software=int(os.environ.get("PHOTOFLOW_VIDEO_QUALITY_SOFTWARE", "28")),
             clip_model_repo=os.environ.get("PHOTOFLOW_CLIP_MODEL_REPO", "Xenova/clip-vit-base-patch32"),

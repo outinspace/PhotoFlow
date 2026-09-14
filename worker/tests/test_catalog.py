@@ -17,8 +17,7 @@ def config() -> Config:
         access_key_id="test",
         secret_access_key="test",
         region="us-east-1",
-        max_files_per_run=100,
-        max_backfill_per_run=500,
+        batch_size=100,
         clip_model_repo="test/model",
         healthcheck_url=None,
     )
@@ -138,15 +137,16 @@ def test_discover_ignores_folder_placeholder_objects():
     assert [entry.key for entry in ctx.pending] == [keys.INCOMING + "photo.heic"]
 
 
-def test_discover_defers_work_beyond_the_per_run_cap():
+def test_discover_defers_work_beyond_the_batch_size():
     objects = {f"{keys.INCOMING}photo{index}.heic": b"data" for index in range(10)}
     storage = MemoryStorage(objects)
 
-    capped = config().__class__(**{**config().__dict__, "max_files_per_run": 4})
+    capped = dataclasses.replace(config(), batch_size=4)
     ctx = Context(config=capped, storage=storage, work_dir="/tmp")
     discover.run(ctx)
 
     assert len(ctx.pending) == 4
+    assert ctx.more_waiting
     assert any("deferred" in note for note in ctx.notes)
 
 
@@ -202,7 +202,7 @@ def test_a_batch_of_large_files_is_cut_to_fit_the_disk_the_run_has():
         storage.put(f"{keys.INCOMING}clip{index}.mp4", b"x" * 400, "video/mp4")
 
     ctx = context(storage)
-    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    ctx.byte_budget = 1000
     discover.run(ctx)
 
     # Two fit under 1000 bytes; the third would cross it and waits for the next run.
@@ -214,7 +214,7 @@ def test_a_file_bigger_than_the_whole_budget_is_still_taken():
     storage.put(f"{keys.INCOMING}huge.mp4", b"x" * 5000, "video/mp4")
 
     ctx = context(storage)
-    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    ctx.byte_budget = 1000
     discover.run(ctx)
 
     assert len(ctx.pending) == 1
@@ -242,7 +242,7 @@ def test_a_migration_asking_for_500_video_previews_only_fetches_what_fits(tmp_pa
     ctx.work_dir = str(tmp_path)
     ctx.items = clips
     ctx.ingested = []
-    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    ctx.byte_budget = 1000
     backfill.run(ctx)
 
     assert len(ctx.backfill) == 3
@@ -257,7 +257,7 @@ def test_backfill_leaves_room_for_what_ingest_already_downloaded(tmp_path):
     ctx = context(storage)
     ctx.work_dir = str(tmp_path)
     ctx.items = {1: record}
-    ctx.config = dataclasses.replace(ctx.config, max_bytes_per_run=1000)
+    ctx.byte_budget = 1000
     ctx.ingested = [
         Ingested(
             file_id="already",

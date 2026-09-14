@@ -5,6 +5,7 @@ function that takes the shared Context, does one job, and reports what it did.
 Adding a stage means writing a function and adding it to STEPS.
 """
 
+import shutil
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -35,6 +36,15 @@ class Context:
     work_dir: str
     # How many files to process at once. One keeps the sequential path.
     workers: int = 1
+    # What this batch may download into work_dir, shared by ingest and backfill.
+    # Both download everything before derive touches the first file, so it all sits
+    # on disk at once, and a file count cannot bound that: a hundred phone photos
+    # are nothing and a hundred 4K clips are not. Half the free space, read when
+    # the batch starts, needs no tuning on any machine.
+    byte_budget: int = 0
+    # Set by discover and backfill when the batch size cut their work short, so
+    # the caller goes round again.
+    more_waiting: bool = False
 
     # Every item already in the catalog, keyed by itemId, loaded by discover and
     # written back by publish.
@@ -56,6 +66,10 @@ class Context:
     # migrations step and written by publish.
     applied_migrations: list[MigrationRecord] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.byte_budget:
+            self.byte_budget = shutil.disk_usage(self.work_dir).free // 2
 
     def note(self, message: str) -> None:
         progress.interrupt()

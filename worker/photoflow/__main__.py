@@ -40,12 +40,6 @@ def _main() -> int:
              "the same machine. Only needed for install and uninstall; the "
              "installed agent carries its settings with it.",
     )
-    parser.add_argument(
-        "--until-empty", action="store_true",
-        help="keep running batches of PHOTOFLOW_MAX_FILES_PER_RUN until incoming/ is "
-             "empty. Each batch is published before the next starts, so stopping or "
-             "crashing loses at most one batch of work.",
-    )
     arguments = parser.parse_args()
 
     if arguments.workers < 1:
@@ -75,12 +69,13 @@ def _main() -> int:
     if not ensure_ready(config, storage):
         return 2
 
+    # Batches of PHOTOFLOW_BATCH_SIZE until nothing is waiting. Each is published
+    # before the next starts, so a closed lid or a crash loses at most one batch.
     batch = 0
 
     while True:
         batch += 1
-        if arguments.until_empty:
-            print(f"\n===== batch {batch} =====", flush=True)
+        print(f"\n===== batch {batch} =====", flush=True)
 
         # A fresh directory per batch keeps disk use to one batch of originals.
         work_dir = tempfile.mkdtemp(prefix="photoflow-")
@@ -95,10 +90,7 @@ def _main() -> int:
         failed = [result for result in results if result.error]
         _print_summary(results)
 
-        # A short batch means incoming/ is now empty. A full one may have left
-        # more behind, so go round again; the worst case is one empty run.
-        more_waiting = len(context.pending) >= config.max_files_per_run
-        if failed or not arguments.until_empty or not more_waiting:
+        if failed or not context.more_waiting:
             break
 
     _ping_healthcheck(config, ok=not failed)

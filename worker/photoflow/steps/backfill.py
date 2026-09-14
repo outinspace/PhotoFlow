@@ -50,18 +50,22 @@ def run(context) -> None:
         context.note("nothing to backfill")
         return
 
-    limit = context.config.max_backfill_per_run
+    limit = context.config.batch_size
     # A count alone cannot bound this. Repairing a tile reads a preview, but
     # repairing a preview can only read the original, so a migration that clears
     # previewVersion on a library's videos asks for hundreds of full-size clips at
     # once. Ingest's downloads are still on disk and derive has not run yet, so
-    # what is fetched here shares the run's budget with them.
-    budget = context.config.max_bytes_per_run - sum(e.size_bytes for e in context.ingested)
+    # what is fetched here shares the batch's budget with them.
+    budget = context.byte_budget - sum(e.size_bytes for e in context.ingested)
     fetched = 0
     queued: dict[str, Ingested] = {}
 
+    if len(needs_deriving) > limit:
+        context.more_waiting = True
+
     for item, file in progress.track(needs_deriving[:limit], "fetching sources to derive"):
         if fetched >= budget:
+            context.more_waiting = True
             break
 
         entry = _fetch(
