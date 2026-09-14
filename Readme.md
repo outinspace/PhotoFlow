@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/public/icon-192.png" alt="" width="96">
+</p>
+
 # PhotoFlow
 
 A photo library with **no server and no API**. An alternative to iCloud Photos and
@@ -14,14 +18,19 @@ bill is your storage and nothing else.
 - **Works offline.** It is a PWA, so the gallery keeps working with no connection.
 - **Fast.** Thumbnails and placeholders are precomputed, and the catalog is cached
   a month at a time rather than fetched per photo.
-- **In-browser AI search** Search phrases like "red bicycle in the
-  snow"; no query ever leaves the device.
+- **In-browser AI search.** Search phrases like "red bicycle in the snow"; no
+  query ever leaves the device.
 - **A map** of everywhere you have taken a photo.
 - **Automatic trip detection**, plus year and "one year ago" views.
-- **Albums**, and **temporary share links**
+- **Albums**, and **temporary share links**.
 - **Apple Live Photos.** Both halves stay together as one photo.
 - **You own the storage.** It is your bucket, your keys, and ordinary files in it.
   Originals are never modified or deleted by anything in this repo.
+
+|  |  |
+| --- | --- |
+| <img src="docs/screenshots/trip.png" width="420"><br>A trip, detected automatically from the dates and places of the photos in it. | <img src="docs/screenshots/search.png" width="420"><br>Searching for "zebra". The phrase is encoded in the browser; no query leaves the device. |
+| <img src="docs/screenshots/map.png" width="420"><br>Everywhere you have taken a photo, clustered by place. | <img src="docs/screenshots/info-sheet.png" width="420"><br>A Live Photo with its camera, capture time and location, and both files to download. |
 
 ## Status
 
