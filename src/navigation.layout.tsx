@@ -3,6 +3,27 @@ import { Map, Menu, ViewGrid, Flower, Search } from 'iconoir-react';
 import { IS_STANDALONE } from './common/browser.utils';
 import { isConfigured } from './storage/config';
 import { ReactNode, useEffect } from 'react';
+import { differenceInCalendarDays } from 'date-fns';
+import { useHeartbeat } from './storage/heartbeat';
+
+// With no server there is nothing to alert on a worker that quietly stopped, so
+// the app itself says so once the last recorded run is more than three days old.
+const StaleProcessingBanner = () => {
+    const { data: heartbeat } = useHeartbeat();
+    const router = useRouter();
+    const days = heartbeat ? differenceInCalendarDays(new Date(), new Date(heartbeat.finishedAt)) : 0;
+
+    if (days <= 3) return null;
+
+    return (
+        <div
+            className='flex-none bg-amber-100 text-amber-900 text-sm text-center px-4 py-2 border-b border-amber-200 cursor-pointer'
+            onClick={() => router.navigate({ to: '/storage-settings' })}
+        >
+            New photos have not been processed in {days} days.
+        </div>
+    );
+};
 
 const options = [
     {
@@ -62,6 +83,7 @@ export const NavigationLayout = ({ children }: { children: ReactNode }) => {
                 ))}
             </div>
             <div className='flex flex-auto flex-col' style={{ overflow: 'auto' }}>
+                <StaleProcessingBanner />
                 {children}
             </div>
             {/* Mobile: Horizontal bottom bar */}

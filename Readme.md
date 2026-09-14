@@ -97,7 +97,6 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_BUCKET` | `my-photos` |
 | `PHOTOFLOW_S3_ACCESS_KEY_ID` | the worker key |
 | `PHOTOFLOW_S3_SECRET_ACCESS_KEY` | the worker key's secret |
-| `PHOTOFLOW_HEALTHCHECK_URL` | *(optional)* a [healthchecks.io](https://healthchecks.io) ping URL |
 
 | Variable | Default |
 | --- | --- |
@@ -110,10 +109,9 @@ The full set of settings, with what each one does, is in
 Then enable Actions on the fork, since forks start with workflows disabled, and run
 **Process photos** once by hand to check it works. It is scheduled nightly after that.
 
-Set up the healthcheck. Without it, a job that quietly stops running is invisible
-until you notice photos are missing. Note also that GitHub disables a scheduled
-workflow in a repository with no commits for 60 days; pushing any commit to the fork
-turns it back on.
+If the job stops running, the app shows a banner once no run has been recorded for
+three days. GitHub disables a scheduled workflow in a repository with no commits for
+60 days; pushing any commit to the fork turns it back on.
 
 ### 4. Deploy the app
 
