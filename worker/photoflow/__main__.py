@@ -4,8 +4,10 @@ import argparse
 import shutil
 import sys
 import tempfile
+import traceback
 import urllib.request
 
+from . import launchd
 from .bucket_setup import ensure_ready
 from .config import Config, ConfigError
 from .pipeline import Context, run
@@ -13,7 +15,20 @@ from .storage import S3Storage
 
 
 def main() -> int:
+    try:
+        return _main()
+    except Exception:
+        launchd.report_failure(traceback.format_exc())
+        raise
+
+
+def _main() -> int:
     parser = argparse.ArgumentParser(description="Process new photos and repair what is missing.")
+    parser.add_argument(
+        "command", nargs="?", choices=["install", "uninstall"],
+        help="install: run nightly from this Mac via launchd, with the current settings. "
+             "uninstall: stop doing that. No command: run once now.",
+    )
     parser.add_argument(
         "--workers", type=int, default=1,
         help="files to process at once (default 1). Raise it for a local run over a "
@@ -31,11 +46,18 @@ def main() -> int:
         print("--workers must be at least 1", file=sys.stderr)
         return 2
 
+    if arguments.command == "uninstall":
+        return launchd.uninstall()
+
     try:
         config = Config.from_env()
     except ConfigError as error:
         print(f"Configuration error: {error}", file=sys.stderr)
+        launchd.report_failure(f"Configuration error: {error}")
         return 2
+
+    if arguments.command == "install":
+        return launchd.install()
 
     storage = S3Storage(config, workers=arguments.workers)
 
@@ -70,6 +92,9 @@ def main() -> int:
             break
 
     _ping_healthcheck(config, ok=not failed)
+
+    if failed:
+        launchd.report_failure("\n".join(f"{r.name}: {r.error}" for r in failed))
 
     return 1 if failed else 0
 

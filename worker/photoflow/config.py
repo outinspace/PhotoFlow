@@ -57,10 +57,11 @@ class Config:
 
     @staticmethod
     def from_env() -> "Config":
-        # Settings come from worker/.env when running locally. Real environment
-        # variables take precedence, so a stale local file can never override what
-        # CI passes in.
+        # Settings come from worker/.env in a checkout, or a .env in the current
+        # directory for an installed copy. Real environment variables take
+        # precedence, so a stale local file can never override what CI passes in.
         load_dotenv(ENV_FILE)
+        load_dotenv()
 
         return Config(
             endpoint_url=_required("PHOTOFLOW_S3_ENDPOINT").rstrip("/"),

@@ -8,7 +8,8 @@ Your photos live in your own S3-compatible bucket. A scheduled job turns new upl
 into a static catalog, and the app reads that catalog straight out of the bucket.
 There is no backend between the two, so the bill is your storage and nothing else.
 [Backblaze B2](https://www.backblaze.com/cloud-storage) is the cheap option and the
-one to start with; GitHub Actions runs the scheduled job on its free tier.
+one to start with. The scheduled job runs on a Mac you already own, or on GitHub
+Actions if you would rather not involve one.
 
 The bucket stays **private**. Every read is signed in the browser with a bucket API
 key that only ever exists in that browser's local storage, so nothing is world
@@ -39,7 +40,7 @@ issue when something breaks.
 
 ## Setup
 
-You need an S3-compatible bucket, a GitHub account, and somewhere to host a static
+You need an S3-compatible bucket, a Mac or a GitHub account, and somewhere to host a static
 site (Cloudflare Pages, Netlify and GitHub Pages are all free at this scale).
 
 ### 1. Create a private bucket
@@ -87,9 +88,41 @@ Scope each one to this bucket and nothing else in your account.
   phone's backup app. A leaked key there can add junk but cannot read or destroy
   anything.
 
-### 3. Fork this repo and set its secrets
+### 3. Run the worker
 
-Under **Settings → Secrets and variables → Actions**:
+The worker is a Python program that runs nightly. The simplest place for it is a Mac
+that is usually on, and this is the recommended setup. Nothing else is needed
+beyond the bucket.
+
+```bash
+brew install uv ffmpeg exiftool
+uv tool install "git+https://github.com/outinspace/photoflow#subdirectory=worker"
+```
+
+Put the settings in a `.env` file in the directory you run it from (copy
+[`worker/.env.example`](worker/.env.example) and fill in the worker key), run it once
+by hand to check the bucket, then install the schedule:
+
+```bash
+photoflow-worker
+photoflow-worker install
+```
+
+That writes a launchd agent which runs at 03:00 with the settings it was installed
+with. A run missed while the Mac was asleep happens when it wakes; a Mac that is
+switched off skips that night. Output goes to `~/Library/Logs/photoflow.log`. When a
+scheduled run fails, a short note saying why opens in TextEdit, and the app shows a
+banner once no run has been recorded for three days. `photoflow-worker uninstall`
+removes the schedule. Re-run `install` after changing a setting.
+
+Run exactly one worker per bucket. The pipeline assumes it is the only thing
+writing the catalog, and launchd already refuses to start a second copy while one
+is running.
+
+#### Alternative: GitHub Actions
+
+If no machine of yours is reliably on, fork this repo and set these under
+**Settings → Secrets and variables → Actions**:
 
 | Secret | Example |
 | --- | --- |
@@ -103,15 +136,11 @@ Under **Settings → Secrets and variables → Actions**:
 | `PHOTOFLOW_S3_REGION` | `us-east-1` (B2 needs the region from the endpoint, e.g. `us-west-004`) |
 | `PHOTOFLOW_MAX_FILES_PER_RUN` | `1000` |
 
-The full set of settings, with what each one does, is in
-[`worker/.env.example`](worker/.env.example).
-
 Then enable Actions on the fork, since forks start with workflows disabled, and run
 **Process photos** once by hand to check it works. It is scheduled nightly after that.
-
-If the job stops running, the app shows a banner once no run has been recorded for
-three days. GitHub disables a scheduled workflow in a repository with no commits for
-60 days; pushing any commit to the fork turns it back on.
+GitHub disables a scheduled workflow in a repository with no commits for 60 days;
+pushing any commit to the fork turns it back on. Actions runners have no hardware
+video encoder, so video previews take longer there than on a Mac.
 
 ### 4. Deploy the app
 
