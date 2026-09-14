@@ -33,6 +33,15 @@ def test_parse_time():
             launchd.parse_time(bad)
 
 
+def test_on_hotspot_recognises_an_iphone_gateway():
+    tethered = "   route to: default\n    gateway: 172.20.10.1\n  interface: en0\n"
+    at_home = "   route to: default\n    gateway: 192.168.1.1\n  interface: en0\n"
+
+    assert launchd.on_hotspot(tethered)
+    assert not launchd.on_hotspot(at_home)
+    assert not launchd.on_hotspot("")
+
+
 def test_report_failure_is_silent_in_a_terminal(monkeypatch, tmp_path):
     monkeypatch.setattr(launchd, "FAILURE_NOTE", tmp_path / "failed.txt")
     monkeypatch.setattr(sys.stderr, "isatty", lambda: True)

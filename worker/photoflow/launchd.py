@@ -122,6 +122,32 @@ def plist(bucket: str, hour: int, minute: int) -> dict:
     }
 
 
+# An iPhone Personal Hotspot always hands out 172.20.10.0/28 with the phone at .1,
+# over Wi-Fi, USB and Bluetooth alike.
+HOTSPOT_GATEWAY = "172.20.10.1"
+
+
+def on_hotspot(route_output: str | None = None) -> bool:
+    """True when this Mac is tethered to an iPhone, so a batch of originals should
+    not be pulled over a phone plan.
+
+    ponytail: iPhone only. Android hotspots use varying private ranges; asking
+    Network.framework whether the path is "expensive" would catch them all.
+    """
+    if route_output is None:
+        if sys.platform != "darwin":
+            return False
+        try:
+            route_output = subprocess.run(
+                ["route", "-n", "get", "default"], capture_output=True, text=True, timeout=5
+            ).stdout
+        except Exception:
+            return False
+    return any(
+        line.strip() == f"gateway: {HOTSPOT_GATEWAY}" for line in route_output.splitlines()
+    )
+
+
 def report_failure(reason: str, bucket: str | None = None) -> None:
     """Make a failed unattended run visible: write a short note and open it.
 

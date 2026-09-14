@@ -79,8 +79,9 @@ the app needs. When both are already right it says nothing. Now schedule it to r
 uv run worker install
 ```
 
-A run missed while the Mac was asleep happens when it wakes. A Mac that is switched
-off skips that day; your photos are still safe in the bucket and get catalogued next
+A run missed while the Mac was asleep happens when it wakes. A Mac tethered to an
+iPhone hotspot skips the run rather than pull originals over your phone plan. A Mac
+that is switched off skips that day; your photos are still safe in the bucket and get catalogued next
 time. If a run fails, a note saying why opens in TextEdit, and the app shows a banner
 once no run has been recorded for three days.
 

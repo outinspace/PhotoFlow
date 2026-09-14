@@ -73,7 +73,15 @@ def _main() -> int:
     # before the next starts, so a closed lid or a crash loses at most one batch.
     batch = 0
 
+    failed = []
+
     while True:
+        # Checked per batch, so a run that began at home stops at the next batch
+        # boundary once the Mac is tethered, and the next scheduled run resumes.
+        if launchd.on_hotspot():
+            print("On a phone hotspot; not downloading. Will try again at the next run.", flush=True)
+            break
+
         batch += 1
         print(f"\n===== batch {batch} =====", flush=True)
 
