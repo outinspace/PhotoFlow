@@ -212,6 +212,17 @@ That creates a private bucket and fills `incoming/` with sample photos and clips
 then prints the worker command to run and what to connect the app to. Reset with
 `docker compose -f dev/docker-compose.yml down -v`.
 
-## License
+## License and name
 
-[MIT](LICENSE).
+The code is licensed under the
+[GNU Affero General Public License, version 3](LICENSE). You may run it, change it,
+and share it, and if you offer a modified version as a service you must publish your
+changes under the same terms.
+
+The name **PhotoFlow** and its icon are not covered by that licence. A fork is
+welcome, and should call itself something else so that people know whose software
+they are running and where to report a problem.
+
+Pull requests are welcome. The first one needs a line agreeing to the short
+[Contributor License Agreement](CLA.md). It lets the project change licence later
+without tracking down every past contributor, and takes nothing away from you.

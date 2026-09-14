@@ -3,6 +3,7 @@ name = "photoflow-worker"
 version = "0.1.0"
 description = "Nightly ETL that turns a bucket of uploaded photos into a static Photoflow catalog"
 requires-python = ">=3.11"
+license = "AGPL-3.0-only"
 dependencies = [
     "boto3>=1.35",
     "pydantic>=2.9",
