@@ -40,17 +40,15 @@ issue when something breaks.
 
 You need a Backblaze account and a Mac that is usually switched on.
 
-### 1. Create a bucket and two keys
+### 1. Create a bucket and a key
 
 In Backblaze, create a bucket. Make it **private**, and turn on **object versioning**
 so a mistake outside PhotoFlow can be undone.
 
-Then create two application keys, each restricted to that bucket and nothing else:
-
-- **A worker key** with read and write access. The program on your Mac uses it.
-- **An app key** with read, write and list access. Your browser uses it. Deleting
-  this key is the emergency lever: it ends access to every URL ever signed with it,
-  share links included.
+Then create one application key with **read and write** access, restricted to that
+bucket and nothing else. The worker, the app and your phone all use it. Deleting it
+is the emergency lever: it ends access to every URL ever signed with it, share links
+included.
 
 ### 2. Install the worker on your Mac
 
@@ -62,7 +60,7 @@ cp .env.example .env
 ```
 
 Open `.env` and fill in your bucket's endpoint and name, the region from the
-endpoint, and the worker key. Then run it once by hand:
+endpoint, and the key. Then run it once by hand:
 
 ```bash
 uv run worker
@@ -87,7 +85,7 @@ To update, `git pull` in the checkout; the next run uses the new code. To stop,
 ### 3. Open the app
 
 Go to [photoflow.outin.space](https://photoflow.outin.space) and enter your endpoint,
-bucket and app key. They are stored in that browser and sent nowhere else. On a
+bucket and key. They are stored in that browser and sent nowhere else. On a
 phone, add it to the home screen. A second device is connected by scanning a QR code
 from the first.
 
@@ -95,12 +93,8 @@ from the first.
 
 Photos are picked up from the `incoming/` folder of the bucket, so any app that can
 upload to S3 works. [PhotoSync](https://www.photosync-app.com/) is the usual choice
-on iOS and Android: create an S3 destination, point it at your bucket, set the
-directory to `incoming`, and turn on autotransfer while charging.
-
-For the phone, make a third key that is **write-only and restricted to the
-`incoming/` prefix**. If it leaks, someone can add junk but cannot read or destroy
-anything.
+on iOS and Android: create an S3 destination, point it at your bucket with the same
+key, set the directory to `incoming`, and turn on autotransfer while charging.
 
 ## Advanced
 
@@ -141,6 +135,14 @@ On Backblaze B2 this means a custom rule; the built-in "share everything" preset
 read-only. B2's S3 endpoint has no CORS calls, so the worker uses B2's own API,
 which needs a key with `writeBuckets`. It prints the rule to paste when the key it
 has cannot do it.
+
+### Separate keys
+
+One key is the easy setup, not the only one. Each part needs less than the whole:
+the worker needs read and write, the app needs read, write and list, and the phone
+only needs to write under `incoming/`. A write-only key restricted to that prefix is
+worth making for the phone, since a leaked one can add junk but cannot read or
+destroy anything.
 
 ### Other S3 providers
 
