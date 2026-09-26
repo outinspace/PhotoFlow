@@ -1,4 +1,5 @@
 import {
+    defaultShouldDehydrateQuery,
     QueryClient,
 } from '@tanstack/react-query'
 import { StrictMode } from 'react';
@@ -26,7 +27,15 @@ export function createIDBPersister(idbValidKey: IDBValidKey) {
 
 const cacheMaxAgeMs = 24 * 24 * 60 * 60 * 1000; // 24 days is max supported: https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
 // Changing this string will clear existing persisted cache.
-const cacheVersion = 'v5';
+const cacheVersion = 'v6';
+
+// Search vectors are about 2KB a photo and the service worker already caches
+// them. Persisted here, the whole set was structured-cloned into IndexedDB on
+// every cache event, and each superseded set (one per manifest) was kept and
+// restored on every launch, which is a lot of memory to spend on a phone.
+const neverPersisted = new Set(['search', 'search-vectors']);
+const shouldDehydrateQuery: typeof defaultShouldDehydrateQuery = query =>
+    defaultShouldDehydrateQuery(query) && !neverPersisted.has(query.queryKey[0] as string);
 
 const persister = createIDBPersister('react-query');
 
@@ -47,7 +56,8 @@ const App = () => {
                 persistOptions={{
                     persister,
                     maxAge: cacheMaxAgeMs,
-                    buster: cacheVersion
+                    buster: cacheVersion,
+                    dehydrateOptions: { shouldDehydrateQuery }
                 }}
             >
                 <GlobalLoadingBar />
