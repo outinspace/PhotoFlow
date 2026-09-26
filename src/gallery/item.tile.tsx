@@ -43,23 +43,29 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
     const [imageLoaded, setImageLoaded] = useState(cached);
     const tileRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
-    const loadedRef = useRef(cached);
+    // Read by the loader, so a tile on screen is served before the overscan around it.
+    const onScreenRef = useRef(false);
     // Held while this tile is queued or loading, and called to give up its place.
     const releaseRef = useRef<(() => void) | null>(null);
 
     const tilePlaceholderUrl = useThumbHashDataUrl(cached ? null : item.primaryFile.thumbHash);
 
     // Both cancels and releases: the loader takes one call either way, so this can
-    // be used by the image's own handlers and by scrolling out of view alike.
+    // be used by the image's own handlers and by unmounting alike.
     const releaseSlot = () => {
         releaseRef.current?.();
         releaseRef.current = null;
     };
 
-    useEffect(() => {
-        const element = tileRef.current;
-        if (!element) return;
+    useEffect(() => observeVisibility(tileRef.current!, visible => {
+        onScreenRef.current = visible;
+    }), []);
 
+    // The grid only mounts tiles on screen or in its overscan, so a tile asks for its
+    // picture as soon as it mounts. A row scrolled into view then arrives loaded,
+    // rather than starting to load once it is already on screen. Scrolling past the
+    // overscan unmounts the tile, and a request that had not started is dropped then.
+    useEffect(() => {
         const source = item.primaryFile.tileImageSource;
         if (!source) return;
 
@@ -69,7 +75,13 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
         // Its src is set during render instead, so there's nothing to wait for.
         if (loadedTileSources.has(source)) return;
 
-        const cancelPending = () => {
+        releaseRef.current = loadTile(() => {
+            if (imgRef.current) {
+                imgRef.current.src = tileUrl;
+            }
+        }, () => onScreenRef.current);
+
+        return () => {
             releaseSlot();
 
             const img = imgRef.current;
@@ -77,28 +89,6 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                 img.src = '';
                 img.removeAttribute('src');
             }
-        };
-
-        const unobserve = observeVisibility(element, (isIntersecting) => {
-            if (isIntersecting) {
-                // Already loaded, or already waiting its turn.
-                if (loadedRef.current || releaseRef.current) return;
-
-                releaseRef.current = loadTile(() => {
-                    if (imgRef.current) {
-                        imgRef.current.src = tileUrl;
-                    }
-                });
-            } else if (!loadedRef.current) {
-                // Scrolled away. A request that had not started is dropped here
-                // rather than left to arrive for a tile nobody is looking at.
-                cancelPending();
-            }
-        });
-
-        return () => {
-            cancelPending();
-            unobserve();
         };
     }, [item.primaryFile.tileImageSource, tileUrl]);
 
@@ -149,7 +139,6 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                     const source = item.primaryFile.tileImageSource;
                     if (source && imgRef.current?.getAttribute('src')) {
                         loadedTileSources.add(source);
-                        loadedRef.current = true;
                         setImageLoaded(true);
                     }
                 }}

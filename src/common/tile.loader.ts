@@ -42,6 +42,7 @@ const SETTLE_MS = 120;
 
 interface Job {
     start: () => void;
+    onScreen: () => boolean;
     started: boolean;
     done: boolean;
 }
@@ -65,15 +66,19 @@ const prefetchRequests = new Set<AbortController>();
  * The returned function both cancels — before `start` has run — and releases the
  * slot afterwards, so a caller can hand it to an unmount and to the image's own
  * load and error handlers without tracking which came first.
+ *
+ * The grid asks for the rows just off screen too, so they are ready when scrolled
+ * to. `onScreen` lets a tile the user can already see go ahead of those: after a
+ * fling downwards, the rows left just above the screen were asked for first.
  */
 // ponytail: a slot is held until the caller gives it back, and an image that never
 // fires load or error holds one until the browser's own network timeout. Twelve of
 // those would stall the gallery. Add a timeout here if that is ever seen.
-export const loadTile = (start: () => void): (() => void) => {
-    const job: Job = { start, started: false, done: false };
+export const loadTile = (start: () => void, onScreen: () => boolean = () => true): (() => void) => {
+    const job: Job = { start, onScreen, started: false, done: false };
     waiting.push(job);
 
-    // Something on screen needs the network, so stop reading ahead.
+    // Something on screen or about to be needs the network, so stop reading ahead.
     stopPrefetching();
     pump();
 
@@ -142,7 +147,8 @@ const settle = () => {
 
 const pump = () => {
     while (!scrollingFast && inFlight < MAX_IN_FLIGHT && waiting.length > 0) {
-        const job = waiting.shift()!;
+        const onScreen = waiting.findIndex(job => job.onScreen());
+        const [job] = waiting.splice(Math.max(onScreen, 0), 1);
         job.started = true;
         inFlight++;
 

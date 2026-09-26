@@ -260,6 +260,12 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
             className='fixed top-0 bottom-0 left-0 right-0 flex z-10 bg-black'
             style={{ opacity: swipeSpring.opacity }}
         >
+            {/* An installed iOS app paints the status bar in the colour of a full-width
+                fixed box at the top edge, but keeps the old colour for one that covers the
+                whole screen, like this viewer. iOS only reads a box over 10px tall, and
+                reads its colour from the style, so this band hands it black while the
+                background, clipped to an empty content box, paints nothing. */}
+            <div className='fixed top-0 left-0 right-0 z-20 pt-3 bg-black bg-clip-content pointer-events-none' />
             <div
                 {...dragBindings()}
                 className='absolute top-0 left-0 w-full h-full touch-manipulation'

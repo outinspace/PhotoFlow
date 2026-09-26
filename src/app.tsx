@@ -61,7 +61,9 @@ const App = () => {
                 }}
             >
                 <GlobalLoadingBar />
-                <div className='absolute top-0 left-0 flex h-dvh w-screen overflow-auto'>
+                {/* The body's colour again, so an installed iOS app paints the status bar
+                    in it rather than whatever it first sampled there. See #root in index.css. */}
+                <div className='absolute top-0 left-0 flex h-dvh w-screen overflow-auto bg-slate-50'>
                     <RouterProvider router={router} />
                 </div>
             </PersistQueryClientProvider>

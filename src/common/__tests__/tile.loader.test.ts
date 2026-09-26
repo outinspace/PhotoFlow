@@ -71,6 +71,23 @@ describe('admitting thumbnails a few at a time', () => {
         release.forEach(free => free());
     });
 
+    it('serves a tile on screen before the overscan asked for ahead of it', () => {
+        // After a fling downwards, the rows left just above the screen were asked for
+        // first. The ones the user is looking at must not wait behind them.
+        const started: string[] = [];
+        const busy = Array.from({ length: 12 }, () => loadTile(() => undefined));
+        const above = loadTile(() => started.push('above'), () => false);
+        const onScreen = loadTile(() => started.push('on screen'), () => true);
+
+        busy[0]();
+        expect(started).toEqual(['on screen']);
+
+        busy[1]();
+        expect(started).toEqual(['on screen', 'above']);
+
+        [...busy, above, onScreen].forEach(free => free());
+    });
+
     it('takes one call to cancel or to release, in either order', () => {
         // A tile hands the same function to its unmount and to the image's load
         // handler without knowing which will run first.
