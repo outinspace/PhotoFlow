@@ -26,7 +26,7 @@ const StaleProcessingBanner = () => {
     );
 };
 
-const options = [
+export const options = [
     {
         name: 'Gallery',
         route: '/gallery',

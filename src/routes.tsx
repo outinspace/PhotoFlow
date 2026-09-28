@@ -20,6 +20,8 @@ import { TripLayout } from "./memories/trip.layout";
 import { YearLayout } from "./memories/year.layout";
 import { getDefaultToMemories } from "./hooks/use.settings";
 import { isConfigured } from "./storage/config";
+import { IS_STANDALONE } from "./common/browser.utils";
+import { HomePage } from "./home/home";
 // maplibre-gl is by far the largest dependency here and only the map needs it,
 // so it is kept out of the initial bundle.
 const Map = lazy(() => import('./map/map'));
@@ -31,14 +33,17 @@ export const indexRoute = createRoute({
     path: '/',
     beforeLoad: () => {
         if (!isConfigured()) {
-            throw redirect({ to: '/connect' });
+            // The installed app only opens here to be set up, so it skips the home page.
+            if (IS_STANDALONE) throw redirect({ to: '/connect' });
+            return;
         }
 
         const defaultToMemories = getDefaultToMemories();
         throw redirect({
             to: defaultToMemories ? '/memories' : '/gallery',
         });
-    }
+    },
+    component: HomePage
 });
 
 export const homeRoute = createRoute({
