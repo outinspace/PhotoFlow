@@ -1,7 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Airplane, ArrowRight, Camera, Flash, HeartSolid, Link as LinkIcon, Lock, Map, Search, SmartphoneDevice, WifiOff } from 'iconoir-react';
-import { TopBar } from '../common/top.bar';
 import { options } from '../navigation.layout';
 
 // What someone who has not connected a bucket sees at /. The installed app skips it
@@ -12,14 +11,14 @@ const GITHUB = 'https://github.com/outinspace/photoflow';
 const TITLE = 'PhotoFlow: a photo library in your own bucket';
 
 const FEATURES: [typeof Search, string, string, string][] = [
-    [Search, 'Search what is in them', 'Type "red bicycle in the snow". The AI runs in your browser, so no query leaves the device.', 'bg-sky-100 text-sky-700'],
-    [Airplane, 'Trips, found for you', 'Trips are detected from dates and places, with year views and "one year ago".', 'bg-amber-100 text-amber-700'],
-    [Map, 'A map of it all', 'Everywhere you have taken a photo, clustered by place.', 'bg-emerald-100 text-emerald-700'],
-    [Camera, 'Live Photos', 'Both halves stay together as one photo, with camera, time and place alongside.', 'bg-rose-100 text-rose-700'],
-    [LinkIcon, 'Albums and share links', 'Group photos into albums and send a link that expires.', 'bg-violet-100 text-violet-700'],
-    [WifiOff, 'Works offline', 'Add it to your home screen and the gallery keeps working with no connection.', 'bg-slate-200 text-slate-700'],
-    [Flash, 'Fast scrolling', 'Placeholders draw instantly and thumbnails catch up, so the gallery never waits on the network.', 'bg-yellow-100 text-yellow-700'],
-    [SmartphoneDevice, 'Phone and desktop', 'Mobile first, and a full desktop app too. Link a second device with a QR code.', 'bg-cyan-100 text-cyan-700'],
+    [Search, 'Search what is in them', 'Type "red bicycle in the snow". The AI runs in your browser, so no query leaves the device.', 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'],
+    [Airplane, 'Trips, found for you', 'Trips are detected from dates and places, with year views and "one year ago".', 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'],
+    [Map, 'A map of it all', 'Everywhere you have taken a photo, clustered by place.', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'],
+    [Camera, 'Live Photos', 'Both halves stay together as one photo, with camera, time and place alongside.', 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'],
+    [LinkIcon, 'Albums and share links', 'Group photos into albums and send a link that expires.', 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300'],
+    [WifiOff, 'Works offline', 'Add it to your home screen and the gallery keeps working with no connection.', 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'],
+    [Flash, 'Fast scrolling', 'Placeholders draw instantly and thumbnails catch up, so the gallery never waits on the network.', 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300'],
+    [SmartphoneDevice, 'Phone and desktop', 'Mobile first, and a full desktop app too. Link a second device with a QR code.', 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'],
 ];
 
 // Flat scenes in the app icon's colours stand in for photos in the hero, drawn in a 100x100 box.
@@ -90,12 +89,14 @@ const SHOT: [string, boolean?, string?, boolean?][] = [
     ['town'], ['peak'], ['clouds', true], ['lake', true],
     ['beach', true], ['beach', false, undefined, true], ['dusk', false, '00:04'], ['night'],
     ['field', true], ['town', true], ['lake'], ['peak', true],
+    ['lake', true], ['clouds', true], ['field'], ['town'],
     ['clouds'], ['dusk'], ['night', true], ['beach'],
 ];
 
 const buttonClass = 'inline-flex items-center gap-1.5 rounded-xl border font-semibold';
-const primary = `${buttonClass} h-11 px-4.5 border-sky-500 bg-sky-500 text-white hover:bg-sky-600`;
-const secondary = `${buttonClass} h-11 px-4.5 border-slate-200 bg-white text-slate-900 hover:bg-slate-100`;
+const primary = `${buttonClass} h-11 px-4.5 border-sky-500 bg-sky-500 text-white hover:bg-sky-600 dark:border-sky-400 dark:bg-sky-400 dark:text-sky-950 dark:hover:bg-sky-300`;
+const outline = 'border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800';
+const secondary = `${buttonClass} h-11 px-4.5 ${outline}`;
 
 const InstallButton = () => (
     <a href={`${GITHUB}#setup`} className={primary}>
@@ -111,13 +112,13 @@ export const HomePage = () => {
     }, []);
 
     return (
-        <div className='w-full flex-auto select-text px-4 pt-[env(safe-area-inset-top)] text-slate-900 *:mx-auto *:max-w-5xl'>
+        <div className='min-h-full w-full flex-auto self-start select-text px-4 pt-[env(safe-area-inset-top)] bg-slate-50 text-slate-900 *:mx-auto *:max-w-5xl dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]'>
             <header className='flex items-center justify-between gap-3 py-3.5'>
                 <span className='flex items-center gap-2 text-lg font-bold italic'>
                     <img src='/icon-192.png' alt='' className='size-9 rounded-[0.55rem]' />
                     PhotoFlow
                 </span>
-                <Link to='/connect' className={`${buttonClass} h-9 px-3.5 text-sm border-slate-200 bg-white hover:bg-slate-100`}>
+                <Link to='/connect' className={`${buttonClass} h-9 px-3.5 text-sm ${outline}`}>
                     Connect a bucket
                     <ArrowRight className='size-4' />
                 </Link>
@@ -128,7 +129,7 @@ export const HomePage = () => {
                     <h1 className='mb-4 text-4xl font-bold tracking-tight text-balance md:text-5xl md:leading-[1.05]'>
                         Your photo library, in a bucket you own.
                     </h1>
-                    <p className='mb-6 max-w-md text-[1.0625rem] leading-relaxed text-slate-600'>
+                    <p className='mb-6 max-w-md text-[1.0625rem] leading-relaxed text-slate-600 dark:text-slate-400'>
                         A fast photo app for phone and desktop with no server in the middle. Your photos stay as
                         ordinary files in your own S3 bucket, and the bill is your storage and nothing else.
                     </p>
@@ -145,20 +146,20 @@ export const HomePage = () => {
 
             <section id='features' className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
                 {FEATURES.map(([Icon, title, text, tint]) => (
-                    <div key={title} className='grid grid-cols-[auto_1fr] gap-x-3.5 rounded-2xl border border-slate-200 bg-white p-4 sm:block sm:p-4.5'>
+                    <div key={title} className='grid grid-cols-[auto_1fr] gap-x-3.5 rounded-2xl border border-slate-200 bg-white p-4 sm:block sm:p-4.5 dark:border-slate-800 dark:bg-slate-900'>
                         <span className={`row-span-2 grid size-9 place-items-center rounded-[0.625rem] ${tint}`}>
                             <Icon className='size-4.5' />
                         </span>
                         <h3 className='mb-1 font-semibold sm:mt-3.5'>{title}</h3>
-                        <p className='text-[0.8125rem] leading-normal text-slate-500'>{text}</p>
+                        <p className='text-[0.8125rem] leading-normal text-slate-500 dark:text-slate-400'>{text}</p>
                     </div>
                 ))}
             </section>
 
-            <section className='mt-3 flex gap-2.5 rounded-2xl bg-sky-100 px-4.5 py-4'>
-                <Lock className='mt-0.5 size-4 flex-none text-sky-700' />
-                <p className='text-[0.8125rem] leading-normal text-slate-700'>
-                    <b className='text-slate-900'>Where your photos live.</b> In your own bucket, as ordinary files, under
+            <section className='mt-3 flex gap-2.5 rounded-2xl bg-sky-100 px-4.5 py-4 dark:bg-sky-950/60'>
+                <Lock className='mt-0.5 size-4 flex-none text-sky-700 dark:text-sky-300' />
+                <p className='text-[0.8125rem] leading-normal text-slate-700 dark:text-slate-300'>
+                    <b className='text-slate-900 dark:text-slate-100'>Where your photos live.</b> In your own bucket, as ordinary files, under
                     your own key. A small program on your computer runs once a day to build the catalog, and the app
                     reads it straight from the bucket. Nothing in PhotoFlow ever modifies or deletes an original.
                 </p>
@@ -174,11 +175,11 @@ export const HomePage = () => {
     );
 };
 
-// A trip in the gallery, built from the app's own top bar and navigation so it keeps looking like the app.
+// The gallery, built from the app's own tiles and navigation so it keeps looking like the app.
+// The app is light only, so the screen inside stays light in dark mode too.
 const PhoneShot = () => (
-    <div aria-hidden className='pointer-events-none mx-auto w-80 max-w-full select-none rounded-[2.25rem] border border-slate-200 bg-white p-2 shadow-[0_30px_60px_-30px_rgb(15_60_100/0.35)]'>
-        <div className='overflow-hidden rounded-[1.75rem] bg-slate-50'>
-            <TopBar title='Cornwall' />
+    <div aria-hidden className='pointer-events-none mx-auto w-80 max-w-full rotate-2 select-none rounded-[2.25rem] border border-slate-200 bg-white p-2 shadow-[0_30px_60px_-30px_rgb(15_60_100/0.35)] dark:border-slate-700 dark:bg-slate-800 dark:shadow-[0_30px_60px_-30px_rgb(0_0_0/0.8)]'>
+        <div className='overflow-hidden rounded-[1.75rem] bg-slate-50 text-slate-900'>
             <div className='relative grid grid-cols-4'>
                 {SHOT.map(([scene, flip, video, favorite], i) => (
                     <div key={i} className='relative aspect-square overflow-hidden outline outline-1 outline-white'>
@@ -193,7 +194,7 @@ const PhoneShot = () => (
             </div>
             <div className='flex border-t border-slate-200 bg-slate-50 p-1.5'>
                 {options.map(option => (
-                    <div key={option.name} className={`flex flex-1 basis-0 flex-col items-center rounded-md py-2 text-[0.625rem] ${option.name === 'Memories' ? 'bg-slate-200 font-bold text-sky-500' : ''}`}>
+                    <div key={option.name} className={`flex flex-1 basis-0 flex-col items-center rounded-md py-2 text-[0.625rem] ${option.name === 'Gallery' ? 'bg-slate-200 font-bold text-sky-500' : ''}`}>
                         <option.icon className='mb-1 h-4' />
                         {option.name}
                     </div>
