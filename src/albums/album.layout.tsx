@@ -3,8 +3,8 @@ import { useAlbumsWithItems } from "../api/useAlbumsWithItems";
 import { buildShareUrl } from '../storage/sharing';
 import { useShareAlbum } from "../api/useShareAlbum";
 import ItemGrid from '../gallery/item.grid';
-import { TopBar } from '../common/top.bar';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { floatingButtonClasses } from '../gallery/item.grid';
+import { useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { EditPencil, Link, ShareIos, Trash } from 'iconoir-react';
 import { DeleteAlbumModal } from './delete.album.modal';
 import { EditAlbumModal } from './edit.album.modal';
@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 
 export const AlbumLayout = () => {
     const navigate = useNavigate();
+    const { history } = useRouter();
     const shareAlbumMutation = useShareAlbum();
     const { albumId } = useParams({ from: '/album/$albumId' });
 
@@ -100,28 +101,32 @@ export const AlbumLayout = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar
+            <ItemGrid
+                items={album.items}
+                albumId={albumIdNumber}
+                enableUrlPersistence
                 title={album.name}
-                rightButtons={[
-                    {
-                        icon: Ellipsis,
-                        label: 'Album actions',
-                        className: 'text-slate-900',
-                        onClick: () => setActionMenuActive(true),
-                        children: (
-                            <ActionMenu
-                                isOpen={actionMenuActive}
-                                onActionStarted={() => setActionMenuActive(false)}
-                                onDismiss={() => setActionMenuActive(false)}
-                                position='bottom'
-                                options={actionOptions}
-                            />
-                        )
-                    }
-                ]}
-                onTitleClick={() => setShowEditModal(true)}
+                onBack={() => history.back()}
+                headerActions={
+                    <div className='relative'>
+                        <button
+                            className={floatingButtonClasses}
+                            onClick={() => setActionMenuActive(true)}
+                            title='Album actions'
+                            aria-label='Album actions'
+                        >
+                            <Ellipsis className='size-5' />
+                        </button>
+                        <ActionMenu
+                            isOpen={actionMenuActive}
+                            onActionStarted={() => setActionMenuActive(false)}
+                            onDismiss={() => setActionMenuActive(false)}
+                            position='bottom'
+                            options={actionOptions}
+                        />
+                    </div>
+                }
             />
-            <ItemGrid items={album.items} albumId={albumIdNumber} enableUrlPersistence />
             <DeleteAlbumModal
                 album={album}
                 isOpen={showDeleteModal}

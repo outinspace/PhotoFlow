@@ -16,7 +16,7 @@ interface Props {
 }
 
 export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, options }: Props) => {
-    const optionClasses = 'border-b last:border-none border-slate-200 p-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 first:rounded-t last:rounded-b flex items-center';
+    const optionClasses = 'w-full text-left px-4 min-h-12 flex items-center gap-3 text-[15px] border-b border-black/5 last:border-none hover:bg-black/5 active:bg-black/10 cursor-pointer';
 
     const menuTransitions = useTransition(isOpen, {
         from: {
@@ -51,7 +51,7 @@ export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, optio
         <>
             {shadowTransitions((styles, state) => state && (
                 <animated.div
-                    className='fixed bg-black/50 top-0 bottom-0 left-0 right-0 z-20'
+                    className='fixed bg-black/20 top-0 bottom-0 left-0 right-0 z-20'
                     style={{
                         width: '10000px',
                         height: '10000px',
@@ -64,7 +64,7 @@ export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, optio
             ))}
             {menuTransitions((styles, state) => state && (
                 <animated.div
-                    className='absolute right-0 overflow-none z-20 text-nowrap text-black drop-shadow min-w-40 my-12'
+                    className='glass-panel absolute right-0 overflow-hidden z-20 text-nowrap rounded-2xl min-w-56 my-14'
                     style={{
                         bottom: position === 'top' ? 0 : undefined,
                         top: position === 'bottom' ? 0 : undefined,
@@ -73,17 +73,18 @@ export const ActionMenu = ({ isOpen, onDismiss, onActionStarted, position, optio
                 >
                     {options
                         .map(option => (
-                            <div
+                            <button
+                                type='button'
                                 key={option.title}
-                                className={`${optionClasses} ${option.className}`}
+                                className={`${optionClasses} ${option.className ?? ''}`}
                                 onClick={() => {
                                     onActionStarted?.();
                                     option.onClick()
                                 }}
                             >
-                                <option.icon className='size-5 ml-1 mr-2' />
+                                <option.icon className='size-5' />
                                 {option.title}
-                            </div>
+                            </button>
                         ))}
                 </animated.div>
             ))}

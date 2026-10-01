@@ -1,7 +1,6 @@
-import { Database, LogOut, QrCode, Settings, Trash, WarningTriangle } from 'iconoir-react';
+import { Database, LogOut, NavArrowRight, QrCode, Settings, Trash, WarningTriangle } from 'iconoir-react';
 import React, { useMemo } from 'react';
 import { router } from '../routes';
-import PageHeader from '../common/page.header';
 import { useItems } from '../api/useItems';
 import { formatBytes, pluralize } from '../common/format.helpers';
 import { useDebugMode } from '../hooks/use.debug.mode';
@@ -12,7 +11,7 @@ import UploadButton from './upload.button';
 
 const commonOptions = [
     {
-        name: 'Settings',
+        name: 'Display & Playback',
         icon: Settings,
         onClick: () => {
             router.navigate({ to: '/settings' });
@@ -32,20 +31,17 @@ const commonOptions = [
             router.navigate({ to: '/link-device' });
         }
     },
-    {
-        name: 'Logout',
-        icon: LogOut,
-        onClick: async () => {
-            // The caches hold the library of whoever was connected, and they outlive
-            // the credentials, so clearing them matters as much as clearing the keys.
-            clearStorageConfig();
-            await clearCachedCatalog();
-            queryClient.clear();
-
-            router.navigate({ to: '/connect' });
-        }
-    },
 ];
+
+const logout = async () => {
+    // The caches hold the library of whoever was connected, and they outlive
+    // the credentials, so clearing them matters as much as clearing the keys.
+    clearStorageConfig();
+    await clearCachedCatalog();
+    queryClient.clear();
+
+    router.navigate({ to: '/connect' });
+};
 
 const advancedOptions = [
     {
@@ -67,16 +63,18 @@ const advancedOptions = [
 ];
 
 const MenuSection = ({ options }: { options: { name: string; icon: React.ElementType; onClick: () => void }[] }) => (
-    <div>
+    <div className='rounded-2xl bg-white overflow-hidden'>
         {options.map(option => (
-            <div
+            <button
+                type='button'
                 key={option.name}
-                className='flex items-center min-h-11 first:rounded-t-lg last:rounded-b-lg bg-slate-100 px-3 py-2 border-b border-slate-200 last:border-0 transition-all hover:bg-slate-200 active:bg-slate-300 cursor-pointer'
+                className='flex w-full items-center gap-3 min-h-13 px-4 text-left text-[16px] text-slate-900 hover:bg-slate-50 active:bg-slate-100 cursor-pointer group'
                 onClick={option.onClick}
             >
-                <option.icon className='mr-2' />
-                {option.name}
-            </div>
+                <option.icon className='size-5.5 flex-none text-slate-500' />
+                <span className='flex-auto self-stretch flex items-center border-b border-slate-100 group-last:border-0'>{option.name}</span>
+                <NavArrowRight className='size-4 flex-none text-slate-400' />
+            </button>
         ))}
     </div>
 );
@@ -86,16 +84,24 @@ const Menu = () => {
     const visibleAdvancedOptions = advancedOptions.filter(option => !option.debug || showDebugOptions);
 
     return (
-        <div className='p-5'>
-            <div className='flex justify-between'>
-                <PageHeader name='Menu' />
+        <div className='w-full max-w-2xl mx-auto px-5 pt-4 tabbar-pad'>
+            <div className='flex items-center justify-between pb-5'>
+                <h1 className='text-[34px] font-bold tracking-tight text-slate-900'>Settings</h1>
                 <UploadButton />
             </div>
             <MenuSection options={commonOptions} />
-            <div className='mt-5'>
-                <div className='text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2'>Advanced</div>
+            <div className='mt-7'>
+                <div className='px-4 mb-2 text-[13px] font-semibold uppercase tracking-wide text-slate-500'>Advanced</div>
                 <MenuSection options={visibleAdvancedOptions} />
             </div>
+            <button
+                type='button'
+                onClick={logout}
+                className='mt-7 flex w-full items-center justify-center gap-2 min-h-13 rounded-2xl bg-white text-[16px] font-medium text-red-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer'
+            >
+                <LogOut className='size-5' />
+                Log Out
+            </button>
             <GalleryStats />
         </div>
     );
@@ -135,7 +141,7 @@ const GalleryStats = () => {
     const commitHash = import.meta.env.VITE_COMMIT_HASH || 'unknown';
 
     return (
-        <div className='mt-5 justify-center items-center flex flex-col text-slate-500 font-light text-xs'>
+        <div className='mt-6 justify-center items-center flex flex-col text-slate-500 text-xs'>
             <div>{`${pluralize(photosCount, 'Photo')} · ${pluralize(videosCount, 'Video')} · ${formattedBytes} Total`}</div>
             {processingItemsCount > 0 && (
                 <div>

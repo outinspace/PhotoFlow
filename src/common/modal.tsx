@@ -51,11 +51,11 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
     const getButtonColorClasses = (action: ModalAction) => {
         switch (action.color) {
             case 'neutral':
-                return 'bg-slate-100 text-slate-500 hover:bg-slate-200 active:bg-slate-300';
+                return 'bg-black/5 text-slate-700 hover:bg-black/10 active:bg-black/15';
             case 'primary':
-                return 'bg-sky-100 text-sky-500 hover:bg-sky-200 active:bg-sky-300';
+                return 'bg-sky-600 text-white hover:bg-sky-500 active:bg-sky-700';
             case 'destructive':
-                return 'bg-red-100 text-red-500 hover:bg-red-200 active:bg-red-300';
+                return 'bg-red-600 text-white hover:bg-red-500 active:bg-red-700';
         }
     };
 
@@ -64,18 +64,18 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
             <>
                 {shadowTransitions((styles, state) => state && (
                     <animated.div
-                        className='fixed flex z-10 top-0 bottom-0 left-0 right-0 bg-black/50'
+                        className='fixed flex z-40 top-0 bottom-0 left-0 right-0 bg-black/30'
                         style={styles}
                     />
                 ))}
                 {modalTransitions((styles, state) => state && (
                     <animated.div
-                        className='z-10 fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center drop-shadow'
+                        className='z-40 fixed flex top-0 bottom-0 left-0 right-0 justify-center items-center'
                         style={styles}
                     >
-                        <div className='flex-col bg-slate-50 rounded text-black p-6 m-10 max-w-80'>
-                            <div className='flex justify-center font-bold text-slate-900 mb-2'>{title}</div>
-                            <div className='text-slate-600 mb-5'>
+                        <div className='glass-panel flex-col rounded-[28px] p-6 m-6 w-full max-w-sm'>
+                            <div className='text-center text-lg font-semibold text-slate-900 mb-1.5'>{title}</div>
+                            <div className='text-center text-[15px] text-slate-600 mb-5'>
                                 {description}
                             </div>
                             {children && (
@@ -83,11 +83,11 @@ export const Modal = ({ isOpen, title, description, children, actions }: Props) 
                                     {children}
                                 </div>
                             )}
-                            <div className='flex justify-between'>
+                            <div className='flex gap-2'>
                                 {actions.map(action => (
                                     <button
                                         key={action.text}
-                                        className={`rounded p-2 mr-3 last:mr-0 ${getButtonColorClasses(action)}`}
+                                        className={`flex-1 h-11 rounded-full text-[15px] font-semibold cursor-pointer disabled:opacity-40 ${getButtonColorClasses(action)}`}
                                         onClick={() => action.onClick()}
                                         disabled={action.disabled}
                                     >

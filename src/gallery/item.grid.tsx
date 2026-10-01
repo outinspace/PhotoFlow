@@ -1,10 +1,10 @@
-import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { ReactNode, useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { ItemTile } from './item.tile';
 import { Item } from '../types';
 import ItemPreview from './item.preview';
 import { format } from 'date-fns';
 import { FilterMenu, useFilterBar, countActiveFilters } from './filter.bar';
-import { Filter, CheckCircle, Xmark } from 'iconoir-react';
+import { Filter, NavArrowLeft } from 'iconoir-react';
 import { ItemActionMenu } from './item.action.menu';
 import { ZoomButtons } from './zoom.buttons';
 import { Ellipsis } from '../common/ellipsis';
@@ -24,7 +24,8 @@ import { usePrefetchThumbnails } from '../hooks/use.settings';
 const ZOOM_STEP = 1.4;
 
 // The map page floats its own controls over the canvas and should look like these.
-export const floatingButtonClasses = 'backdrop-blur-2xl bg-white/60 border border-white/20 rounded-full p-3 shadow-lg hover:bg-white/50 active:bg-white/50 ml-2 cursor-pointer';
+export const floatingButtonClasses = 'glass flex flex-none size-11 items-center justify-center rounded-full cursor-pointer hover:bg-white/80 active:bg-white';
+const floatingPillClasses = 'glass flex flex-none h-11 items-center gap-1.5 px-4 rounded-full text-[15px] font-semibold cursor-pointer hover:bg-white/80 active:bg-white';
 
 interface Props {
     items: Item[];
@@ -33,9 +34,15 @@ interface Props {
     disableFilteringSorting?: boolean;
     enableUrlPersistence?: boolean;
     disablePinch?: boolean;
+    // Shown large over the top of the photos, with the date of the rows on screen
+    // beneath it. Without one, the date takes its place.
+    title?: string;
+    onBack?: () => void;
+    // Extra buttons beside Filter and Select, such as an album's own menu.
+    headerActions?: ReactNode;
 }
 
-const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch }: Props) => {
+const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting, enableUrlPersistence = false, disablePinch, title, onBack, headerActions }: Props) => {
     const [filterBarVisible, setFilterBarVisible] = useState(false);
     const [selectModeEnabled, setSelectModeEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -187,6 +194,10 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
     }, []);
 
     const handleReturnToTopClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        // The header's buttons sit in that strip too, and a tap on one is not a
+        // request to go back to the top.
+        if ((event.target as HTMLElement).closest('[data-grid-header]')) return;
+
         const threshold = 30; // pixels from the top
         const clickPosition = event.clientY - scrollContainerRef.current!.getBoundingClientRect().top;
         if (clickPosition <= threshold) {
@@ -234,36 +245,89 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
         }
     }
 
+    const activeFilterCount = countActiveFilters(filterProps.filters);
+    const heading = selectModeEnabled
+        ? `${selectedItems.length} Selected`
+        : title ?? (disableFilteringSorting ? '' : formattedRange);
+    // White text over a scrim reads on photos, but a short album leaves the header
+    // over the empty page, where the scrim is a grey smear and dark text is needed.
+    const headerOverPhotos = layout.rowCount * layout.tileSize >= 144;
+    const subheading = selectModeEnabled
+        ? formatBytes(selectedBytes)
+        : title && !disableFilteringSorting ? formattedRange : '';
+
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
             <div className='flex flex-auto overflow-hidden relative' onClickCapture={handleReturnToTopClick}>
-                <div className='absolute bottom-2 right-2 z-10 flex'>
-                    {!selectModeEnabled && (
+                {/* The photos run under the header, so a scrim keeps its white text
+                    readable over a bright sky. */}
+                {headerOverPhotos && (
+                    <div aria-hidden className='absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/45 to-transparent pointer-events-none' />
+                )}
+                <div data-grid-header className='absolute inset-x-0 top-0 z-10 flex items-start gap-3 px-4 pt-3 pointer-events-none'>
+                    {onBack && (
                         <button
-                            className={`${floatingButtonClasses} flex items-center gap-1.5`}
-                            onClick={() => setSelectModeEnabled(true)}
-                            title='Select photos'
-                            aria-label='Select photos'
+                            className={`${floatingButtonClasses} pointer-events-auto`}
+                            onClick={onBack}
+                            title='Back'
+                            aria-label='Back'
                         >
-                            <CheckCircle
-                                className='size-6 drop-shadow-sm'
-                                style={{ marginTop: 2, marginBottom: -2 }}
-                            />
-                            <span className='text-sm font-medium pr-1'>Select</span>
+                            <NavArrowLeft className='size-6' />
                         </button>
                     )}
+                    <div className={`flex-auto min-w-0 pt-0.5 select-none ${headerOverPhotos ? 'text-white' : 'text-slate-900'}`}>
+                        <div className={`text-[28px] leading-9 font-bold tracking-tight truncate ${headerOverPhotos ? '[text-shadow:0_1px_12px_rgb(0_0_0/0.35)]' : ''}`}>{heading}</div>
+                        {subheading && (
+                            <div className={`text-[13px] font-semibold opacity-95 truncate ${headerOverPhotos ? '[text-shadow:0_1px_8px_rgb(0_0_0/0.4)]' : ''}`}>{subheading}</div>
+                        )}
+                    </div>
+                    <div className='flex flex-none items-center gap-2 pointer-events-auto'>
+                        {!selectModeEnabled && headerActions}
+                        {!selectModeEnabled && !disableFilteringSorting && (
+                            <div className='relative'>
+                                <button
+                                    className={`${floatingButtonClasses} relative`}
+                                    onClick={() => setFilterBarVisible(true)}
+                                    title='Filter & sort'
+                                    aria-label='Filter & sort'
+                                >
+                                    <Filter className='size-5' />
+                                    {activeFilterCount > 0 && (
+                                        <div className='absolute -top-1 -right-1 bg-sky-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1'>
+                                            {activeFilterCount}
+                                        </div>
+                                    )}
+                                </button>
+                                <FilterMenu
+                                    items={allItems}
+                                    filters={filterProps.filters}
+                                    setFilters={filterProps.setFilters}
+                                    isOpen={filterBarVisible}
+                                    onDismiss={() => setFilterBarVisible(false)}
+                                />
+                            </div>
+                        )}
+                        <button
+                            className={floatingPillClasses}
+                            onClick={() => selectModeEnabled ? closeSelectionMode() : setSelectModeEnabled(true)}
+                        >
+                            {selectModeEnabled ? 'Done' : 'Select'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Above the phone's tab bar, and in the corner on desktop. */}
+                <div className='absolute right-4 z-10 flex gap-2' style={{ bottom: 'calc(var(--tabbar-space) + 12px)' }}>
                     {selectModeEnabled && selectedItems.length > 0 && (
                         <>
                             <button
-                                className={floatingButtonClasses}
+                                className={floatingPillClasses}
                                 onClick={() => setShowActionMenu(!showActionMenu)}
                                 title='Actions'
                                 aria-label='Actions'
                             >
-                                <Ellipsis
-                                    className='size-6 drop-shadow-sm'
-                                    style={{ marginTop: 2, marginBottom: -2 }}
-                                />
+                                Actions
+                                <Ellipsis className='size-5' />
                             </button>
                             <ItemActionMenu
                                 items={selectedItems}
@@ -275,19 +339,6 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                                 readonly={!!readonly}
                             />
                         </>
-                    )}
-                    {selectModeEnabled && (
-                        <button
-                            className={floatingButtonClasses}
-                            onClick={() => closeSelectionMode()}
-                            title='Cancel selection'
-                            aria-label='Cancel selection'
-                        >
-                            <Xmark
-                                className='size-6 drop-shadow-sm'
-                                style={{ marginTop: 2, marginBottom: -2 }}
-                            />
-                        </button>
                     )}
                 </div>
                 {/* touch-pan-y leaves one-finger panning to the browser while reserving
@@ -307,50 +358,15 @@ const ItemGrid = ({ items: allItems, albumId, readonly, disableFilteringSorting,
                             {tiles}
                         </div>
                     </div>
-                    <div className='flex absolute bottom-2 left-2'>
-                        <ZoomButtons
-                            onZoomOut={zoomOut}
-                            onZoomIn={zoomIn}
-                            zoomInDisabled={layout.columns === layout.minColumns}
-                            zoomOutDisabled={layout.columns === layout.maxColumns}
-                        />
-                        {!disableFilteringSorting && (
-                            <button
-                                className={`${floatingButtonClasses} relative`}
-                                onClick={() => setFilterBarVisible(true)}
-                                title='Filter & sort'
-                                aria-label='Filter & sort'
-                            >
-                                <Filter
-                                    className='size-6 drop-shadow-sm'
-                                    style={{ marginTop: 2, marginBottom: -2 }}
-                                />
-                                {countActiveFilters(filterProps.filters) > 0 && (
-                                    <div className='absolute -top-1 -right-1 bg-sky-500 text-white text-xs font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1'>
-                                        {countActiveFilters(filterProps.filters)}
-                                    </div>
-                                )}
-                            </button>
-                        )}
-                        {!disableFilteringSorting && (
-                            <FilterMenu
-                                items={allItems}
-                                filters={filterProps.filters}
-                                setFilters={filterProps.setFilters}
-                                isOpen={filterBarVisible}
-                                onDismiss={() => setFilterBarVisible(false)}
-                            />
-                        )}
-                    </div>
-
-                    <div className='absolute top-4 left-4 text-shadow text-slate-50 drop-shadow select-none pointer-events-none'>
-                        {!disableFilteringSorting && <div className='font-bold text-2xl'>{formattedRange}</div>}
-                        {selectModeEnabled && (
-                            <div className='font-bold text-l'>
-                                {selectedItems.length} Items Selected • {formatBytes(selectedBytes)}
-                            </div>
-                        )}
-                    </div>
+                </div>
+                {/* A phone pinches instead. */}
+                <div className='hidden md:flex absolute bottom-4 left-4 z-10'>
+                    <ZoomButtons
+                        onZoomOut={zoomOut}
+                        onZoomIn={zoomIn}
+                        zoomInDisabled={layout.columns === layout.minColumns}
+                        zoomOutDisabled={layout.columns === layout.maxColumns}
+                    />
                 </div>
             </div>
             {previewItemIndex !== null && (

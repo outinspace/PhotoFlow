@@ -3,7 +3,7 @@ import { enqueueFiles } from '../api/uploadManager';
 import { CloudUpload, Folder, MediaImage } from 'iconoir-react';
 import { ActionMenu } from '../common/action.menu';
 
-const UploadButton = () => {
+const UploadButton = ({ variant = 'circle' }: { variant?: 'circle' | 'sidebar' }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,17 +33,31 @@ const UploadButton = () => {
                 style={{ display: 'none' }}
                 {...({ webkitdirectory: '' } as object)}
             />
-            <div className='rounded-full bg-slate-100 p-2 hover:bg-slate-200 active:bg-slate-300'>
-                <CloudUpload
-                    className='size-6'
+            {variant === 'sidebar' ? (
+                <button
+                    type='button'
+                    className='flex w-full h-11 items-center justify-center gap-2 rounded-full bg-slate-900 text-white text-[15px] font-semibold shadow-md hover:bg-slate-800 cursor-pointer'
                     onClick={() => setIsMenuOpen(true)}
-                />
-            </div>
+                >
+                    <CloudUpload className='size-5' />
+                    Upload
+                </button>
+            ) : (
+                <button
+                    type='button'
+                    aria-label='Upload'
+                    title='Upload'
+                    className='glass flex size-11 items-center justify-center rounded-full cursor-pointer'
+                    onClick={() => setIsMenuOpen(true)}
+                >
+                    <CloudUpload className='size-6' />
+                </button>
+            )}
             <ActionMenu
                 isOpen={isMenuOpen}
                 onDismiss={() => setIsMenuOpen(false)}
                 onActionStarted={() => setIsMenuOpen(false)}
-                position='bottom'
+                position={variant === 'sidebar' ? 'top' : 'bottom'}
                 options={[
                     {
                         title: 'Upload Photos',

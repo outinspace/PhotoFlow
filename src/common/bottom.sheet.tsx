@@ -76,7 +76,7 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
         <>
             {shadowTransitions((style, openState) => openState && (
                 <animated.div
-                    className='left-0 right-0 top-0 bottom-0 fixed bg-black/50 z-10'
+                    className='left-0 right-0 top-0 bottom-0 fixed bg-black/30 z-30'
                     style={style}
                 />
             ))}
@@ -86,7 +86,7 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
                 covers the rightmost strip, where map controls live. */}
             <animated.div
                 ref={containerRef}
-                className={`left-0 right-0 top-0 bottom-0 fixed z-10 max-height-dvh flex flex-col md:flex-row justify-end touch-none ${isOpen ? '' : 'pointer-events-none'}`}
+                className={`left-0 right-0 top-0 bottom-0 fixed z-30 max-height-dvh flex flex-col md:flex-row justify-end touch-none ${isOpen ? '' : 'pointer-events-none'}`}
                 style={sheetSpring}
                 {...dragBindings()}
             >
@@ -95,9 +95,11 @@ export const BottomSheet = ({ children, isOpen, onDismiss }: Props) => {
                     onClick={() => onDismiss()}
                 >
                 </div>
+                {/* The sheet covers the tab bar, so nothing inside it needs to clear it. */}
                 <div
-                    className='bg-slate-50 rounded-t-lg md:rounded-none md:rounded-l-lg md:w-[50%] lg:w-[33%] overflow-y-auto z-10 flex-initial p-3 pb-9 md:pb-3 flex flex-col'
+                    className='glass-panel rounded-t-[28px] md:rounded-[28px] md:m-3 md:w-[50%] lg:w-[33%] max-w-lg overflow-y-auto z-10 flex-initial p-3 pb-9 md:pb-3 flex flex-col [--tabbar-space:0px]'
                 >
+                    <div aria-hidden className='md:hidden mx-auto mb-1 h-1.5 w-10 flex-none rounded-full bg-slate-400/60' />
                     {children}
                 </div>
             </animated.div>

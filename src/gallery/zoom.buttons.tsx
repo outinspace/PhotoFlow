@@ -10,28 +10,28 @@ interface Props {
 export const ZoomButtons = ({ onZoomIn, onZoomOut, zoomInDisabled, zoomOutDisabled }: Props) => {
 
     return (
-        <div className='flex rounded-full overflow-hidden border border-white/20 shadow-lg'>
+        <div className='glass flex h-11 rounded-full overflow-hidden'>
             <button
-                className='p-3 backdrop-blur-2xl bg-white/60 hover:bg-white/50 active:bg-white/50 cursor-pointer disabled:opacity-40 disabled:cursor-default'
+                className='px-3 hover:bg-white/60 active:bg-white cursor-pointer disabled:opacity-40 disabled:cursor-default'
                 onClick={() => onZoomIn()}
                 disabled={zoomInDisabled}
                 title='Zoom in'
                 aria-label='Zoom in'
             >
                 <ZoomIn
-                    className='size-6 text-black drop-shadow-sm'
+                    className='size-5'
                 />
             </button>
-            <div className='w-px bg-white/20' />
+            <div className='w-px my-2.5 bg-black/10' />
             <button
-                className='p-3 backdrop-blur-2xl bg-white/60 hover:bg-white/50 active:bg-white/50 cursor-pointer disabled:opacity-40 disabled:cursor-default'
+                className='px-3 hover:bg-white/60 active:bg-white cursor-pointer disabled:opacity-40 disabled:cursor-default'
                 onClick={() => onZoomOut()}
                 disabled={zoomOutDisabled}
                 title='Zoom out'
                 aria-label='Zoom out'
             >
                 <ZoomOut
-                    className='size-6 text-black drop-shadow-sm'
+                    className='size-5'
                 />
             </button>
         </div>

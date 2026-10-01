@@ -2,7 +2,7 @@ import { animated, useTransition } from '@react-spring/web';
 import { Check } from 'iconoir-react';
 
 // Shared with the gallery's filter menu so the two cannot drift apart.
-export const menuRowClasses = 'border-b last:border-none border-slate-200 px-3 py-3 min-h-11 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2 cursor-pointer';
+export const menuRowClasses = 'px-4 min-h-12 flex items-center gap-3 text-[15px] border-b border-black/5 last:border-none hover:bg-black/5 active:bg-black/10 cursor-pointer';
 
 export interface MenuOption {
     value: string;
@@ -55,7 +55,7 @@ export const OptionMenu = ({ isOpen, onDismiss, options, value, onSelect }: Prop
         <>
             {shadowTransitions((styles, state) => state && (
                 <animated.div
-                    className='fixed bg-black/50 top-0 bottom-0 left-0 right-0 z-20'
+                    className='fixed bg-black/20 top-0 bottom-0 left-0 right-0 z-20'
                     style={{
                         width: '10000px',
                         height: '10000px',
@@ -68,13 +68,13 @@ export const OptionMenu = ({ isOpen, onDismiss, options, value, onSelect }: Prop
             ))}
             {menuTransitions((styles, state) => state && (
                 <animated.div
-                    className='absolute left-0 top-full mt-1 z-20 w-64 max-h-[60vh] flex flex-col overflow-hidden rounded-lg drop-shadow text-black'
+                    className='glass-panel absolute left-0 top-full mt-2 z-20 w-64 max-h-[60vh] flex flex-col overflow-hidden rounded-2xl'
                     style={styles}
                 >
                     {/* The shell animates and casts the shadow, a plain box inside it
                         scrolls. A filter on a scrolling box stops the browser
                         repainting rows as they scroll into view. */}
-                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50'>
+                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y'>
                         {options.map(option => (
                             <div
                                 key={option.value}

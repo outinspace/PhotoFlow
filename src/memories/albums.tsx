@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
 import { useAlbumsWithItems } from '../api/useAlbumsWithItems';
 import { ItemStack } from './item.stack';
-import { useNavigate, Link } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { parseISO } from 'date-fns';
+import { Section } from './section';
+
+// Collections shows the few albums most recently added to; the rest are a tap away.
+const ALBUMS_SHOWN = 6;
 
 export const Albums = () => {
     const albums = useAlbumsWithItems();
@@ -10,20 +14,13 @@ export const Albums = () => {
 
     const sortedAlbums = useMemo(() => {
         if (!albums) return [];
-        
-        return [...albums].sort((a, b) => {
-            // Get the most recent photo from each album
-            const getMostRecentPhotoTime = (album: typeof a) => {
-                if (album.items.length === 0) return 0;
-                return Math.max(...album.items.map(item => parseISO(item.captureTime).getTime()));
-            };
-            
-            const aTime = getMostRecentPhotoTime(a);
-            const bTime = getMostRecentPhotoTime(b);
-            
-            // Sort by most recent photo (descending)
-            return bTime - aTime;
-        });
+
+        const getMostRecentPhotoTime = (album: typeof albums[number]) => {
+            if (album.items.length === 0) return 0;
+            return Math.max(...album.items.map(item => parseISO(item.captureTime).getTime()));
+        };
+
+        return [...albums].sort((a, b) => getMostRecentPhotoTime(b) - getMostRecentPhotoTime(a));
     }, [albums]);
 
     const handleAlbumClick = (albumId: number) => {
@@ -35,36 +32,22 @@ export const Albums = () => {
     }
 
     return (
-        <>
-            <div className="mb-6">
-                <div className="flex items-center justify-between mb-4 px-6">
-                    <h2 className="text-2xl font-bold">Albums</h2>
-                    <Link
-                        to="/albums"
-                        className="text-sm text-sky-500 hover:text-sky-600 font-medium"
-                    >
-                        See All Albums
-                    </Link>
-                </div>
-                <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-                    <div className="flex shrink-1 gap-4 pl-6" style={{ width: 'max-content' }}>
-                        {sortedAlbums.map((album) => {
-                            return (
-                                <div key={album.albumId} className="flex flex-col items-center flex-shrink-0">
-                                    <ItemStack
-                                        items={album.items}
-                                        onClick={() => handleAlbumClick(album.albumId)}
-                                    />
-                                    <div className="mt-2 text-sm font-medium text-center max-w-[300px]">
-                                        {album.name}
-                                    </div>
-                                </div>
-                            );
-                        })}
+        <Section title='Albums' seeAllTo='/albums'>
+            <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-3 gap-y-4 px-5'>
+                {sortedAlbums.slice(0, ALBUMS_SHOWN).map(album => (
+                    <div key={album.albumId} className='min-w-0'>
+                        <ItemStack
+                            items={album.items}
+                            onClick={() => handleAlbumClick(album.albumId)}
+                            fullWidth
+                            aspectRatio='1/1'
+                            showCount={false}
+                        />
+                        <div className='mt-2 px-1 text-[15px] font-semibold text-slate-900 truncate'>{album.name}</div>
+                        <div className='px-1 text-[13px] text-slate-500'>{album.items.length}</div>
                     </div>
-                </div>
+                ))}
             </div>
-        </>
+        </Section>
     );
 };
-

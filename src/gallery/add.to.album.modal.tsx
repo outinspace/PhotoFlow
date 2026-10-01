@@ -46,7 +46,7 @@ export const AddToAlbumModal = ({ isOpen, onCancel, onAddComplete, items }: Prop
             ]}
         >
             <select
-                className='flex-auto border rounded bg-slate-100 p-2 hover:bg-slate-200'
+                className='flex-auto h-11 rounded-xl bg-white/80 px-3 text-[15px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-sky-500'
                 onChange={e => setSelectedAlbumId(parseInt(e.target.value))}
             >
                 <option

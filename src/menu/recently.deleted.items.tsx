@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import { subDays } from "date-fns";
 import { useDeletedItems } from "../api/useItems";
 import ItemGrid from "../gallery/item.grid";
-import { TopBar } from "../common/top.bar";
+import { useRouter } from "@tanstack/react-router";
 
 const RECENTLY_DELETED_DAYS = 30;
 
 export const RecentlyDeletedItems = () => {
     const { data } = useDeletedItems();
+    const { history } = useRouter();
 
     const items = useMemo(() => {
         const cutoff = subDays(new Date(), RECENTLY_DELETED_DAYS);
@@ -19,11 +20,12 @@ export const RecentlyDeletedItems = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar title='Recently Deleted' />
             <ItemGrid
                 items={items}
                 albumId={null}
                 disableFilteringSorting
+                title='Recently Deleted'
+                onBack={() => history.back()}
             />
         </div>
     );

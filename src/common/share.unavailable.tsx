@@ -3,7 +3,7 @@
 // lookup used to do — is indistinguishable from a broken page.
 export const ShareUnavailable = ({ kind }: { kind: 'photo' | 'album' }) => (
     <div className='flex flex-auto items-center justify-center p-8'>
-        <div className='max-w-sm text-center'>
+        <div className='glass-panel max-w-sm rounded-[28px] p-8 text-center'>
             <h1 className='text-lg font-semibold text-slate-900'>This {kind} isn’t available</h1>
             <p className='mt-2 text-sm text-slate-600'>
                 The link may have expired, or the {kind} may no longer be shared.

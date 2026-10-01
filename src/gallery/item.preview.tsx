@@ -12,6 +12,10 @@ import ItemMedia from './item.media';
 import { useFavoriteItem } from '../api/useFavoriteItem';
 import { useUnfavoriteItem } from '../api/useUnfavoriteItem';
 import { usePhotoAnimations, useSlideshowInterval } from '../hooks/use.settings';
+import { IS_STANDALONE } from '../common/browser.utils';
+
+const viewerButtonClasses = 'glass-dark flex flex-none size-11 items-center justify-center rounded-full cursor-pointer hover:bg-white/15';
+const toolbarButtonClasses = 'flex size-11 items-center justify-center rounded-full cursor-pointer hover:bg-white/15 active:bg-white/25';
 
 interface Props {
     items: Item[];
@@ -257,7 +261,7 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
     return (
         <animated.div
             ref={containerRef}
-            className='fixed top-0 bottom-0 left-0 right-0 flex z-10 bg-black'
+            className='fixed top-0 bottom-0 left-0 right-0 flex z-30 bg-black'
             style={{ opacity: swipeSpring.opacity }}
         >
             {/* An installed iOS app paints the status bar in the colour of a full-width
@@ -291,83 +295,77 @@ const ItemPreview = ({ items, itemIndex, albumId, onMovePrevious, onMoveNext, on
                         </animated.div>
                     ))}
             </div>
-            <div
-                className="absolute left-0 top-0 flex z-10 p-3 text-shadow">
-                {onClose && (
-                    <Xmark
-                        onClick={() => onClose?.()}
-                        color='white'
-                        height={30}
-                        width={30}
-                        className="mr-3"
-                    />
-                )}
-                <div
-                    className='select-none text-white content-center font-normal'
-                >
-                    <div className='text-base pt-0.5'>
-                        {heading}
-                    </div>
-                    <div className='text-sm'>
-                        {subheading}
+            <div className='absolute inset-x-0 top-0 z-10 flex items-center gap-3 p-3 pointer-events-none'>
+                <div className='flex flex-1 basis-0'>
+                    {onClose && (
+                        <button
+                            onClick={() => onClose?.()}
+                            className={`${viewerButtonClasses} pointer-events-auto`}
+                            title='Close'
+                            aria-label='Close'
+                        >
+                            <Xmark className='size-6' />
+                        </button>
+                    )}
+                </div>
+                <div className='glass-dark min-w-0 max-w-[60vw] md:max-w-md rounded-full px-5 py-1.5 text-center select-none'>
+                    <div className='text-[15px] font-semibold leading-5 truncate'>{heading}</div>
+                    {subheading && <div className='text-xs leading-4 text-white/80 truncate'>{subheading}</div>}
+                </div>
+                <div className='relative flex flex-1 basis-0 justify-end'>
+                    <button
+                        onClick={() => setShowActionMenu(!showActionMenu)}
+                        className={`${viewerButtonClasses} pointer-events-auto`}
+                        title='More'
+                        aria-label='More'
+                    >
+                        <Ellipsis className='size-5' />
+                    </button>
+                    <div className='pointer-events-auto'>
+                        <ItemActionMenu
+                            items={[item]}
+                            albumId={albumId}
+                            isOpen={showActionMenu}
+                            onDismiss={() => setShowActionMenu(false)}
+                            onItemsRemoved={() => onClose?.()}
+                            position='bottom'
+                            readonly={!!readonly}
+                        />
                     </div>
                 </div>
             </div>
-            <div className='absolute top-0 right-0 z-10 flex p-3 text-white'>
+            <div
+                className='glass-dark absolute left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full p-1'
+                style={{ bottom: IS_STANDALONE ? 36 : 16 }}
+            >
+                {!readonly && (
+                    <button
+                        onClick={() => item.isFavorite ? unfavoriteItem.mutateAsync(item.itemId) : favoriteItem.mutateAsync(item.itemId)}
+                        className={toolbarButtonClasses}
+                        title={item.isFavorite ? 'Remove favorite' : 'Favorite'}
+                        aria-label={item.isFavorite ? 'Remove favorite' : 'Favorite'}
+                    >
+                        {item.isFavorite ? <HeartSolid className='size-6' /> : <Heart className='size-6' />}
+                    </button>
+                )}
                 <button
                     onClick={() => setShowInfoSheet(true)}
-                    className='ml-3'
+                    className={toolbarButtonClasses}
                     title='Info'
                     aria-label='Info'
                 >
-                    <InfoCircle height={30} width={30} className='text-shadow' />
+                    <InfoCircle className='size-6' />
                 </button>
-                {items.length > 1 && (slideshow ? (
-                    <button onClick={stopSlideshow} className='ml-3' title='Stop slideshow' aria-label='Stop slideshow'>
-                        <Pause height={30} width={30} className='text-shadow' />
-                    </button>
-                ) : (
-                    <button onClick={startSlideshow} className='ml-3' title='Start slideshow' aria-label='Start slideshow'>
-                        <Play height={30} width={30} className='text-shadow' />
-                    </button>
-                ))}
-                {!readonly && !item.isFavorite && (
+                {items.length > 1 && (
                     <button
-                        onClick={() => favoriteItem.mutateAsync(item.itemId)}
-                        className='ml-3'
-                        title='Favorite'
-                        aria-label='Favorite'
+                        onClick={slideshow ? stopSlideshow : startSlideshow}
+                        className={toolbarButtonClasses}
+                        title={slideshow ? 'Stop slideshow' : 'Start slideshow'}
+                        aria-label={slideshow ? 'Stop slideshow' : 'Start slideshow'}
                     >
-                        <Heart height={30} width={30} className='text-shadow' />
+                        {slideshow ? <Pause className='size-6' /> : <Play className='size-6' />}
                     </button>
                 )}
-                {!readonly && item.isFavorite && (
-                    <button
-                        onClick={() => unfavoriteItem.mutateAsync(item.itemId)}
-                        className='ml-3'
-                        title='Remove favorite'
-                        aria-label='Remove favorite'
-                    >
-                        <HeartSolid height={30} width={30} className='text-shadow' />
-                    </button>
-                )}
-                <button
-                    onClick={() => setShowActionMenu(!showActionMenu)}
-                    className='ml-3'
-                    title='More'
-                    aria-label='More'
-                >
-                    <Ellipsis height={30} width={30} className='text-shadow' />
-                </button>
-                <ItemActionMenu
-                    items={[item]}
-                    albumId={albumId}
-                    isOpen={showActionMenu}
-                    onDismiss={() => setShowActionMenu(false)}
-                    onItemsRemoved={() => onClose?.()}
-                    position='bottom'
-                    readonly={!!readonly}
-                />
             </div>
             <ItemInfoSheet
                 item={item}

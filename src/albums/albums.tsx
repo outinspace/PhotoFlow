@@ -79,11 +79,11 @@ const Albums = () => {
             <TopBar
                 title='Albums'
             />
-            <div className='flex flex-col overflow-auto'>
-                <div className='m-4 flex items-center gap-4 justify-between'>
+            <div className='flex flex-col overflow-auto tabbar-pad'>
+                <div className='mx-5 mt-2 mb-4 flex items-center gap-4 justify-between'>
                     <div className='relative'>
                         <button
-                            className='flex items-center gap-1 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 min-h-11 rounded-lg cursor-pointer'
+                            className='glass flex items-center gap-1.5 h-11 px-4 rounded-full text-[15px] font-medium cursor-pointer hover:bg-white/80'
                             onClick={() => setSortMenuOpen(true)}
                         >
                             Sort by {SORT_OPTIONS.find(option => option.value === sortOption)?.label}
@@ -97,11 +97,11 @@ const Albums = () => {
                             onSelect={value => setSortOption(value as SortOption)}
                         />
                     </div>
-                    <div className='flex border border-slate-100 rounded-lg overflow-hidden'>
+                    <div className='glass flex h-11 p-1 gap-1 rounded-full'>
                         <button
-                            className={`px-3 min-h-11 flex items-center gap-1 cursor-pointer ${viewMode === 'thumbnail'
-                                ? 'bg-slate-200 text-sky-500'
-                                : 'bg-slate-100 hover:bg-slate-200'
+                            className={`px-3 rounded-full flex items-center cursor-pointer ${viewMode === 'thumbnail'
+                                ? 'bg-black/[0.07] text-sky-600'
+                                : 'hover:bg-black/5'
                                 }`}
                             onClick={() => setViewMode('thumbnail')}
                             title='Grid view'
@@ -110,9 +110,9 @@ const Albums = () => {
                             <ViewGrid className='size-5' />
                         </button>
                         <button
-                            className={`px-3 min-h-11 flex items-center gap-1 border-l border-slate-200 cursor-pointer ${viewMode === 'list'
-                                ? 'bg-slate-200 text-sky-500'
-                                : 'bg-slate-100 hover:bg-slate-200'
+                            className={`px-3 rounded-full flex items-center cursor-pointer ${viewMode === 'list'
+                                ? 'bg-black/[0.07] text-sky-600'
+                                : 'hover:bg-black/5'
                                 }`}
                             onClick={() => setViewMode('list')}
                             title='List view'
@@ -125,14 +125,14 @@ const Albums = () => {
                 {sortedAlbums.length === 0 ? (
                     // The only way to make an album is from a gallery selection, which
                     // is not somewhere you would think to look, so the empty state says so.
-                    <div className='p-4 text-sm text-slate-500'>
+                    <div className='mx-5 rounded-2xl bg-white p-5 text-[15px] text-slate-600'>
                         No albums yet. Select photos in the gallery, then choose Create New Album.
                     </div>
                 ) : viewMode === 'thumbnail' ? (
                     <div
-                        className='w-full p-4 grid justify-items-center justify-around'
+                        className='w-full px-5 grid gap-x-3 gap-y-5'
                         style={{
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))'
                         }}
                     >
                         {sortedAlbums.map(album => (
@@ -140,7 +140,7 @@ const Albums = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className='w-full p-4'>
+                    <div className='mx-5 rounded-2xl bg-white overflow-hidden'>
                         {sortedAlbums.map(album => (
                             <AlbumListItem key={album.albumId} album={album} onClick={() => openAlbum(album.albumId)} />
                         ))}
@@ -170,8 +170,8 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
     const coverItems = album.items.slice(0, gridCols * gridCols);
 
     return (
-        <div className='flex-col m-1 p-2 rounded justify-items-center hover:bg-slate-100 active:bg-slate-200' onClick={() => onClick()}>
-            <div className={'rounded border border-slate-200 size-36 overflow-hidden grid'}
+        <div className='min-w-0 cursor-pointer transition-transform active:scale-[0.98]' onClick={() => onClick()}>
+            <div className={'w-full aspect-square rounded-2xl overflow-hidden grid gap-px bg-slate-200 shadow-sm'}
                 style={{
                     gridTemplateColumns: gridTemplate,
                     gridTemplateRows: gridTemplate
@@ -185,7 +185,8 @@ const AlbumCover = ({ album, onClick }: AlbumCoverProps) => {
                     />
                 ))}
             </div>
-            <div className='mt-1 truncate text-ellipsis w-36 text-sm text-center'>{album.name}</div>
+            <div className='mt-2 px-1 truncate text-[15px] font-semibold text-slate-900'>{album.name}</div>
+            <div className='px-1 text-[13px] text-slate-500'>{album.items.length}</div>
         </div>
     )
 }
@@ -201,20 +202,20 @@ const AlbumListItem = ({ album, onClick }: AlbumListItemProps) => {
 
     return (
         <div
-            className='flex items-center justify-between p-3 border-b border-slate-200 last:border-0 hover:bg-slate-100 active:bg-slate-200'
+            className='flex items-center justify-between px-4 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50 active:bg-slate-100 cursor-pointer'
             onClick={() => onClick()}
         >
             <div className='flex items-center gap-3 flex-1 min-w-0'>
                 {thumbnailSource && (
                     <MediaImage
                         source={thumbnailSource}
-                        className='w-12 h-12 rounded border border-slate-200 object-cover flex-shrink-0'
+                        className='size-12 rounded-xl object-cover flex-shrink-0 bg-slate-200'
                         alt=''
                     />
                 )}
-                <div className='truncate text-ellipsis text-base'>{album.name}</div>
+                <div className='truncate text-[15px] font-medium'>{album.name}</div>
             </div>
-            <div className='text-sm text-slate-600 ml-4 flex-shrink-0'>
+            <div className='text-sm text-slate-500 ml-4 flex-shrink-0'>
                 {album.items.length} {album.items.length === 1 ? 'item' : 'items'}
             </div>
         </div>

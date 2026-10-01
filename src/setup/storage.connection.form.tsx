@@ -34,7 +34,7 @@ const Field = ({ label, hint, value, onChange, type = 'text', placeholder }: {
             value={value}
             placeholder={placeholder}
             onChange={event => onChange(event.target.value)}
-            className='mt-1 block w-full rounded-md border-0 p-2 font-mono text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-500'
+            className='mt-1 block w-full rounded-xl border-0 bg-white px-3 py-2.5 font-mono text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-black/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-500'
         />
     </label>
 );
@@ -44,7 +44,7 @@ const Notice = ({ tone, title, children }: {
     title: string;
     children: React.ReactNode;
 }) => (
-    <div className={`rounded-lg p-4 text-sm ${tone === 'amber' ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900'}`}>
+    <div className={`rounded-2xl p-4 text-sm ${tone === 'amber' ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900'}`}>
         <div className='font-medium'>{title}</div>
         <div className='mt-1 space-y-2'>{children}</div>
     </div>
@@ -306,7 +306,7 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                     type='button'
                     disabled={!isComplete || testing}
                     onClick={() => connect()}
-                    className='flex flex-1 justify-center rounded-md bg-sky-600 px-3 py-2 text-sm/6 font-semibold text-white shadow-sm hover:bg-sky-500 disabled:opacity-40'
+                    className='flex flex-1 justify-center rounded-full bg-sky-600 px-5 py-3 text-[15px] font-semibold text-white shadow-sm hover:bg-sky-500 disabled:opacity-40'
                 >
                     {testing ? 'Checking…' : submitLabel}
                 </button>
@@ -315,7 +315,7 @@ export const StorageConnectionForm = ({ onConnected, onCancel, submitLabel = 'Co
                         type='button'
                         onClick={onCancel}
                         disabled={testing}
-                        className='rounded-md px-3 py-2 text-sm/6 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                        className='rounded-full bg-white px-5 py-3 text-[15px] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 hover:bg-slate-50'
                     >
                         Cancel
                     </button>

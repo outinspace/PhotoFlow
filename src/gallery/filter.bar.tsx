@@ -242,7 +242,7 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
         <>
             {shadowTransitions((styles, state) => state && (
                 <animated.div
-                    className='fixed bg-black/50 top-0 bottom-0 left-0 right-0 z-20'
+                    className='fixed bg-black/20 top-0 bottom-0 left-0 right-0 z-20'
                     style={{
                         width: '10000px',
                         height: '10000px',
@@ -255,19 +255,19 @@ export const FilterMenu = ({ items, filters, setFilters, isOpen, onDismiss }: Fi
             ))}
             {menuTransitions((styles, state) => state && (
                 <animated.div
-                    className='absolute left-0 bottom-0 z-20 my-12 w-72 max-h-[60vh] flex flex-col overflow-hidden rounded-lg drop-shadow text-black'
+                    className='glass-panel absolute right-0 top-full mt-2 z-20 w-72 max-h-[60vh] flex flex-col overflow-hidden rounded-2xl'
                     style={styles}
                 >
                     {openFacet && (
                         <div
-                            className={`${menuRowClasses} filter-panel-in flex-none gap-1 font-semibold bg-slate-100`}
+                            className={`${menuRowClasses} filter-panel-in flex-none gap-1 font-semibold bg-black/[0.03]`}
                             onClick={() => setOpenFacetKey(null)}
                         >
                             <NavArrowLeft className='size-4 text-slate-500' />
                             {openFacet.label}
                         </div>
                     )}
-                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50'>
+                    <div className='flex-auto min-h-0 overflow-y-auto overscroll-contain touch-pan-y'>
                         {!openFacet && (
                             <>
                                 {facets.map(facet => {

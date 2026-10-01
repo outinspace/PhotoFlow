@@ -36,8 +36,8 @@ const Connect = () => {
                 {/* m-auto rather than justify-center: it centres the same way when there
                     is room, but collapses when there is not, so a short window scrolls
                     to the logo instead of clipping it out of reach. */}
-                <div className='m-auto w-full sm:max-w-sm'>
-                    <img src={logoUrl} alt='' className='mx-auto size-16 rounded-2xl shadow-sm' />
+                <div className='glass-panel m-auto w-full sm:max-w-md rounded-[32px] px-5 py-8 sm:px-8'>
+                    <img src={logoUrl} alt='' className='mx-auto size-18 rounded-[22px] shadow-md' />
                     <h1 className='mt-4 text-center text-3xl font-bold italic text-gray-900'>
                         PhotoFlow
                     </h1>
@@ -47,7 +47,7 @@ const Connect = () => {
                             : 'Connect your own storage bucket. These details stay in this browser and are never sent anywhere else.'}
                     </p>
 
-                    <div className='mt-10'>
+                    <div className='mt-8'>
                         {scanning ? (
                             <ScanQrCode
                                 onScanned={config => {
@@ -63,15 +63,15 @@ const Connect = () => {
                                         <button
                                             type='button'
                                             onClick={() => setScanning(true)}
-                                            className='flex w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm/6 font-semibold text-white shadow-sm hover:bg-sky-500'
+                                            className='flex w-full items-center justify-center gap-2 rounded-full bg-sky-600 px-5 py-3 text-[15px] font-semibold text-white shadow-sm hover:bg-sky-500'
                                         >
                                             <QrCode className='size-5' />
                                             Scan a code from another device
                                         </button>
-                                        <div className='mt-4 flex items-center gap-3 text-xs text-gray-400'>
-                                            <span className='h-px flex-auto bg-gray-200' />
+                                        <div className='mt-5 flex items-center gap-3 text-xs text-slate-500'>
+                                            <span className='h-px flex-auto bg-black/10' />
                                             or enter the details
-                                            <span className='h-px flex-auto bg-gray-200' />
+                                            <span className='h-px flex-auto bg-black/10' />
                                         </div>
                                     </div>
                                 )}

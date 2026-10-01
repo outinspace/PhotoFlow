@@ -119,9 +119,9 @@ export const ScanQrCode = ({ onScanned, onCancel }: {
     return (
         <div className='space-y-3'>
             {failure ? (
-                <div className='rounded-lg bg-amber-50 p-4 text-sm text-amber-900'>{MESSAGES[failure]}</div>
+                <div className='rounded-2xl bg-amber-50 p-4 text-sm text-amber-900'>{MESSAGES[failure]}</div>
             ) : (
-                <div className='overflow-hidden rounded-xl bg-black'>
+                <div className='overflow-hidden rounded-3xl bg-black'>
                     <video ref={videoRef} playsInline muted className='block w-full' />
                 </div>
             )}
@@ -134,7 +134,7 @@ export const ScanQrCode = ({ onScanned, onCancel }: {
             <button
                 type='button'
                 onClick={onCancel}
-                className='flex items-center gap-1.5 rounded-md px-3 py-2 text-sm/6 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                className='flex items-center gap-1.5 rounded-full bg-white px-5 py-3 text-[15px] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 hover:bg-slate-50'
             >
                 <Xmark className='size-4' />
                 Cancel

@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { TopBar } from '../common/top.bar';
 import {
     useAutoplayLivePhotos,
@@ -10,6 +11,30 @@ import {
 } from '../hooks/use.settings';
 import { PREFETCH_AHEAD_ITEMS } from '../common/tile.loader';
 
+const Row = ({ title, description, children }: { title: string; description: ReactNode; children: ReactNode }) => (
+    <div className='flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100 last:border-0'>
+        <div className='min-w-0'>
+            <div className='text-[16px] text-slate-900'>{title}</div>
+            <div className='text-[13px] leading-snug text-slate-500 mt-0.5'>{description}</div>
+        </div>
+        {children}
+    </div>
+);
+
+const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) => (
+    <button
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-7.5 w-12.5 flex-shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${checked ? 'bg-sky-500' : 'bg-slate-300'}`}
+        role='switch'
+        aria-checked={checked}
+        aria-label={label}
+    >
+        <span
+            className={`pointer-events-none inline-block size-6.5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+        />
+    </button>
+);
+
 const Settings = () => {
     const [photoAnimationsEnabled, setPhotoAnimationsEnabled] = usePhotoAnimations();
     const [autoplayLivePhotosEnabled, setAutoplayLivePhotosEnabled] = useAutoplayLivePhotos();
@@ -20,152 +45,48 @@ const Settings = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar title='Settings' />
-            <div className='p-5 overflow-auto'>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Photo Animations</div>
-                            <div className='text-sm text-slate-600 mt-1'>
-                                Enable animations when navigating between photos using arrow keys or buttons
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setPhotoAnimationsEnabled(!photoAnimationsEnabled)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                photoAnimationsEnabled ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                            role="switch"
-                            aria-checked={photoAnimationsEnabled}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    photoAnimationsEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
+            <TopBar title='Display & Playback' />
+            <div className='overflow-auto tabbar-pad'>
+                <div className='w-full max-w-2xl mx-auto px-5 pt-2 space-y-7'>
+                    <div className='rounded-2xl bg-white overflow-hidden'>
+                        <Row title='Photo Animations' description='Slide between photos when using the arrow keys or buttons'>
+                            <Toggle label='Photo Animations' checked={photoAnimationsEnabled} onChange={setPhotoAnimationsEnabled} />
+                        </Row>
+                        <Row title='Smooth Live Photo Animations' description='Play a brief animation when viewing Live Photos'>
+                            <Toggle label='Smooth Live Photo Animations' checked={autoplayLivePhotosEnabled} onChange={setAutoplayLivePhotosEnabled} />
+                        </Row>
+                        <Row title='Autoplay Videos' description='Start videos as soon as you open them'>
+                            <Toggle label='Autoplay Videos' checked={autoplayVideosEnabled} onChange={setAutoplayVideosEnabled} />
+                        </Row>
+                        <Row title='Open to Collections' description='Open Collections instead of the Library when the app starts'>
+                            <Toggle label='Open to Collections' checked={defaultToMemoriesEnabled} onChange={setDefaultToMemoriesEnabled} />
+                        </Row>
                     </div>
-                </div>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Smooth Live Photo Animations</div>
-                            <div className='text-sm text-slate-600 mt-1'>
-                                Play a brief animation when viewing live photos in preview
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setAutoplayLivePhotosEnabled(!autoplayLivePhotosEnabled)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                autoplayLivePhotosEnabled ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                            role="switch"
-                            aria-checked={autoplayLivePhotosEnabled}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    autoplayLivePhotosEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
-                </div>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Autoplay Videos</div>
-                            <div className='text-sm text-slate-600 mt-1'>
-                                Automatically play videos when viewing them in preview
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setAutoplayVideosEnabled(!autoplayVideosEnabled)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                autoplayVideosEnabled ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                            role="switch"
-                            aria-checked={autoplayVideosEnabled}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    autoplayVideosEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
-                </div>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Open to Memories</div>
-                            <div className='text-sm text-slate-600 mt-1'>
-                                Open the Memories page by default when the app first loads
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setDefaultToMemoriesEnabled(!defaultToMemoriesEnabled)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                defaultToMemoriesEnabled ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                            role="switch"
-                            aria-checked={defaultToMemoriesEnabled}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    defaultToMemoriesEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
-                </div>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Prefetch Thumbnails</div>
-                            <div className='text-sm text-slate-600 mt-1'>
+                    <div className='rounded-2xl bg-white overflow-hidden'>
+                        <Row
+                            title='Prefetch Thumbnails'
+                            description={<>
                                 Once the photos on screen have loaded, quietly download the next{' '}
                                 {PREFETCH_AHEAD_ITEMS.toLocaleString()} so scrolling on is instant.
                                 Turn this off to save data on a metered connection.
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setPrefetchEnabled(!prefetchEnabled)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                prefetchEnabled ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                            role="switch"
-                            aria-checked={prefetchEnabled}
+                            </>}
                         >
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    prefetchEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
-                </div>
-                <div className='bg-slate-100 rounded-lg p-4 border border-slate-200 mt-4'>
-                    <div className='flex items-center justify-between mb-2'>
-                        <div>
-                            <div className='font-medium text-slate-900'>Slideshow Speed</div>
-                            <div className='text-sm text-slate-600 mt-1'>
-                                How long each photo is shown before advancing during a slideshow
+                            <Toggle label='Prefetch Thumbnails' checked={prefetchEnabled} onChange={setPrefetchEnabled} />
+                        </Row>
+                        <Row title='Slideshow Speed' description='How long each photo is shown'>
+                            <div className='inline-flex flex-shrink-0 rounded-full bg-slate-100 p-1'>
+                                {SLIDESHOW_INTERVAL_OPTIONS_SECONDS.map(seconds => (
+                                    <button
+                                        key={seconds}
+                                        onClick={() => setSlideshowSeconds(seconds)}
+                                        className={`px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${slideshowSeconds === seconds ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                                        aria-pressed={slideshowSeconds === seconds}
+                                    >
+                                        {seconds}s
+                                    </button>
+                                ))}
                             </div>
-                        </div>
-                        <div className='ml-3 inline-flex flex-shrink-0 rounded-lg border border-slate-300 bg-white p-1'>
-                            {SLIDESHOW_INTERVAL_OPTIONS_SECONDS.map(seconds => (
-                                <button
-                                    key={seconds}
-                                    onClick={() => setSlideshowSeconds(seconds)}
-                                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                        slideshowSeconds === seconds ? 'bg-blue-600 text-white' : 'text-slate-700'
-                                    }`}
-                                    aria-pressed={slideshowSeconds === seconds}
-                                >
-                                    {seconds}s
-                                </button>
-                            ))}
-                        </div>
+                        </Row>
                     </div>
                 </div>
             </div>

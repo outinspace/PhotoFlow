@@ -55,7 +55,7 @@ export const InstallPrompt = () => {
     }
 
     return (
-        <div className='md:hidden flex-none flex items-center gap-2 border-b border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-900'>
+        <div className='glass md:hidden flex-none flex items-center gap-2 m-3 mb-0 rounded-2xl px-4 py-2 text-sm text-sky-900'>
             {installable ? (
                 <button
                     type='button'

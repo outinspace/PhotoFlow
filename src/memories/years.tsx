@@ -4,6 +4,8 @@ import { parseISO, getYear } from 'date-fns';
 import { ItemStack } from './item.stack';
 import { useNavigate } from '@tanstack/react-router';
 import { type Item } from '../types';
+import { CardRow, Section } from './section';
+import { pluralize } from '../common/format.helpers';
 
 export const Years = () => {
     const { data: items } = useItems();
@@ -40,27 +42,20 @@ export const Years = () => {
     }
 
     return (
-        <>
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-4 px-6">Years</h2>
-                <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-                    <div className="flex shrink-1 gap-4 pl-6" style={{ width: 'max-content' }}>
-                        {years.map((year) => {
-                            const yearItems = itemsByYear[year];
-                            return (
-                                <div key={year} className="flex flex-col items-center flex-shrink-0">
-                                    <ItemStack
-                                        items={yearItems}
-                                        onClick={() => handleYearClick(year)}
-                                    />
-                                    <div className="mt-2 text-sm font-medium">{year}</div>
-                                </div>
-                            );
-                        })}
+        <Section title='Years'>
+            <CardRow>
+                {years.map(year => (
+                    <div key={year} className='snap-start'>
+                        <ItemStack
+                            items={itemsByYear[year]}
+                            onClick={() => handleYearClick(year)}
+                            width='220px'
+                            title={year.toString()}
+                            subtitle={pluralize(itemsByYear[year].length, 'photo')}
+                        />
                     </div>
-                </div>
-            </div>
-        </>
+                ))}
+            </CardRow>
+        </Section>
     );
 };
-

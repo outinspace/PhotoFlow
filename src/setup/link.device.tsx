@@ -82,7 +82,7 @@ const LinkDevice = () => {
         <div className='flex flex-auto flex-col overflow-hidden'>
             <TopBar title='Link device' />
 
-            <div className='mx-auto w-full max-w-md flex-auto space-y-6 overflow-auto p-5'>
+            <div className='mx-auto w-full max-w-md flex-auto space-y-6 overflow-auto p-5 tabbar-pad'>
                 {!config ? (
                     <p className='text-sm text-slate-600'>
                         Connect this browser to your bucket first, then you can pass that
@@ -95,7 +95,7 @@ const LinkDevice = () => {
                             the endpoint and secret key by hand.
                         </p>
 
-                        <div className='flex items-start gap-3 rounded-lg bg-amber-50 p-4 text-sm text-amber-900'>
+                        <div className='flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900'>
                             <WarningTriangle className='mt-0.5 size-5 shrink-0' />
                             <div>
                                 <div className='font-medium'>The code contains your bucket key</div>
@@ -109,7 +109,7 @@ const LinkDevice = () => {
 
                         {visible ? (
                             <div className='flex flex-col items-center gap-3'>
-                                <div className='rounded-xl bg-white p-3 ring-1 ring-slate-200'>
+                                <div className='rounded-3xl bg-white p-4 shadow-sm'>
                                     <canvas ref={canvasRef} />
                                 </div>
                                 <div className='text-xs text-slate-500'>
@@ -118,7 +118,7 @@ const LinkDevice = () => {
                                 <button
                                     type='button'
                                     onClick={hide}
-                                    className='rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700'
+                                    className='rounded-full bg-white px-5 py-2.5 text-[15px] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5'
                                 >
                                     Hide now
                                 </button>
@@ -127,7 +127,7 @@ const LinkDevice = () => {
                             <button
                                 type='button'
                                 onClick={() => setVisible(true)}
-                                className='flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white'
+                                className='flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-[15px] font-semibold text-white cursor-pointer'
                             >
                                 <QrCode className='size-5' />
                                 Show QR code

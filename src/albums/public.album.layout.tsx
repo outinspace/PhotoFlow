@@ -1,5 +1,4 @@
 import { usePublicAlbum } from '../api/usePublicAlbum';
-import { TopBar } from '../common/top.bar';
 import ItemGrid from '../gallery/item.grid';
 import { ShareUnavailable } from '../common/share.unavailable';
 import { useSharedDocumentUrl } from '../api/useSharedDocumentUrl';
@@ -23,14 +22,11 @@ export const PublicAlbumLayout = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar
-                title={album.name}
-                hideBack
-            />
             <ItemGrid
                 readonly
                 items={album.items}
                 albumId={null}
+                title={album.name}
             />
         </div>
     );

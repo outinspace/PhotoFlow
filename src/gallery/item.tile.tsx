@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Item } from '../types';
-import { HeartSolid } from 'iconoir-react';
+import { Check, HeartSolid } from 'iconoir-react';
 import { observeVisibility } from '../common/visibility.observer';
 import { loadTile } from '../common/tile.loader';
 import { useThumbHashDataUrl } from '../common/thumb.hash.cache';
@@ -160,7 +160,14 @@ export const ItemTile = memo(({ item, onClick, tileSize, isSelected }: Props) =>
                 </div>
             )}
             {isSelected && (
-                <div className='absolute top-0 bottom-0 left-0 right-0 bg-sky-500/50' />
+                <>
+                    <div className='absolute inset-0 bg-white/25 ring-2 ring-inset ring-sky-500' />
+                    {tileSize > 50 && (
+                        <div className='absolute bottom-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-sky-500 text-white ring-2 ring-white shadow'>
+                            <Check className='size-4' strokeWidth={2.5} />
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

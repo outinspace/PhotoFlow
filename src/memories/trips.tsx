@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
+import { parseISO } from 'date-fns';
 import { useTrips } from '../api/useTrips';
 import { ItemStack } from './item.stack';
 import { useNavigate } from '@tanstack/react-router';
+import { CardRow, Section } from './section';
+import { formatDateRange, pluralize } from '../common/format.helpers';
 
 export const Trips = () => {
     const trips = useTrips();
@@ -20,28 +23,21 @@ export const Trips = () => {
     }
 
     return (
-        <>
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-4 px-6">Trips</h2>
-                <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-                    <div className="flex shrink-1 gap-4 pl-6" style={{ width: 'max-content' }}>
-                        {tripsToShow.map((trip) => {
-                            return (
-                                <div key={trip.tripId} className="flex flex-col items-center flex-shrink-0">
-                                    <ItemStack
-                                        items={trip.items}
-                                        onClick={() => handleTripClick(trip.tripId)}
-                                    />
-                                    <div className="mt-2 text-sm font-medium text-center max-w-[300px]">
-                                        {trip.name}
-                                    </div>
-                                </div>
-                            );
-                        })}
+        <Section title='Trips'>
+            <CardRow>
+                {tripsToShow.map(trip => (
+                    <div key={trip.tripId} className='snap-start'>
+                        <ItemStack
+                            items={trip.items}
+                            onClick={() => handleTripClick(trip.tripId)}
+                            width='min(300px, 78vw)'
+                            aspectRatio='4/5'
+                            title={trip.city || trip.region || trip.name}
+                            subtitle={`${formatDateRange(parseISO(trip.startDate), parseISO(trip.endDate))} · ${pluralize(trip.items.length, 'photo')}`}
+                        />
                     </div>
-                </div>
-            </div>
-        </>
+                ))}
+            </CardRow>
+        </Section>
     );
 };
-

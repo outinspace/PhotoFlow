@@ -8,9 +8,15 @@ interface Props {
     width?: string | number;
     fullWidth?: boolean;
     animate?: boolean;
+    aspectRatio?: string;
+    // Shown on a glass label over the bottom of the picture. Without a title the
+    // card shows a photo count instead.
+    title?: string;
+    subtitle?: string;
+    showCount?: boolean;
 }
 
-export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, animate = false }: Props) => {
+export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, animate = false, aspectRatio = '16/9', title, subtitle, showCount = true }: Props) => {
     const randomItemIndex = useMemo(() => {
         if (items.length === 0) {
             return 0;
@@ -77,10 +83,10 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
 
     return (
         <div 
-            className={`relative hover:opacity-90 ${fullWidth ? '' : 'flex-shrink-0'}`}
+            className={`relative cursor-pointer transition-transform active:scale-[0.98] ${fullWidth ? '' : 'flex-shrink-0'}`}
             onClick={() => onClick?.(currentImageIndex)}
         >
-            <div className="relative w-full max-w-200 rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '16/9', width: fullWidth ? '100%' : width }}>
+            <div className="relative w-full max-w-200 rounded-[28px] overflow-hidden bg-slate-300 shadow-sm" style={{ aspectRatio, width: fullWidth ? '100%' : width }}>
                 {indicesToRender.map((index) => {
                     const item = items[index];
                     const isActive = index === currentImageIndex;
@@ -115,12 +121,22 @@ export const ItemStack = ({ items, onClick, width = '300px', fullWidth = false, 
                         </div>
                     );
                 })}
-                <div
-                    className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium"
-                    style={{ zIndex: 3 }}
-                >
-                    {items.length} {items.length === 1 ? 'photo' : 'photos'}
-                </div>
+                {title ? (
+                    <div
+                        className="glass absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-2xl px-3.5 py-2"
+                        style={{ zIndex: 3 }}
+                    >
+                        <div className="text-[15px] font-semibold leading-5 truncate">{title}</div>
+                        {subtitle && <div className="text-xs font-medium leading-4 text-slate-600 truncate">{subtitle}</div>}
+                    </div>
+                ) : showCount && (
+                    <div
+                        className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-xs font-semibold"
+                        style={{ zIndex: 3 }}
+                    >
+                        {items.length} {items.length === 1 ? 'photo' : 'photos'}
+                    </div>
+                )}
             </div>
         </div>
     );

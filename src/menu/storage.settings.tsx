@@ -15,7 +15,7 @@ import { formatBytes } from '../common/format.helpers';
 // The secret key is deliberately never displayed — it is held for signing, not for
 // reading back.
 const Row = ({ label, value }: { label: string; value: string }) => (
-    <div className='border-b border-slate-100 px-4 py-3'>
+    <div className='border-b border-slate-100 last:border-0 px-4 py-3'>
         <div className='text-xs text-slate-500'>{label}</div>
         <div className='mt-0.5 break-all font-mono text-sm text-slate-800'>{value}</div>
     </div>
@@ -32,14 +32,14 @@ const IncomingQueue = () => {
 
     if (queue.count === 0) {
         return (
-            <div className='rounded-lg bg-slate-50 p-4 text-sm text-slate-600'>
+            <div className='rounded-2xl bg-white p-4 text-sm text-slate-600'>
                 Nothing waiting. Everything uploaded has been processed.
             </div>
         );
     }
 
     return (
-        <div className='rounded-lg bg-sky-50 p-4 text-sm text-sky-900'>
+        <div className='rounded-2xl bg-sky-50 p-4 text-sm text-sky-900'>
             <div className='font-medium'>
                 {queue.truncated ? '1000+' : queue.count} file{queue.count === 1 ? '' : 's'} waiting
                 {' · '}{formatBytes(queue.bytes)}
@@ -63,15 +63,15 @@ const ProcessingStatus = () => {
     const { data: catalog } = useCatalog();
 
     return (
-        <div className='space-y-3 border-t border-slate-100 p-4'>
-            <h2 className='text-xs font-semibold uppercase tracking-wide text-slate-500'>Processing</h2>
+        <div className='space-y-3 pt-7'>
+            <h2 className='px-4 text-[13px] font-semibold uppercase tracking-wide text-slate-500'>Processing</h2>
 
             <IncomingQueue />
 
             {isLoading && <div className='text-sm text-slate-500'>Loading…</div>}
 
             {!isLoading && !heartbeat && (
-                <div className='rounded-lg bg-amber-50 p-4 text-sm text-amber-900'>
+                <div className='rounded-2xl bg-amber-50 p-4 text-sm text-amber-900'>
                     No run has been recorded yet. Once the processing job runs for the
                     first time, its result appears here.
                 </div>
@@ -79,7 +79,7 @@ const ProcessingStatus = () => {
 
             {heartbeat && (
                 <>
-                    <div className={`rounded-lg p-4 text-sm ${heartbeat.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'}`}>
+                    <div className={`rounded-2xl p-4 text-sm ${heartbeat.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'}`}>
                         <div className='font-medium'>
                             {heartbeat.ok ? 'Last run succeeded' : 'Last run failed'}
                         </div>
@@ -90,7 +90,7 @@ const ProcessingStatus = () => {
 
                     <div className='space-y-1'>
                         {heartbeat.steps.map(step => (
-                            <div key={step.name} className='flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-sm'>
+                            <div key={step.name} className='flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm'>
                                 <span className={step.failed ? 'text-red-600' : 'text-slate-700'}>{step.name}</span>
                                 <span className='font-mono text-xs text-slate-500'>{step.seconds}s</span>
                             </div>
@@ -98,7 +98,7 @@ const ProcessingStatus = () => {
                     </div>
 
                     {heartbeat.notes.length > 0 && (
-                        <div className='rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-600'>
+                        <div className='rounded-2xl bg-white p-3 font-mono text-xs text-slate-600'>
                             {heartbeat.notes.map((note, index) => <div key={index}>{note}</div>)}
                         </div>
                     )}
@@ -126,7 +126,7 @@ const StorageSettings = () => {
             <div className='flex flex-auto flex-col overflow-hidden'>
                 <TopBar title='Storage' />
 
-                <div className='mx-auto w-full max-w-lg flex-auto overflow-auto p-5'>
+                <div className='mx-auto w-full max-w-lg flex-auto overflow-auto p-5 tabbar-pad'>
                     <StorageConnectionForm
                         submitLabel='Save connection'
                         onCancel={() => setEditing(false)}
@@ -144,9 +144,11 @@ const StorageSettings = () => {
         <div key={savedAt} className='flex flex-auto flex-col overflow-hidden'>
             <TopBar title='Storage' />
 
-            <div className='flex-auto overflow-auto'>
+            <div className='flex-auto overflow-auto tabbar-pad'>
+            <div className='mx-auto w-full max-w-2xl px-5'>
             {config ? (
                 <>
+                    <div className='rounded-2xl bg-white overflow-hidden'>
                     <Row label='Endpoint' value={config.endpoint} />
                     <Row label='Bucket' value={config.bucket} />
                     <Row label='Region' value={`${resolveRegion(config)}${config.region ? '' : ' (from endpoint)'}`} />
@@ -155,12 +157,13 @@ const StorageSettings = () => {
                         label='CDN Base URL'
                         value={config.publicBaseUrl ?? `${config.endpoint}/${config.bucket}/ (bucket, no CDN)`}
                     />
+                    </div>
 
-                    <div className='p-4'>
+                    <div className='pt-4'>
                         <button
                             type='button'
                             onClick={() => setEditing(true)}
-                            className='rounded-md px-3 py-2 text-sm/6 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                            className='rounded-full bg-white px-5 py-3 text-[15px] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 hover:bg-slate-50'
                         >
                             Change connection
                         </button>
@@ -169,8 +172,9 @@ const StorageSettings = () => {
                     <ProcessingStatus />
                 </>
             ) : (
-                <div className='p-4 text-sm text-slate-500'>No storage connected.</div>
+                <div className='rounded-2xl bg-white p-4 text-sm text-slate-500'>No storage connected.</div>
             )}
+            </div>
             </div>
         </div>
     );

@@ -307,21 +307,22 @@ const Map = () => {
             <div ref={containerRef} className='size-full bg-slate-900' />
 
             <button
-                className={`${floatingButtonClasses} absolute bottom-2 left-2 z-10`}
+                className={`${floatingButtonClasses} absolute left-3 z-10`}
+                style={{ bottom: 'calc(var(--tabbar-space) + 12px)' }}
                 onClick={() => setGlobe(!globe)}
                 title={globe ? 'Switch to flat map' : 'Switch to globe'}
                 aria-label={globe ? 'Switch to flat map' : 'Switch to globe'}
             >
                 {globe
-                    ? <MapIcon className='size-6 drop-shadow-sm' />
-                    : <Globe className='size-6 drop-shadow-sm' />}
+                    ? <MapIcon className='size-6' />
+                    : <Globe className='size-6' />}
             </button>
 
             <BottomSheet
                 isOpen={previewItems.length > 0}
                 onDismiss={() => setPreviewItems([])}
             >
-                <div className='flex flex-grow rounded-lg overflow-hidden'>
+                <div className='flex flex-grow rounded-2xl overflow-hidden'>
                     {/* The sheet has its own drag-to-dismiss gesture, which grid pinches
                         would contend with. */}
                     <ItemGrid items={previewItems} albumId={null} disablePinch />

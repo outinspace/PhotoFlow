@@ -23,7 +23,7 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
             isOpen={isOpen}
             onDismiss={onDismiss}
         >
-            <div className='flex-auto p-4'>
+            <div className='flex-auto px-3 pt-2 pb-2 space-y-3'>
                 <BasicInfo item={item} />
                 <CameraMetadata item={item} />
                 <LocationMetadata item={item} />
@@ -35,14 +35,14 @@ const ItemInfoSheet = ({ item, isOpen, onDismiss }: Props) => {
 
 const BasicInfo = ({ item }: { item: Item }) => {
     return (
-        <div className='mb-6'>
+        <div className='rounded-2xl bg-white/70 p-4'>
             <div className='flex items-center gap-2'>
-                <Calendar className='size-5' />
-                <span className='font-medium'>
+                <Calendar className='size-5 text-slate-500' />
+                <span className='text-[17px] font-semibold'>
                     {format(new Date(item.captureTime), 'MMMM d, yyyy')} at {format(new Date(item.captureTime), 'h:mm a')}
                 </span>
             </div>
-            <div className='mt-1 text-sm text-slate-600'>
+            <div className='mt-1 pl-7 text-sm text-slate-600'>
                 Uploaded {format(new Date(item.primaryFile.uploadTimeUtc), 'MMMM d, yyyy')} at {format(new Date(item.primaryFile.uploadTimeUtc), 'h:mm a')}
             </div>
         </div>
@@ -62,9 +62,9 @@ const CameraMetadata = ({ item }: { item: Item }) => {
     ].filter(Boolean);
 
     return (
-        <div className='mb-6'>
+        <div className='rounded-2xl bg-white/70 p-4'>
             <div className='flex items-center gap-2 mb-2'>
-                <Camera className='size-5' />
+                <Camera className='size-5 text-slate-500' />
                 <span className='font-medium'>Camera</span>
             </div>
             <div className='text-sm text-slate-600 mb-1'>
@@ -98,16 +98,16 @@ const LocationMetadata = ({ item }: { item: Item }) => {
     });
 
     return (
-        <div className='mb-6'>
+        <div className='rounded-2xl bg-white/70 p-4'>
             <div className='flex items-center gap-2 mb-2'>
-                <MapPin className='size-5' />
+                <MapPin className='size-5 text-slate-500' />
                 <span className='font-medium'>Location</span>
             </div>
             <div className='text-sm text-slate-600 mb-2'>
                 {item.city && item.region ? `${item.city}, ${item.region}` : 'Unknown location'}
                 {item.altitude && ` (${Math.round(item.altitude)}m)`}
             </div>
-            <div className={`h-48 overflow-hidden rounded border border-slate-200 ${canOpenMap ? 'cursor-pointer' : ''}`} onClick={navigateToMap}>
+            <div className={`h-44 overflow-hidden rounded-xl ${canOpenMap ? 'cursor-pointer' : ''}`} onClick={navigateToMap}>
                 <Suspense fallback={<div className='size-full bg-slate-100' />}>
                     <MiniMap latitude={item.latitude!} longitude={item.longitude!} />
                 </Suspense>
@@ -118,30 +118,36 @@ const LocationMetadata = ({ item }: { item: Item }) => {
 
 const FileMetadata = ({ item }: { item: Item }) => {
     return (
-        <div>
+        <div className='rounded-2xl bg-white/70 p-4'>
             <div className='flex items-center gap-2 mb-2'>
-                <Cloud className='size-5' />
+                <Cloud className='size-5 text-slate-500' />
                 <span className='font-medium'>Files</span>
             </div>
             <div className='space-y-2'>
                 {item.files.map(file => (
-                    <div key={file.fileId} className='flex items-center bg-slate-100 rounded'>
-                        <div className='p-2 flex-none'>
+                    <div key={file.fileId} className='flex items-center gap-1 rounded-xl bg-slate-100'>
+                        <div className='pl-3 flex-none text-slate-500'>
                             {file.contentType.startsWith('image') ? (
                                 <MediaImage className='size-5' />
                             ) : (
                                 <MediaVideo className='size-5' />
                             )}
                         </div>
-                        <div className='border-l border-slate-200 flex-auto p-2 truncate text-ellipsis'>
+                        <div className='flex-auto min-w-0 p-2 truncate text-[15px]'>
                             {file.originalFileName}
                         </div>
-                        <div className='border-l border-slate-200 p-2 flex-none text-sm text-slate-600'>
+                        <div className='p-2 flex-none text-sm text-slate-500'>
                             {formatBytes(file.sizeBytes)}
                         </div>
-                        <div className='border-l border-slate-200 p-2 flex-none hover:bg-slate-200 rounded-r'>
-                            <Download onClick={() => downloadFile(file)} />
-                        </div>
+                        <button
+                            type='button'
+                            onClick={() => downloadFile(file)}
+                            className='flex size-10 flex-none items-center justify-center rounded-full hover:bg-black/5 cursor-pointer'
+                            title='Download'
+                            aria-label={`Download ${file.originalFileName}`}
+                        >
+                            <Download className='size-5' />
+                        </button>
                     </div>
                 ))}
             </div>

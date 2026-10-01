@@ -3,6 +3,8 @@ import { useItems } from '../api/useItems';
 import { subYears, subDays, addDays, subMonths, addMonths, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import ItemPreview from '../gallery/item.preview';
 import { ItemStack } from './item.stack';
+import { Section } from './section';
+import { formatDateRange, pluralize } from '../common/format.helpers';
 
 export const OneYearAgoToday = () => {
     const { data: libraryItems } = useItems();
@@ -73,23 +75,32 @@ export const OneYearAgoToday = () => {
         setPreviewItemIndex(newIndex);
     }, [previewItemIndex, matchingItems.length]);
 
+    // The match widens to a week or a month when the exact day has nothing, so the
+    // label says which days the photos are really from.
+    const dateLabel = useMemo(() => {
+        if (matchingItems.length === 0) return '';
+        const times = matchingItems.map(item => parseISO(item.captureTime).getTime());
+        return formatDateRange(new Date(Math.min(...times)), new Date(Math.max(...times)));
+    }, [matchingItems]);
+
     if (matchingItems.length === 0) {
         return null;
     }
 
     return (
         <>
-            <div className="p-2 mb-6">
-                <h2 className="text-2xl font-bold mb-4 px-4">One Year Ago</h2>
-                <div className="px-4">
+            <Section title='One Year Ago'>
+                <div className="px-5 md:max-w-2xl">
                     <ItemStack
-                        items={matchingItems} 
-                        onClick={handleClick} 
+                        items={matchingItems}
+                        onClick={handleClick}
                         fullWidth
                         animate
+                        title={dateLabel}
+                        subtitle={pluralize(matchingItems.length, 'photo')}
                     />
                 </div>
-            </div>
+            </Section>
             {previewItemIndex !== null && (
                 <ItemPreview
                     items={matchingItems}

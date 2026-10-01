@@ -1,6 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Search as SearchIcon, Xmark, Clock } from 'iconoir-react';
-import PageHeader from '../common/page.header';
+import { Search as SearchIcon, Xmark, Clock, Lock } from 'iconoir-react';
 import ItemGrid from '../gallery/item.grid';
 import { useItems } from '../api/useItems';
 import { useSearch } from '../api/useSearch';
@@ -19,13 +18,13 @@ const EXAMPLE_QUERIES = ['beach', 'birthday cake', 'boats on a lake', 'documents
 const ModelDownload = ({ percent }: { percent: number }) => (
     <div className='space-y-1.5'>
         <span>Setting up search on this device — {percent}%</span>
-        <div className='h-1 w-full max-w-xs overflow-hidden rounded-full bg-slate-200'>
+        <div className='h-1 w-full max-w-xs overflow-hidden rounded-full bg-slate-300'>
             <div
                 className='h-full rounded-full bg-sky-500 transition-[width] duration-300'
                 style={{ width: `${percent}%` }}
             />
         </div>
-        <span className='block text-xs text-gray-400'>One-time download, then it works offline.</span>
+        <span className='block text-xs text-slate-500'>One-time download, then it works offline.</span>
     </div>
 );
 
@@ -60,30 +59,30 @@ const Search = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <div className='p-5 pb-2'>
-                <PageHeader name='Search' />
+            <div className='px-5 pt-4 pb-3'>
+                <h1 className='text-[34px] font-bold tracking-tight text-slate-900 pb-4'>Search</h1>
                 <div className='relative'>
-                    <SearchIcon className='absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400' />
+                    <SearchIcon className='absolute z-10 left-4 top-1/2 -translate-y-1/2 size-5 text-slate-500 pointer-events-none' />
                     <input
                         type='text'
                         autoFocus
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder='Describe what you are looking for…'
-                        className='w-full pl-10 pr-10 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white'
+                        placeholder='Photos, places, things…'
+                        className='glass w-full h-13 pl-12 pr-12 rounded-full text-[17px] placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500'
                     />
                     {query && (
                         <button
                             type='button'
                             onClick={() => setQuery('')}
-                            className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                            className='absolute z-10 right-2 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full text-slate-500 hover:bg-black/5'
                             aria-label='Clear search'
                         >
                             <Xmark className='size-5' />
                         </button>
                     )}
                 </div>
-                <div className='mt-2 text-sm text-gray-500 min-h-5'>
+                <div className='mt-3 px-1 text-sm text-slate-500 min-h-5'>
                     {error && <span className='text-red-600'>Search failed.</span>}
                     {!error && debouncedQuery && isLoadingVectors && <span>Loading search index…</span>}
                     {!error && debouncedQuery && !isLoadingVectors && isDownloadingModel && (
@@ -93,6 +92,12 @@ const Search = () => {
                     {!error && debouncedQuery && !isFetching && results && (
                         <span>{items.length} result{items.length === 1 ? '' : 's'}</span>
                     )}
+                    {!debouncedQuery && (
+                        <span className='flex items-center gap-1.5'>
+                            <Lock className='size-4' />
+                            Searched on this device. Your query never leaves it.
+                        </span>
+                    )}
                 </div>
             </div>
             <div className='flex flex-auto overflow-hidden'>
@@ -100,15 +105,15 @@ const Search = () => {
                     <ItemGrid items={deferredItems} albumId={null} disableFilteringSorting />
                 )}
                 {!debouncedQuery && (
-                    <div className='flex-auto overflow-y-auto px-5 pb-5 space-y-6'>
+                    <div className='flex-auto overflow-y-auto px-5 pt-3 space-y-7 tabbar-pad'>
                         {recent.length > 0 && (
                             <section>
                                 <div className='flex items-center justify-between mb-2'>
-                                    <h2 className='text-sm font-semibold text-gray-500'>Recent</h2>
+                                    <h2 className='text-[13px] font-semibold uppercase tracking-wide text-slate-500'>Recent</h2>
                                     <button
                                         type='button'
                                         onClick={clearRecent}
-                                        className='text-sm text-sky-500 hover:text-sky-600'
+                                        className='text-[15px] font-medium text-sky-600 hover:text-sky-700'
                                     >
                                         Clear
                                     </button>
@@ -119,9 +124,9 @@ const Search = () => {
                                             key={q}
                                             type='button'
                                             onClick={() => setQuery(q)}
-                                            className='flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100'
+                                            className='flex items-center gap-1.5 h-10 px-4 rounded-full bg-white text-[15px] text-slate-800 shadow-sm hover:bg-slate-50 cursor-pointer'
                                         >
-                                            <Clock className='size-4 text-gray-400' />
+                                            <Clock className='size-4 text-slate-400' />
                                             {q}
                                         </button>
                                     ))}
@@ -129,14 +134,14 @@ const Search = () => {
                             </section>
                         )}
                         <section>
-                            <h2 className='text-sm font-semibold text-gray-500 mb-2'>Try searching for</h2>
+                            <h2 className='text-[13px] font-semibold uppercase tracking-wide text-slate-500 mb-2'>Try searching for</h2>
                             <div className='flex flex-wrap gap-2'>
                                 {EXAMPLE_QUERIES.map(q => (
                                     <button
                                         key={q}
                                         type='button'
                                         onClick={() => setQuery(q)}
-                                        className='px-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100'
+                                        className='h-10 px-4 rounded-full bg-white text-[15px] text-slate-800 shadow-sm hover:bg-slate-50 cursor-pointer'
                                     >
                                         {q}
                                     </button>

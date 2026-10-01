@@ -15,8 +15,9 @@ const OVERSCAN_PIXELS = 400;
 // frame of lag before the scroll state catches up.
 const PAN_SLACK = 150;
 
-// Leaves room below the last row for the floating buttons.
-const PADDING_END = 100;
+// Leaves room below the last row for the phone's floating tab bar and the
+// buttons above it.
+const PADDING_END = 140;
 
 export const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 

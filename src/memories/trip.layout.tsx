@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { useTrips } from '../api/useTrips';
 import { parseISO } from 'date-fns';
 import ItemGrid from '../gallery/item.grid';
-import { TopBar } from '../common/top.bar';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useRouter } from '@tanstack/react-router';
 
 export const TripLayout = () => {
     const { tripId } = useParams({ from: '/trip/$tripId' });
     const trips = useTrips();
+    const { history } = useRouter();
 
     const trip = useMemo(() => {
         return trips.find(t => t.tripId === tripId);
@@ -30,10 +30,7 @@ export const TripLayout = () => {
 
     return (
         <div className='flex flex-auto flex-col overflow-hidden'>
-            <TopBar
-                title={trip.name}
-            />
-            <ItemGrid items={tripItems} albumId={null} enableUrlPersistence />
+            <ItemGrid items={tripItems} albumId={null} enableUrlPersistence title={trip.name} onBack={() => history.back()} />
         </div>
     );
 };

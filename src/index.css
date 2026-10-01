@@ -9,7 +9,7 @@
 
 body {
     font-family: "Inter Variable";
-    background: #f8fafc;
+    background: #f1f5f9;
     margin: 0;
     overflow: hidden;
 }
@@ -55,3 +55,87 @@ body {
     animation: filter-panel-in 150ms ease-out;
 }
 
+
+/* Glass. One recipe for controls that float over content, a denser one for
+   panels that hold text (sheets, menus, dialogs), and a dark one for the photo
+   viewer's black backdrop. The blur is recomputed as content scrolls beneath, so
+   it belongs on small or occasional surfaces rather than whole pages. */
+.glass {
+    background: rgb(255 255 255 / 0.62);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / 0.7);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 8px 28px rgb(15 23 42 / 0.14);
+    color: #0f172a;
+}
+
+.glass-panel {
+    background: rgb(248 250 252 / 0.84);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 50px rgb(15 23 42 / 0.22);
+    color: #0f172a;
+}
+
+.glass-dark {
+    background: rgb(40 40 44 / 0.5);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 8px 24px rgb(0 0 0 / 0.3);
+    color: #fff;
+}
+
+/* Room the phone's floating tab bar takes at the bottom of the screen. Pages
+   pad their scrolling content by it, and floating controls sit above it. It is
+   zero on desktop, where navigation is a sidebar, and inside sheets, which cover
+   the tab bar. */
+:root {
+    --tabbar-space: 88px;
+}
+
+@media (display-mode: standalone) {
+    :root {
+        --tabbar-space: 112px;
+    }
+}
+
+@media (min-width: 768px) {
+    :root {
+        --tabbar-space: 0px;
+    }
+}
+
+.tabbar-pad {
+    padding-bottom: calc(var(--tabbar-space) + 24px);
+}
+
+/* MapLibre draws its own controls; these match them to the glass buttons. Its
+   stylesheet loads with the map, after this one, so these rules are scoped under
+   the map to outrank it. */
+.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+    background: rgb(255 255 255 / 0.62);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / 0.7);
+    border-radius: 22px;
+    box-shadow: 0 8px 28px rgb(15 23 42 / 0.14);
+    overflow: hidden;
+}
+
+.maplibregl-map .maplibregl-ctrl-group button {
+    width: 44px;
+    height: 44px;
+    background-color: transparent;
+}
+
+.maplibregl-map .maplibregl-ctrl-top-right {
+    top: 8px;
+    right: 8px;
+}
+
+.maplibregl-map .maplibregl-ctrl-bottom-left,
+.maplibregl-map .maplibregl-ctrl-bottom-right {
+    bottom: var(--tabbar-space);
+}
